@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login | GYS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #111;
+      font-family: 'Orbitron', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #00ffff;
+    }
+    .box {
+      background: rgba(0, 0, 0, 0.8);
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px #00ffff;
+      width: 320px;
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+      background: #222;
+      color: white;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #00ffff;
+      color: black;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .error {
+      color: red;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2>Member Login</h2>
+  <input type="text" id="username" placeholder="Username">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <p class="error" id="login-error"></p>
+  <p>Don't have an account? <a href="signup.html" style="color: #0ff;">Sign up</a></p>
+</div>
+
+<script>
+  function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const storedPassword = localStorage.getItem(`user-${username}`);
+    const error = document.getElementById("login-error");
+
+    if (!username || !password) {
+      error.textContent = "Fill all fields.";
+      return;
+    }
+
+    if (!storedPassword) {
+      error.textContent = "User not found.";
+    } else if (storedPassword !== password) {
+      error.textContent = "Incorrect password.";
+    } else {
+      localStorage.setItem("gys-logged-in", username);
+      window.location.href = "home.html";
+    }
+  }
+</script>
+
+</body>
+</html>
+

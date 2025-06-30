@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FAQs - Frequently Asked Questions</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #fff;
+      background: linear-gradient(-45deg, #1e3c72, #2a5298, #1e3c72, #2a5298);
+      background-size: 400% 400%;
+      animation: bgAnim 15s ease infinite;
+    }
+
+    @keyframes bgAnim {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+      header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      color: white;
+      padding: 10px 20px;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 25px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 12px;
+      box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .faq-item {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #444;
+    }
+
+    .faq-question {
+      cursor: pointer;
+      padding: 15px;
+      font-size: 1.1em;
+      background: #2c3e50;
+      border-radius: 8px;
+      transition: background 0.3s;
+    }
+
+    .faq-question:hover {
+      background: #34495e;
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: all 0.4s ease;
+      padding: 0 15px;
+      background: #1c2833;
+      border-radius: 0 0 8px 8px;
+    }
+
+    .faq-answer.open {
+      max-height: 300px;
+      padding: 15px;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 15px;
+      }
+      .faq-question {
+        font-size: 1em;
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+<nav>
+    <button onclick="location.href='INDEX.html'">Home</button>
+    <button onclick="location.href='details.html'">Details</button>
+    <button onclick="location.href='faq.html'">FAQ</button>
+    <button onclick="location.href='about us.html'">About Us</button>
+</header>
+  </nav> 
+
+  <div class="container">
+    <h1>❓ Frequently Asked Questions</h1>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">1. What is this website for?</div>
+      <div class="faq-answer">It offers interactive quizzes, cricket challenges, and educational tools for curious minds and sports lovers.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">2. Is the cricket quiz free?</div>
+      <div class="faq-answer">Yes, all quizzes on this platform are completely free to use and enjoy.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">3. Can I suggest a quiz topic?</div>
+      <div class="faq-answer">Definitely! Use the contact form or email us your suggestion anytime.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">4. Will you add more cricket content?</div>
+      <div class="faq-answer">Yes! We regularly update with fresh trivia, records, and expert-level cricket puzzles.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">5. Do I need to create an account?</div>
+      <div class="faq-answer">No registration is required — just open and play!</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">6. Can I track my score?</div>
+      <div class="faq-answer">Basic quizzes don't store results, but we’re working on leaderboard and user profiles soon.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">7. Are the quizzes time-based?</div>
+      <div class="faq-answer">Yes, some quizzes include countdown timers for added challenge.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">8. Do you support mobile users?</div>
+      <div class="faq-answer">Absolutely. The site is mobile-optimized for all screen sizes.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">9. Can I share my quiz results?</div>
+      <div class="faq-answer">Yes! After finishing a quiz, you can screenshot or copy your score to share it.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">10. Will there be a leaderboard?</div>
+      <div class="faq-answer">We're working on global and local leaderboards to foster competitive fun.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">11. Do you have IPL or Test cricket quizzes?</div>
+      <div class="faq-answer">Yes! We cover all formats — IPL, Tests, ODIs, and T20s, including history and stats.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">12. Can I request team-based trivia?</div>
+      <div class="faq-answer">Sure! We love building content around user requests like team challenges or era-based quizzes.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">13. Do you cover women's cricket too?</div>
+      <div class="faq-answer">Yes. We’re expanding quizzes on women's cricket legends, records, and matches.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">14. Is there a dark mode?</div>
+      <div class="faq-answer">You're already in dark mode! We design for comfort and style.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFAQ(this)">15. How do I contact support?</div>
+      <div class="faq-answer">Email us at: <strong>support@example.com</strong> or use the “Contact” link in the footer.</div>
+    </div>
+  </div>
+
+  <script>
+    function toggleFAQ(element) {
+      const answer = element.nextElementSibling;
+      answer.classList.toggle('open');
+    }
+  </script>
+
+</body>
+</html>
+
