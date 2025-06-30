@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Details</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      background-color: #f8f9fa;
+      color: #202122;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    header {
+      background-color: #e9ecef;
+      padding: 10px 20px;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .toggle-switch {
+      display: flex;
+      align-items: center;
+    }
+    .toggle-switch input {
+      margin-left: 10px;
+    }
+
+    .main-container {
+      display: flex;
+      max-width: 1200px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .sidebar {
+      width: 200px;
+      margin-right: 20px;
+      position: sticky;
+      top: 20px;
+      height: fit-content;
+    }
+    .sidebar ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    .sidebar ul li {
+      margin-bottom: 8px;
+    }
+    .sidebar ul li a {
+      text-decoration: none;
+      color: #0074d9;
+    }
+
+    .content {
+      flex: 1;
+    }
+    .infobox {
+      float: right;
+      width: 250px;
+      margin: 0 0 20px 20px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    .infobox img {
+      width: 100%;
+      height: auto;
+    }
+    .infobox caption {
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    h2 {
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5px;
+      margin-top: 30px;
+    }
+
+    .search-bar {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+    .search-bar input {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .search-results-count {
+      margin-left: 10px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .print-btn {
+      margin-bottom: 20px;
+    }
+    .print-btn button {
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background-color: #0074d9;
+      color: white;
+    }
+
+    mark {
+      background-color: #ffff88;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    /* Dark mode */
+    body.dark-mode {
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    body.dark-mode .sidebar ul li a {
+      color: #80d4ff;
+    }
+    body.dark-mode .infobox {
+      background-color: #1e1e1e;
+      border-color: #444;
+    }
+    body.dark-mode header {
+      background-color: #1f1f1f;
+      border-color: #333;
+    }
+  </style>
+</head>
+<body>
+   
+  <header>
+    <h1>G.Y.S Syndicate</h1>
+    <div class="toggle-switch">
+      <label for="darkModeToggle">Dark Mode</label>
+      <input type="checkbox" id="darkModeToggle">
+    </div>
+     <nav>
+    <button onclick="location.href='INDEX.html'">Home</button>
+    <button onclick="location.href='details.html'">Details</button>
+    <button onclick="location.href='faq.html'">FAQ</button>
+    <button onclick="location.href='about us.html'">About Us</button>
+  </nav>
+  </header>
+
+  <div class="main-container">
+    <nav class="sidebar">
+      <ul>
+        <li><strong>Contents</strong></li>
+        <li><a href="#plot">Early Life</a></li>
+        <li><a href="#cast">The Base</a></li>
+        <li><a href="#production">Rise of Akshay</a></li>
+        <li><a href="#Rise of SID and So">Rise of SID and So</a></li>
+        <li><a href="#RCT">RCT and Pratyush's recruitment</a></li>
+        <li><a href="#IPL">The Base</a></li>
+        <li><a href="#Paper Cric">Paper Cricket</a></li>
+        <li><a href="#ASHES">ASHES</a></li>
+        <li><a href="#Term 2">Term 2 - Expansion to 7</a></li>
+        <li><a href="#Dominance of Test and ODIs - SOHAM"></a></li>
+        <li><a href="#Decline">Decline and aftermaths</a></li>
+        <li><a href="#Records">Records</a></li>
+        <li><a href="#Trophies">Trophies</a></li>
+        <li><a href="#One last time">One last time - Akshay</a></li>
+        <li><a href="#Final Ashes">Final Ashes and SO - AK country series</a></li>
+      </ul>
+    </nav>
+
+    <div class="content">
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search in article...">
+        <div id="matchCount" class="search-results-count"></div>
+      </div>
+
+      <div class="print-btn">
+        <button onclick="window.print()">🖨️ Print to PDF</button>
+      </div>
+
+      <div class="infobox">
+        <img src="26719ac2-28ab-4f2e-bf11-7033093f3cc4.png" alt="83 poster">
+        <caption>Theatrical release poster</caption>
+      </div>
+
+      <p><strong>G.Y.S </strong> is one of the most successful syndicates which is a sport-based and members friendly group. The group was united in April, 2024 with the ideology to show the spirit and skills to the world. The group has faced many challenges but everytime they overcame from it. Main sport played amongst them is Cricket and Football. The group was found by the founders of the legitimate council, ACC(Apna Cricket Council).</p>
+      <h2 id="plot">Early life and History</h2>
+      <p>Once upon a time, In the Army Public School of Delhi, class 8th students Siddhant and Akshay thought of a game which would revolutionize the whole school students, ODD - EV. This is a hand game played between 2 players in which the player takes out no. of fingers to score runs or eliminate the opponent if the no. of fingers are same with some certain rules. This game was released way back in medieval period. But this game is now a days prevelent in student for the sake of enjoyment or tournamnts. Back to topic, The main fault they found was that the game was not organised and no statistics can be recorded. Hence, the founders created a organised form of ODD - EV in which a copy was used so as to record every delivery and runs conceeded in a systematic manner. Soham, Sidhhant and Akshay were the pioneers of this revolution now! Harsh, the witness, was also a part but usually played an unorganised way of Hand cricket.</p>
+      
+      <h2 id="cast">ACC - The base of revolution</h2>
+      <p>All the three founder formed a new council ACC, Apna Cricket Council, First match was played between Siddhant and Akshay , 7 over ODI match won by Siddhant. It was an uofficial match just to test the game which went smooth. It was then decided to conduct an Auction to make a squad of imaginary players. Budget was fixed and First Auction took place. First Tournament was organised by the council which as a 7 over long ODI. SohamXI's became the winner of the inaugral season by defeating mighty SidXI's in th final. Pat Cummins hit the first half century of the ACC and Jofra Archer to the first 5 wkt haul. Then came the T20 Tournament, 4 over long match. AkshayXI's hold the first T20 trophy by defeating the SidXI's again. </p>
+
+      <h2 id="production">Rise of Akshay and Test Cricket</h2>
+      <p>Since then Akshay ruled the series matches and T20 formats upholding 3 consecutive T20 trophies. Soham had a great decline in the tournament areas but was quite stable enough in series. Sidhhant's Team on the other hand was successful to grab a no. of trophies. It was from July to August, Akshay was on its peek with a number of records such as - Fastest Fifty(9 balls,Rohit Sharma), Best Bowling Figure(9-16, Trent Boult), Team who made his opponent crumble under a minute score of only 10(against Siddhant), Most consecutive win of 10 matches(against Soham) and many more. Siddhant was his toughest rivalry. Between all these, Soham came up with an idea of Test format. The idea was approved and the inaugral match was scheduled between Soham and Akshay. Soham won the match. Till the month of August, Akshay ruled the Council. His Team consisted of batsman like - Rohit Sharma, Temba Bavuma and other explosives. He had bowlers like - Trent Boult, James Anderson. All were in great form. So far he had - 3 T20 CUPS, 1 WTC MACE, 0 ODI CUPS.</p>
+
+      <h2 id="release">Rise of Siddhant and Soham</h2>
+      <p>These were days before Halfy yearly examinations, Siddhant prepared something strategical and had the potential to destroy the line up. Soham now was under great repression and needed a strong comback through grabbing a trophy or be mighty winner against both monsters. After the reign of Akshay, SidXI's saw a great upgrade in his statistics he did this by winning ODIs and Tests. One day in a test match, there was tense situation between Akshay and Sid. Sid required 3 runs to write history and Akshay never wanted this to happen. After a tense pressure Sid grabbed those 3 runs and became the first team to get a century! It was Kane Williamson who did this marvellous job. SidXI's didn't stopped here, He grabed 3 consecutive ODI trophies with a great batting and bowling performance. </p>
+    </div>
+  </div>
+
+  <script>
+    const toggle = document.getElementById('darkModeToggle');
+    toggle.addEventListener('change', () => {
+      document.body.classList.toggle('dark-mode');
+    });
+
+    const searchInput = document.getElementById('searchInput');
+    const contentArea = document.querySelector('.content');
+    const paragraphs = contentArea.querySelectorAll('p, h2');
+    const matchCount = document.getElementById('matchCount');
+
+    let lastMatch = null;
+    let noMatchMessage = document.createElement('div');
+    noMatchMessage.id = 'noMatch';
+    noMatchMessage.style.color = 'red';
+    noMatchMessage.style.marginTop = '10px';
+    noMatchMessage.style.display = 'none';
+    noMatchMessage.textContent = 'No matches found.';
+    searchInput.insertAdjacentElement('afterend', noMatchMessage);
+
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.trim().toLowerCase();
+      let matchFound = false;
+      let matchCounter = 0;
+
+      paragraphs.forEach(p => {
+        p.innerHTML = p.textContent;
+      });
+
+      if (query !== '') {
+        paragraphs.forEach(p => {
+          const text = p.textContent.toLowerCase();
+          if (text.includes(query)) {
+            matchFound = true;
+            const regex = new RegExp(`(${query})`, 'gi');
+            p.innerHTML = p.textContent.replace(regex, '<mark>$1</mark>');
+            matchCounter++;
+
+            if (!lastMatch) {
+              lastMatch = p;
+              p.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+        });
+      }
+
+      if (!matchFound) {
+        noMatchMessage.style.display = 'block';
+        matchCount.textContent = '';
+        lastMatch = null;
+      } else {
+        noMatchMessage.style.display = 'none';
+        matchCount.textContent = `${matchCounter} match${matchCounter > 1 ? 'es' : ''} found`;
+      }
+
+      if (query === '') {
+        lastMatch = null;
+        noMatchMessage.style.display = 'none';
+        matchCount.textContent = '';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <title>Are Good Yaar!</title>
+  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: white;
+      background:#9c2a2a;
+    }
+     p {
+      font-size: 20px;
+      font-style: italic;
+      text-align: center;
+        }
+
+    /* Starry background container */
+    #particles-js {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    /* Header styling */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      color: white;
+      padding: 10px 20px;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    /* Cursor particle dot style */
+.cursor-dot {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  background: cyan;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10000;
+  opacity: 0.7;
+  transition: transform 0.2s ease-out;
+  mix-blend-mode: screen;
+}
+
+/* Button hover pulse */
+.nav-buttons button:hover {
+  animation: pulse 0.6s ease-in-out;
+  box-shadow: 0 0 12px cyan;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.ripple {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  border: 2px solid cyan;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  animation: ripple-effect 0.6s ease-out forwards;
+  mix-blend-mode: screen;
+}
+
+@keyframes ripple-effect {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(8);
+    opacity: 0;
+  }
+}
+.container {
+  margin: 0 auto;          /* Center horizontally */
+  max-width: 1000px;        /* Set a width */
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;
+  padding: 10px;
+  gap: 100px;
+}
+
+
+    .container img {
+      width: 700px; /* Resize image as needed */
+      height: auto;
+      margin-right: 20px;
+    }
+
+    .container .text {
+      font-size: 36px;
+      color: #fffff;
+      font-style: italic;
+    }
+
+
+
+    /* Navigation buttons */
+    .nav-buttons button {
+      background-color: #cc4e4e;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      padding-left: 70px
+      margin-left: 20px;
+      cursor: pointer;
+    }
+
+    .nav-buttons button:hover {
+      background-color: #cc4e4e;
+    }
+
+    /* Main content spacing */
+    main {
+      padding: 100px 20px;
+      
+    }
+
+    /* Music toggle button styling */
+    #music-toggle {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      z-index: 1100;
+      background: rgba(0, 0, 0, 0.5);
+      border: none;
+      color: white;
+      font-size: 20px;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+ .cyberpunk-text {
+      font-family: 'Orbitron', sans-serif;
+      color: #00ffff; /* Neon cyan */
+      text-shadow: 
+        0 0 5px #fff700,
+        0 0 10px #fff700,
+        0 0 20px #fff700,
+        0 0 40px #0ff;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin: 50px;
+    }
+  footer {
+  background-color: #121212;
+  color: white;
+  padding: 40px 20px;
+  font-size: 14px;
+}
+.footer-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: auto;
+}
+.footer-section {
+  flex: 1 1 200px;
+  margin: 10px;
+}
+.footer-section h4 {
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+}
+.footer-section ul li {
+  margin-bottom: 5px;
+}
+.footer-section ul li a {
+  color: white;
+  text-decoration: none;
+}
+.footer-bottom {
+  max-width: 1200px;
+  margin: 20px auto 0;
+  border-top: 1px solid #444;
+  padding-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+
+.latest-news {
+  background-color: #1a1a1a;
+  color: #0ff;
+  padding: 60px 20px;
+  text-align: center;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.latest-news h2 {
+  font-size: 36px;
+  margin-bottom: 40px;
+  text-shadow: 0 0 10px #0ff;
+}
+
+.news-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+}
+
+.news-card {
+  background-color: #222;
+  padding: 20px;
+  max-width: 300px;
+  border: 1px solid #0ff;
+  border-radius: 10px;
+  box-shadow: 0 0 12px #00ffff66;
+  transition: transform 0.3s ease;
+}
+
+.news-card:hover {
+  transform: scale(1.05);
+}
+@keyframes neonGlow {
+  0% { text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff; }
+  50% { text-shadow: 0 0 20px #00ffff, 0 0 30px #0ff; }
+  100% { text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff; }
+}
+
+#welcome-section h1 {
+  animation: neonGlow 2s infinite;
+}
+#welcome-section {
+      height: 175vh;
+      width: 210vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      transition: background-image 1.5s ease-in-out;
+    }
+
+    #welcome-section::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1;
+    }
+
+    .welcome-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .welcome-content h1 {
+      font-size: 48px;
+      color: cyan;
+      text-shadow: 0 0 15px cyan;
+    }
+
+    .welcome-content p {
+      font-size: 22px;
+      color: yellow;
+      text-shadow: 0 0 10px yellow;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1a0000 url('bg-stars.png') repeat;
+      font-family: 'Orbitron', sans-serif;
+      color: #fff;
+    }
+    section {
+      padding: 60px 20px;
+      background: transparent;
+    }
+    .intro-text {
+      text-align: center;
+      color: #ffcc66;
+      font-style: italic;
+      font-size: 18px;
+      margin-bottom: 40px;
+    }
+    .card-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+    }
+    .card {
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid #00ffff;
+      border-radius: 16px;
+      box-shadow: 0 0 20px #00ffff;
+      padding: 20px;
+      width: 350px;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px #00ffff;
+    }
+    .card img {
+      width: 100%;
+      border-radius: 12px;
+    }
+    .card p {
+      color: #cccccc;
+      margin-top: 15px;
+      font-size: 15px;
+      text-align: justify;
+    }
+OL{
+   text-align : center;
+}
+
+h1{
+   text-align : center;
+}
+ nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 30px;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+
+
+.welcome-section {
+      position: relative;
+      height: 100vh;
+      background: url('bg1.jpg') no-repeat center center/cover;
+      animation: bgSlide 20s infinite ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes bgSlide {
+      0%   { background-image: url('bg1.jpg'); }
+      25%  { background-image: url('bg2.jpg'); }
+      50%  { background-image: url('bg3.jpg'); }
+      75%  { background-image: url('bg4.jpg'); }
+      100% { background-image: url('bg1.jpg'); }
+    }
+
+    .welcome-overlay {
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(12px);
+      padding: 50px 30px;
+      border-radius: 20px;
+      text-align: center;
+      animation: fadeIn 2s ease-out;
+      max-width: 90%;
+    }
+
+    .neon-title {
+      font-size: 3.5rem;
+      color: #00f9ff;
+      text-shadow: 0 0 10px #00f9ff, 0 0 20px #0ff, 0 0 40px #0ff;
+      margin-bottom: 20px;
+    }
+
+    .subtext {
+      font-size: 1.3rem;
+      color: #ffdd00;
+      text-shadow: 0 0 5px #ffdd00;
+      font-style: italic;
+    }
+
+    .scroll-down {
+      display: inline-block;
+      margin-top: 30px;
+      font-size: 1.5rem;
+      color: #00f9ff;
+      text-decoration: none;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(10px); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+.nav-buttons button {
+  z-index: 2000; /* Higher than everything else */
+  position: relative;
+}
+
+  </style>
+</head>
+<body>
+  
+  </div>
+  <div id="particles-js"></div>
+
+  <audio id="bg-music" autoplay loop>
+    <source src="World Record 175_.mp3" type="audio/mpeg">
+  </audio>
+  <button id="music-toggle" onclick="toggleMusic()">🔊</button>
+<nav>
+   <header>
+  <h2>G.Y.S Syndicate</h2>
+  <div class="nav-buttons">
+    <button><a href="Home.html" class="nav-link">Home</a></button>
+    <button><a href="Details.html" class="nav-link">Details</a></button>
+    <button><a href="FAQ.html" class="nav-link">FAQ</a></button>
+    <button><a href="About Us.html" class="nav-link">About Us</a></button>
+
+  </div>
+</header>
+</nav>
+<section class="welcome-section" id="welcome">
+    <div class="welcome-overlay">
+<div class="cyberpunk-text">
+   <main>
+   <h1 class="neon-title">WELCOME TO</h1>
+      <p class="subtext">THE OFFICIAL WEBSITE OF THE ELITES</p>
+      <a href="#details" class="scroll-down">▼ Explore</a>
+    </main> 
+</div>
+</div>
+  </section>
+<HR>
+ <section>
+    <div class="intro-text">
+      This website is designed and dedicated by Good Yaar Syndicate, one of the most successful cartels.<br>
+      Here, you can gather infos about our syndicate such as history, records, ideology, working principles, and all other data about our members. Go on and Explore!
+    </div>
+
+    <div class="card-container">
+
+      <!-- Card 1 -->
+      <div class="card">
+        <img src="Screenshot 2025-05-08 210251.jpg" alt="GYS Logo">
+        <p>
+          This logo defines our excellence, courage and enthusiasm. It marks the symbol of greatness that our cartel has achieved after immense hard and smart work.
+        </p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card">
+        <img src="Screenshot 2025-06-13 235302.jpg" alt="Cricket Logo">
+        <p>
+          This image specifies the divine sport of cricket which is the official sport of our syndicate. Discipline, Coordination, Aim, Strength and brilliance are some qualities of it, so does our syndicate.
+        </p>
+      </div>
+      <div class="card">
+        <img src="Screenshot 2025-06-13 235941.jpg" alt="Cricket Logo">
+        <p>
+          This image specifies the impressive sport of football which is the official sport of our syndicate. Aggretion, Pace, Frame, Co ordination and Power are some qualities of it, so does our syndicate.
+        </p>
+      </div>
+
+    </div>
+  </section>
+<hr>
+<br> 
+ <section >
+    <H1 id ="Developer">Developer's Edition</H1>
+    <div class="card-container">
+
+      <!-- Card 1 -->
+      <div class="card">
+        <img src="Screenshot 2025-06-14 131618.jpg" alt="GYS Logo">
+        <p>
+         This was the group of ACC , the Apna Cricket Council. This was the first group which initiated organized and systematic operations. The group usually played Hand cricket and Paper ball cricket. 
+        </p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card">
+        <img src="Screenshot 2025-06-14 132317.jpg" alt="Cricket Logo">
+        <p>
+          This is a new created group which deals with offical matches of cricket. The group was initiated by Ayush Down. This intended to unite the players to show their skill on a great platform.
+        </p>
+      </div>
+      
+    </div>
+  </section>
+
+<hr><br>
+
+<H1 id = "Meet">Meet Our Leaders</H1>
+<P><OL>
+  <LI>SIDDHANT - OWNER(1)</LI>
+  <LI>SOHAM - OWNER(2)</LI>
+  <LI>PRATYUSH - CO OWNER</LI>
+  <LI>AKSHAY - OWNER (3)</L1>
+  <li>AYUSH UP - FULL MEMBER</LI>
+  <LI>AYUSH DOWN - FULL MEMBER</LI>
+  <LI>ABHINAV - FULL MEMBER</LI>
+  <LI>HARSH - FULL MEMBER</LI>
+  <LI>DEVESH- FULL MEMBER</LI>
+  <LI>ANURAG - FULL MEMBER</LI>
+  <LI>DEBOJIT - ASSOCIATE MEMBER</LI>
+  <LI>PRASHANT - ASSOCIATE MEMBER</LI>
+  <LI>HARSHIT - ASSOCIATE MEMBER</LI>
+  <LI>LAKSHAY- ASSOCIATE MEMBER</LI>
+  <LI>AKSHINTYA - ASSOCIATE MEMBER</LI>
+  <LI>RAJVEER - ASSOCIATE MEMBER</LI>
+  <LI>NAYAN - ASSOCIATE MEMBER</LI>
+  <LI>SHAURYA - ASSOCIATE MEMBER</LI>
+  <LI>KANISHKA - ASSOCIATE MEMBER</LI>
+  <LI>NITIN - ASSOCIATE MEMBER</LI>
+  <LI>AADISH - ASSOCIATE MEMBER</LI>
+  <LI>AGAMJOT - ASSOCIATE MEMBER</LI>
+  <LI>ARAW - ASSOCIATE MEMBER</LI>
+  <LI>KAUSTUBH - ASSOCIATE MEMBER</LI>
+  <LI>AARUSH - ASSOCIATE MEMBER</LI>
+</OL>
+</P>
+<section class="latest-news">
+  <h2>🧪 Latest from the Lab</h2>
+  <div class="news-container">
+    <div class="news-card">
+      <h3>🚨 Syndicate Revives PaperBall Cricket</h3>
+      <p>Glorious past will be rewritten and renewed through this step, says Soham</p>
+    </div>
+    <div class="news-card">
+      <h3>📡 <br>Online Recruitment system unlocked !</h3>
+      <p>Featuring more interactive way to expand the membership.</p>
+    </div>
+    <div class="news-card">
+      <h3>🕵️ <br>New Offical Website for the cartel</h3>
+      <p>Elite members are on their way to create history.</p>
+    </div>
+  </div>
+</section>
+<div id="cursor-dot" class="cursor-dot"></div>
+
+<footer>
+  <div class="footer-top">
+    <div class="footer-section">
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#Meet">Leadership</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-section">
+      <h4>Support</h4>
+      <ul>
+        <li><a href="CRICSURV.html">Join Us!</a></li>
+        </ul>
+    </div>
+    <div class="footer-section">
+      <h4>Developers</h4>
+      <ul>
+        <li><a href="#Developer">Developer Edition</a></li>
+        <li><a href="#">Enterprise</a></li>
+        <li><a href="#">Game</a></li>    
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© Produced by the Ministry of Documentation.</p>
+    <div>
+      <a href="Privacy Policies.html" style="margin-right: 10px; color: white;">Privacy</a>
+      <a href="TERMS.html" style="margin-right: 10px; color: white;">Terms</a>
+      <a href="#" style="color: white;">About</a>
+    </div>
+  </div>
+</footer>
+ 
+  <!-- Particles.js config --><!-- AOS and Particles Init -->
+  <script>
+   particlesJS("particles-js", {
+      particles: {
+        number: { value: 80 },
+        color: { value: "#00ffff" },
+        shape: { type: "circle" },
+        opacity: { value: 0.6 },
+        size: { value: 3 },
+        move: { speed: 1 }
+      }
+    });
+
+    // Music toggle logic
+  const music = document.getElementById("bg-music");
+  const toggleButton = document.getElementById("music-toggle");
+
+  function toggleMusic() {
+    if (music.paused) {
+      music.play();
+      toggleButton.textContent = "🔊"; // Sound on
+    } else {
+      music.pause();
+      toggleButton.textContent = "🔇"; // Sound off
+    }
+  }
+   
+  // Cursor glow trail effect
+  const cursorDot = document.getElementById('cursor-dot');
+  document.addEventListener('mousemove', e => {
+    cursorDot.style.left = e.clientX + 'px';
+    cursorDot.style.top = e.clientY + 'px';
+  });
+
+  // Optional: Add trailing clones for more advanced streaks
+  const trail = [];
+  for (let i = 0; i < 10; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'cursor-dot';
+    dot.style.opacity = (0.7 - i * 0.05).toString();
+    document.body.appendChild(dot);
+    trail.push(dot);
+  }
+
+  let mouseX = 0, mouseY = 0;
+  document.addEventListener('mousemove', e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  });
+
+  function animateTrail() {
+    let x = mouseX;
+    let y = mouseY;
+    for (let i = 0; i < trail.length; i++) {
+      const dot = trail[i];
+      setTimeout(() => {
+        dot.style.left = x + 'px';
+        dot.style.top = y + 'px';
+      }, i * 10);
+    }
+    requestAnimationFrame(animateTrail);
+  }
+  animateTrail();
+  
+  // Ripple distortion on click
+  document.addEventListener('click', function(e) {
+    const ripple = document.createElement('div');
+    ripple.classList.add('ripple');
+    ripple.style.left = (e.clientX - 10) + 'px';
+    ripple.style.top = (e.clientY - 10) + 'px';
+    document.body.appendChild(ripple);
+
+    setTimeout(() => {
+      ripple.remove();
+    }, 600); // Duration of ripple-effect animation
+  });
+
+
+  const backgrounds = [
+      'Screenshot 2025-06-14 132317.jpg',
+      'Screenshot 2025-06-14 131618.jpg',
+      'Screenshot 2025-05-08 210251.jpg'
+    ];
+
+    let current = 0;
+    const section = document.getElementById("welcome-section");
+
+    function switchBackground() {
+      section.style.backgroundImage = `url('${backgrounds[current]}')`;
+      current = (current + 1) % backgrounds.length;
+    }
+
+    switchBackground();
+    setInterval(switchBackground, 5000);
+
+
+ 
+</script>
+
+</body>
+</html>

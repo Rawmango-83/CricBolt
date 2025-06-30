@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cricket Match Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f9f9f9; }
+    header { background: #2c3e50; color: white; padding: 1rem; text-align: center; }
+    section { padding: 1rem; margin: 1rem; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h2 { color: #2c3e50; }
+    canvas { width: 100% !important; max-height: 300px; }
+    input { margin: 0.5rem 0; padding: 0.5rem; width: 80%; max-width: 300px; display: block; }
+    button { padding: 0.5rem 1rem; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Cricket Match Analytics Dashboard</h1>
+  </header>
+
+  <section>
+    <h2>1. Win Probability</h2>
+    <input type="number" id="wp-runs" placeholder="Runs Required">
+    <input type="number" id="wp-balls" placeholder="Balls Remaining">
+    <input type="number" id="wp-wickets" placeholder="Wickets in Hand">
+    <button onclick="calculateWinProbability()">Submit</button>
+    <p id="winProb">Win Probability: --%</p>
+  </section>
+
+  <section>
+    <h2>2. DLS Par Score (Mock)</h2>
+    <input type="number" id="dls-overs" placeholder="Overs Remaining">
+    <input type="number" id="dls-wickets" placeholder="Wickets Lost">
+    <button onclick="calculateDLS()">Submit</button>
+    <p id="dlsPar">Par Score: --</p>
+  </section>
+
+  <section>
+    <h2>3. Net Run Rate (NRR)</h2>
+    <input type="number" id="nrr-scored" placeholder="Runs Scored">
+    <input type="number" id="nrr-faced" placeholder="Overs Faced">
+    <input type="number" id="nrr-conceded" placeholder="Runs Conceded">
+    <input type="number" id="nrr-bowled" placeholder="Overs Bowled">
+    <button onclick="calculateNRR()">Submit</button>
+    <p id="nrr">NRR: --</p>
+  </section>
+
+  <section>
+    <h2>4. Par Score</h2>
+    <input type="number" id="par-overs" placeholder="Overs Played">
+    <input type="number" id="par-wickets" placeholder="Wickets Lost">
+    <button onclick="calculateParScore()">Submit</button>
+    <p id="parScore">Par Score: --</p>
+  </section>
+
+  <section>
+    <h2>5. Player Impact Rating</h2>
+    <input type="number" id="impact-runs" placeholder="Runs Scored">
+    <input type="number" id="impact-wickets" placeholder="Wickets Taken">
+    <input type="number" id="impact-catches" placeholder="Catches Taken">
+    <button onclick="calculateImpactRating()">Submit</button>
+    <p id="impact">Rating: --</p>
+  </section>
+
+  <section>
+    <h2>6. Worm Graph</h2>
+    <input type="text" id="worm-input" placeholder="Enter cumulative scores (comma-separated)">
+    <button onclick="updateWormGraph()">Submit</button>
+    <canvas id="wormChart"></canvas>
+  </section>
+
+  <section>
+    <h2>7. Manhattan Graph</h2>
+    <input type="text" id="manhattan-input" placeholder="Enter runs per over (comma-separated)">
+    <button onclick="updateManhattanGraph()">Submit</button>
+    <canvas id="manhattanChart"></canvas>
+  </section>
+
+  <section>
+    <h2>8. Partnership Graph</h2>
+    <input type="text" id="partnership-input" placeholder="Enter partnership runs (comma-separated)">
+    <button onclick="updatePartnershipGraph()">Submit</button>
+    <canvas id="partnershipChart"></canvas>
+  </section>
+
+
+
+  <script>
+    function calculateWinProbability() {
+      const runs = parseInt(document.getElementById('wp-runs').value);
+      const balls = parseInt(document.getElementById('wp-balls').value);
+      const wickets = parseInt(document.getElementById('wp-wickets').value);
+      const winProb = Math.max(0, Math.min(100, 100 - (runs / (balls / 6)) - (10 - wickets) * 5));
+      document.getElementById('winProb').innerText = `Win Probability: ${winProb.toFixed(1)}%`;
+    }
+
+    function calculateDLS() {
+      const overs = parseFloat(document.getElementById('dls-overs').value);
+      const wickets = parseInt(document.getElementById('dls-wickets').value);
+      const par = (overs * (10 - wickets) * 1.2).toFixed(0);
+      document.getElementById('dlsPar').innerText = `Par Score: ${par}`;
+    }
+
+    function calculateNRR() {
+      const rs = parseFloat(document.getElementById('nrr-scored').value);
+      const of = parseFloat(document.getElementById('nrr-faced').value);
+      const rc = parseFloat(document.getElementById('nrr-conceded').value);
+      const ob = parseFloat(document.getElementById('nrr-bowled').value);
+      const nrr = ((rs / of) - (rc / ob)).toFixed(2);
+      document.getElementById('nrr').innerText = `NRR: ${nrr}`;
+    }
+
+    function calculateParScore() {
+      const overs = parseFloat(document.getElementById('par-overs').value);
+      const wickets = parseInt(document.getElementById('par-wickets').value);
+      const score = (overs * (10 - wickets) * 1.1).toFixed(0);
+      document.getElementById('parScore').innerText = `Par Score: ${score}`;
+    }
+
+    function calculateImpactRating() {
+      const runs = parseInt(document.getElementById('impact-runs').value);
+      const wickets = parseInt(document.getElementById('impact-wickets').value);
+      const catches = parseInt(document.getElementById('impact-catches').value);
+      const rating = (runs * 0.5 + wickets * 10 + catches * 4).toFixed(1);
+      document.getElementById('impact').innerText = `Rating: ${rating}`;
+    }
+
+    function updateWormGraph() {
+      const input = document.getElementById('worm-input').value.split(',').map(x => parseInt(x.trim()));
+      wormChart.data.labels = input.map((_, i) => i + 1);
+      wormChart.data.datasets[0].data = input;
+      wormChart.update();
+    }
+
+    function updateManhattanGraph() {
+      const input = document.getElementById('manhattan-input').value.split(',').map(x => parseInt(x.trim()));
+      manhattanChart.data.labels = input.map((_, i) => `Over ${i + 1}`);
+      manhattanChart.data.datasets[0].data = input;
+      manhattanChart.update();
+    }
+
+    function updatePartnershipGraph() {
+      const input = document.getElementById('partnership-input').value.split(',').map(x => parseInt(x.trim()));
+      partnershipChart.data.labels = input.map((_, i) => `W${i + 1}`);
+      partnershipChart.data.datasets[0].data = input;
+      partnershipChart.update();
+    }
+
+
+    const wormChart = new Chart(document.getElementById('wormChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: 'Total Runs', data: [], borderColor: 'blue' }] },
+      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+
+    const manhattanChart = new Chart(document.getElementById('manhattanChart'), {
+      type: 'bar',
+      data: { labels: [], datasets: [{ label: 'Runs per Over', data: [], backgroundColor: 'green' }] },
+      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+
+    const partnershipChart = new Chart(document.getElementById('partnershipChart'), {
+      type: 'bar',
+      data: { labels: [], datasets: [{ label: 'Partnerships', data: [], backgroundColor: 'orange' }] },
+      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+  </script>
+</body>
+</html>

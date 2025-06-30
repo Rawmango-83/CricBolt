@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Recruitment Exam</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      height: 100%;
+      overflow-x: hidden;
+    }
+
+    .background {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(270deg, #1a2980, #26d0ce);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+      z-index: -1;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .quiz-container {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      margin: 5% auto;
+      width: 80%;
+      max-width: 800px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    button {
+      display: block;
+      margin: 20px auto;
+      padding: 12px 20px;
+      font-size: 18px;
+      background-color: #1a2980;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #145b9e;
+    }
+
+    .correct {
+      color: green;
+    }
+
+    .incorrect {
+      color: red;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .question {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+<FORM METHOD="POST" ACTION = "MAILTO:sunitaotta1989@gmail.com">
+
+  <div class="background"></div>
+  <div class="quiz-container">
+    <h1>Syndicate Recruitment Examination</h1>
+    <div id="quiz"></div>
+    <button id="submit">Submit Quiz</button>
+    <div id="results"></div>
+  </div>
+
+
+  <script>
+    const questions = [
+      {
+        question: "Who scored the fastest double century in ODI cricket?",
+        answers: {
+          a: "Chris Gayle",
+          b: "Virender Sehwag",
+          c: "Ishan Kishan",
+          d: "Martin Guptill"
+        },
+        correctAnswer: "c"
+      },
+      {
+        question: "Who was the first bowler to take 10 wickets in a Test innings?",
+        answers: {
+          a: "Anil Kumble",
+          b: "Jim Laker",
+          c: "Muttiah Muralitharan",
+          d: "Shane Warne"
+        },
+        correctAnswer: "b"
+      },
+      {
+        question: "Which team chased 434 runs in an ODI to win a match?",
+        answers: {
+          a: "South Africa",
+          b: "India",
+          c: "Australia",
+          d: "England"
+        },
+        correctAnswer: "a"
+      },
+      {
+        question: "Who holds the record for most wickets in T20 internationals?",
+        answers: {
+          a: "Shakib Al Hasan",
+          b: "Lasith Malinga",
+          c: "Rashid Khan",
+          d: "Tim Southee"
+        },
+        correctAnswer: "d"
+      },
+      {
+        question: "Which country won the first-ever Cricket World Cup in 1975?",
+        answers: {
+          a: "West Indies",
+          b: "Australia",
+          c: "England",
+          d: "India"
+        },
+        correctAnswer: "a"
+      },
+      {
+        question: "Who is the only batsman to score 400* in a Test match?",
+        answers: {
+          a: "Brian Lara",
+          b: "Don Bradman",
+          c: "Sachin Tendulkar",
+          d: "Virat Kohli"
+        },
+        correctAnswer: "a"
+      },
+      {
+        question: "Which Indian bowler has taken a hat-trick in World Cup?",
+        answers: {
+          a: "Mohammed Shami",
+          b: "Harbhajan Singh",
+          c: "Jasprit Bumrah",
+          d: "Irfan Pathan"
+        },
+        correctAnswer: "a"
+      },
+      {
+        question: "Who was the captain of Sri Lanka when they won the 1996 World Cup?",
+        answers: {
+          a: "Arjuna Ranatunga",
+          b: "Sanath Jayasuriya",
+          c: "Mahela Jayawardene",
+          d: "Kumar Sangakkara"
+        },
+        correctAnswer: "a"
+      },
+      {
+        question: "Which cricketer has the most international centuries?",
+        answers: {
+          a: "Ricky Ponting",
+          b: "Virat Kohli",
+          c: "Sachin Tendulkar",
+          d: "Jacques Kallis"
+        },
+        correctAnswer: "c"
+      },
+      {
+        question: "Which player was known as 'Rawalpindi Express'?",
+        answers: {
+          a: "Shoaib Akhtar",
+          b: "Wasim Akram",
+          c: "Imran Khan",
+          d: "Waqar Younis"
+        },
+        correctAnswer: "a"
+      }
+    ];
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function buildQuiz() {
+      shuffleArray(questions);
+      const output = [];
+      questions.slice(0, 10).forEach((currentQuestion, questionNumber) => {
+        const answers = [];
+        for (let letter in currentQuestion.answers) {
+          answers.push(
+            `<label>
+              <input type="radio" name="question${questionNumber}" value="${letter}">
+              ${letter}) ${currentQuestion.answers[letter]}
+            </label>`
+          );
+        }
+        output.push(
+          `<div class="question"><strong>Q${questionNumber + 1}:</strong> ${currentQuestion.question}</div>
+           <div class="answers">${answers.join("")}</div>`
+        );
+      });
+
+      document.getElementById("quiz").innerHTML = output.join("<br>");
+    }
+
+    function showResults() {
+      const answerContainers = document.querySelectorAll(".answers");
+      let numCorrect = 0;
+
+      questions.slice(0, 10).forEach((currentQuestion, questionNumber) => {
+        const answerContainer = answerContainers[questionNumber];
+        const selector = `input[name=question${questionNumber}]:checked`;
+        const userAnswer = (answerContainer.querySelector(selector) || {}).value;
+
+        if (userAnswer === currentQuestion.correctAnswer) {
+          numCorrect++;
+          answerContainer.querySelector(`input[value=${userAnswer}]`).parentNode.classList.add("correct");
+        } else {
+          if (userAnswer)
+            answerContainer.querySelector(`input[value=${userAnswer}]`).parentNode.classList.add("incorrect");
+          answerContainer.querySelector(`input[value=${currentQuestion.correctAnswer}]`).parentNode.classList.add("correct");
+        }
+      });
+
+      document.getElementById("results").innerHTML =
+        `<h2>You scored ${numCorrect} out of 10</h2>`;
+    }
+
+    document.getElementById("submit").addEventListener("click", showResults);
+    buildQuiz();
+  </script>
+</body>
+</html>
