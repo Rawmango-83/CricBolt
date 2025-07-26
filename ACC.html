@@ -220,6 +220,18 @@ function playBall(run) {
     if (run === 1 || run === 3) [striker, nonStriker] = [nonStriker, striker];
   }
 
+
+  if (runRateRequired > 1.5 || recentSixCount >= 2) {
+    if (rand < 0.9) return 6;
+    if (rand < 0.85) return Math.random() < 0.8 ? 4 : 5;
+    return Math.floor(Math.random() * 3) + 1;
+  } else {
+    if (rand < 0.95) return 6;
+    if (rand < 0.70) return Math.random() < 0.5 ? 4 : 5;
+    return Math.floor(Math.random() * 3) + 1;
+  }
+}
+
   ballByBall[currentInnings].push(out ? 'W' : run);
   ballsBowled[currentInnings]++;
 
