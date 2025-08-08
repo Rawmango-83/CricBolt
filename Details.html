@@ -154,12 +154,15 @@
       <input type="checkbox" id="darkModeToggle">
     </div>
      <nav>
-    <button onclick="location.href='INDEX.html'">Home</button>
-    <button onclick="location.href='details.html'">Details</button>
-    <button onclick="location.href='faq.html'">FAQ</button>
-    <button onclick="location.href='about us.html'">About Us</button>
-  </nav>
-  </header>
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 30px;">
+    <div class="nav-buttons" style="display: flex; flex-wrap: wrap; gap: 10px;">
+      <button><a href="index.html" class="nav-link">Home</a></button>
+      <button><a href="Details.html" class="nav-link">Details</a></button>
+      <button><a href="FAQ.html" class="nav-link">FAQ</a></button>
+      <button><a href="About Us.html" class="nav-link">About Us</a></button>
+    </div>
+  </div>
+</header>
 
   <div class="main-container">
     <nav class="sidebar">
@@ -276,4 +279,5 @@
     });
   </script>
 </body>
+
 </html>
