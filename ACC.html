@@ -184,32 +184,43 @@ function updateUI() {
   document.getElementById('bowlerStats').innerHTML = statsHTML;
 }
 
-// Smart bowling logic
 function getSmartOpponentRun() {
   const ballsThisOver = ballsBowled[currentInnings] % ballsPerOver;
 
-  // 1️⃣ Repeat-counter: if batsman repeats a run > 2 times, bowler bowls that run to try for OUT
-  if (recentUserRuns.length >= 3) {
-    const lastThree = recentUserRuns.slice(-3);
-    if (lastThree.every(r => r === lastThree[0])) {
-      return lastThree[0]; // force that run → OUT if batsman repeats
+  // If in 2nd innings (chasing), check match situation
+  if (currentInnings === 1) {
+    const runsRequired = scores[0] - scores[1] + 1;
+    const ballsLeft = totalBalls - ballsBowled[currentInnings];
+
+    // 🔥 If target is very close and ≤ 6 → bowl that exact number
+    if (runsRequired > 0 && runsRequired <= 6 && ballsLeft <= 6) {
+      return runsRequired;
     }
   }
 
-  // 2️⃣ Force one 4 in every over
-  if (ballsThisOver === 5) { // last ball of over
+  // 1️⃣ Punish repetition: if batsman repeats same run 3 times, bowl that run
+  if (recentUserRuns.length >= 3) {
+    const lastThree = recentUserRuns.slice(-3);
+    if (lastThree.every(r => r === lastThree[0])) {
+      return lastThree[0];
+    }
+  }
+
+  // 2️⃣ Force exactly one 4 in every over (e.g., last ball)
+  if (ballsThisOver === 5) { 
     return 4;
   }
 
-  // 3️⃣ Default: 50% chance of bowling 6
+  // 3️⃣ 50% chance of 6
   if (Math.random() < 0.5) {
     return 6;
   }
 
-  // Otherwise random run from 0–3 or 5 (excluding 4, since it’s already forced)
-  const options = [0, 1, 2, 3, 5];
+  // 4️⃣ Otherwise → FULL RANDOM (0–6), except we avoid repeating 4 since it's forced separately
+  const options = [0, 1, 2, 3, 5, 6]; // 4 excluded (comes once per over)
   return options[Math.floor(Math.random() * options.length)];
 }
+
 
 
 function playBall(run) {
@@ -310,4 +321,5 @@ function log(message) {
 
 </body>
 </html>
+
 
