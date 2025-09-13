@@ -271,7 +271,12 @@ function playBall(run) {
 
   const opponentRun = getSmartOpponentRun();
   const out = (run === opponentRun);
+  ballsBowled++;
 
+  if (ballsBowled % 6 === 0) {
+  oversBowled++;
+  [striker, nonStriker] = [nonStriker, striker]; // strike rotates after over
+}
   if (out) {
     log(`${teamPlayers[currentInnings][striker]} is OUT!`);
     strikerStats.balls++;
@@ -309,26 +314,48 @@ function playBall(run) {
 }
 
 function endInnings() {
+  const mode = document.getElementById("matchMode").value;
   log(`${teamNames[currentInnings]} innings over. ${scores[currentInnings]} / ${wickets[currentInnings]}`);
 
-  const mode = document.getElementById("matchMode").value;
-
   if (mode === "test") {
-    if (currentInnings < 3) {
-      currentInnings++;
-      striker = 0; nonStriker = 1;
-      updateBowlerOptions();
-      log(`Next Innings: ${teamNames[currentInnings]} batting.`);
-      updateUI();
-    } else {
-      const totalTeam1 = scores[0] + scores[2];
-      const totalTeam2 = scores[1] + scores[3];
-      const result = totalTeam1 > totalTeam2 ? `${teamNames[0]} WINS!` :
-                     totalTeam2 > totalTeam1 ? `${teamNames[1]} WINS!` : `Match DRAWN!`;
-      log(`Match Over! ${result}`);
+    inningsCount++;
+
+    // Follow-on check
+    if (inningsCount === 2) {
+      const lead = scores[0] - scores[1];
+      if (lead >= 150) {
+        log(`${teamNames[0]} ENFORCES FOLLOW-ON!`);
+        currentInnings = 1; // Team B bats again immediately
+      } else {
+        currentInnings = 2; // Team A second innings
+      }
+    } 
+    else if (inningsCount === 3) {
+      currentInnings = 3; // Team B second innings
+    } 
+    else if (inningsCount === 4) {
+      const totalA = scores[0] + scores[2];
+      const totalB = scores[1] + scores[3];
+      if (totalA > totalB) {
+        log(`${teamNames[0]} WIN by ${totalA - totalB} runs`);
+      } else if (totalB > totalA) {
+        log(`${teamNames[1]} WIN by ${10 - wickets[3]} wickets`);
+      } else {
+        log(`Match TIED!`);
+      }
       disableGame();
+      return;
     }
+
+    // Reset for next innings
+    ballsBowled = 0;
+    oversBowled = 0;
+    wickets[currentInnings] = 0;
+    updateBowlerOptions();
+    updateUI();
+
   } else {
+    // existing ODI/T20/RCT logic
     if (currentInnings === 0) {
       currentInnings = 1;
       striker = 0; nonStriker = 1;
@@ -343,6 +370,7 @@ function endInnings() {
     }
   }
 }
+
 
 function disableGame() {
   togglePlayButtons(false);
@@ -377,6 +405,7 @@ function log(message) {
 
 </body>
 </html>
+
 
 
 
