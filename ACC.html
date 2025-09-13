@@ -61,6 +61,15 @@
   <textarea id="team1Players" rows="5" cols="30" placeholder="Team 1 Players (comma-separated)"></textarea><br>
   <textarea id="team2Players" rows="5" cols="30" placeholder="Team 2 Players (comma-separated)"></textarea><br>
   <button onclick="startGame()">Start Game</button>
+
+  <h3>Select Match Mode</h3>
+<select id="matchMode" onchange="setMode()">
+  <option value="custom">Custom</option>
+  <option value="t20i">T20I (4 overs)</option>
+  <option value="odi">ODI (10 overs)</option>
+  <option value="test">Test (12 overs/day, 2 innings each)</option>
+  <option value="rct">RCT (15 overs)</option>
+</select>
 </div>
 
 <div class="section" id="game-section" style="display:none;">
@@ -125,6 +134,34 @@ function startGame() {
   log(`${teamNames[0]} won toss and is batting first.`);
   updateBowlerOptions();
   updateUI();
+
+  const mode = document.getElementById("matchMode").value;
+if (mode === "test") {
+  totalBalls = overs * ballsPerOver * 2; // Two innings each team (12 overs * 6 * 2)
+} else {
+  totalBalls = overs * ballsPerOver;
+}
+}
+
+  function setMode() {
+  const mode = document.getElementById("matchMode").value;
+  const oversInput = document.getElementById("overs");
+
+  if (mode === "t20i") {
+    oversInput.value = 4;
+    oversInput.disabled = true;
+  } else if (mode === "odi") {
+    oversInput.value = 10;
+    oversInput.disabled = true;
+  } else if (mode === "test") {
+    oversInput.value = 12; // 12 overs per day
+    oversInput.disabled = true;
+  } else if (mode === "rct") {
+    oversInput.value = 15;
+    oversInput.disabled = true;
+  } else {
+    oversInput.disabled = false; // allow custom
+  }
 }
 
 function setBowler() {
@@ -273,18 +310,37 @@ function playBall(run) {
 
 function endInnings() {
   log(`${teamNames[currentInnings]} innings over. ${scores[currentInnings]} / ${wickets[currentInnings]}`);
-  if (currentInnings === 0) {
-    currentInnings = 1;
-    striker = 0;
-    nonStriker = 1;
-    updateBowlerOptions();
-    log(`${teamNames[1]} needs ${scores[0] + 1} to win.`);
-    updateUI();
+
+  const mode = document.getElementById("matchMode").value;
+
+  if (mode === "test") {
+    if (currentInnings < 3) {
+      currentInnings++;
+      striker = 0; nonStriker = 1;
+      updateBowlerOptions();
+      log(`Next Innings: ${teamNames[currentInnings]} batting.`);
+      updateUI();
+    } else {
+      const totalTeam1 = scores[0] + scores[2];
+      const totalTeam2 = scores[1] + scores[3];
+      const result = totalTeam1 > totalTeam2 ? `${teamNames[0]} WINS!` :
+                     totalTeam2 > totalTeam1 ? `${teamNames[1]} WINS!` : `Match DRAWN!`;
+      log(`Match Over! ${result}`);
+      disableGame();
+    }
   } else {
-    const result = scores[1] > scores[0] ? `${teamNames[1]} WINS!` :
-                   scores[1] < scores[0] ? `${teamNames[0]} WINS!` : `Match DRAWN!`;
-    log(`Match Over! ${result}`);
-    disableGame();
+    if (currentInnings === 0) {
+      currentInnings = 1;
+      striker = 0; nonStriker = 1;
+      updateBowlerOptions();
+      log(`${teamNames[1]} needs ${scores[0] + 1} to win.`);
+      updateUI();
+    } else {
+      const result = scores[1] > scores[0] ? `${teamNames[1]} WINS!` :
+                     scores[1] < scores[0] ? `${teamNames[0]} WINS!` : `Match DRAWN!`;
+      log(`Match Over! ${result}`);
+      disableGame();
+    }
   }
 }
 
@@ -321,5 +377,6 @@ function log(message) {
 
 </body>
 </html>
+
 
 
