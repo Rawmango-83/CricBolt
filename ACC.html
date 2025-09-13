@@ -184,13 +184,33 @@ function updateUI() {
   document.getElementById('bowlerStats').innerHTML = statsHTML;
 }
 
+// Smart bowling logic
 function getSmartOpponentRun() {
-  let recentSixCount = recentUserRuns.slice(-3).filter(r => r === 6).length;
-  let ballsLeft = totalBalls - ballsBowled[currentInnings];
-  let runsRequired = (currentInnings === 1) ? (scores[0] - scores[1] + 1) : Infinity;
-  let runRateRequired = runsRequired / (ballsLeft || 1);
-  let rand = Math.random()
+  const ballsThisOver = ballsBowled[currentInnings] % ballsPerOver;
+
+  // 1️⃣ Repeat-counter: if batsman repeats a run > 2 times, bowler bowls that run to try for OUT
+  if (recentUserRuns.length >= 3) {
+    const lastThree = recentUserRuns.slice(-3);
+    if (lastThree.every(r => r === lastThree[0])) {
+      return lastThree[0]; // force that run → OUT if batsman repeats
+    }
+  }
+
+  // 2️⃣ Force one 4 in every over
+  if (ballsThisOver === 5) { // last ball of over
+    return 4;
+  }
+
+  // 3️⃣ Default: 50% chance of bowling 6
+  if (Math.random() < 0.5) {
+    return 6;
+  }
+
+  // Otherwise random run from 0–3 or 5 (excluding 4, since it’s already forced)
+  const options = [0, 1, 2, 3, 5];
+  return options[Math.floor(Math.random() * options.length)];
 }
+
 
 function playBall(run) {
   if (ballsBowled[currentInnings] >= totalBalls || wickets[currentInnings] >= 10) return;
@@ -290,3 +310,4 @@ function log(message) {
 
 </body>
 </html>
+
