@@ -1,411 +1,371 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Hand Cricket - Advanced</title>
+  <meta charset="UTF-8" />
+  <title>Hand Cricket</title>
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #e7f0f7;
-      padding: 20px;
-      text-align: center;
-    }
-    h1, h2 {
-      margin-bottom: 10px;
-    }
-    .section {
-      margin: 20px auto;
-      max-width: 700px;
-      padding: 15px;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    input, select, textarea {
-      padding: 5px 10px;
-      margin: 5px;
-      font-size: 16px;
-    }
-    button {
-      padding: 8px 15px;
-      font-size: 16px;
-      margin: 10px 5px;
-      cursor: pointer;
-    }
-    .number-buttons button {
-      width: 50px;
-    }
-    #log, #ballLog, #bowlerStats {
-      max-height: 150px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
-      background: #f9f9f9;
-      padding: 10px;
-      margin-top: 10px;
-      text-align: left;
-      font-family: monospace;
-    }
+    body { font-family: 'Segoe UI', sans-serif; background:#f3f7fb; padding:20px; text-align:center; }
+    .section { margin:20px auto; max-width:900px; padding:15px; background:#fff; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
+    input, select, textarea, button { font-size:15px; padding:6px 10px; margin:6px; }
+    .number-buttons button { width:60px; height:44px; margin:6px; font-size:16px; }
+    #log, #ballLog, #bowlerStats { max-height:160px; overflow:auto; border:1px solid #ddd; background:#fafafa; padding:10px; text-align:left; font-family:monospace; }
+    #resultBox { margin-top:16px; padding:12px; font-weight:bold; display:none; border-radius:6px; }
+    #resultBox.win { background:#d1fae5; color:#065f46; }
+    #resultBox.draw { background:#fef3c7; color:#92400e; }
+    #resultBox.tie { background:#e0e7ff; color:#3730a3; }
   </style>
 </head>
 <body>
 
-<h1>Hand Cricket Game 🏏</h1>
+  <h1>Hand Cricket</h1>
 
-<div class="section" id="setup-section">
-  <h2>Enter Team Names</h2>
-  <input id="team1" placeholder="Team 1 Name" />
-  <input id="team2" placeholder="Team 2 Name" />
-  <input id="overs" type="number" min="1" max="10" value="2" /> Overs
+  <div class="section" id="setup-section">
+    <h2>Setup Match</h2>
+    <input id="team1" placeholder="Your Team Name" />
+    <input id="team2" placeholder="Computer Team Name" value="Computer" />
+    <input id="overs" type="number" min="1" max="50" value="2" /> Overs
 
-  <h3>Enter Players for Each Team</h3>
-  <textarea id="team1Players" rows="5" cols="30" placeholder="Team 1 Players (comma-separated)"></textarea><br>
-  <textarea id="team2Players" rows="5" cols="30" placeholder="Team 2 Players (comma-separated)"></textarea><br>
-  <button onclick="startGame()">Start Game</button>
+    <h3>Players (comma-separated)</h3>
+    <textarea id="team1Players" rows="4" cols="40" placeholder="Your players (11 recommended)"></textarea><br>
+    <textarea id="team2Players" rows="4" cols="40" placeholder="Computer players (11 recommended)"></textarea><br>
 
-  <h3>Select Match Mode</h3>
-<select id="matchMode" onchange="setMode()">
-  <option value="custom">Custom</option>
-  <option value="t20i">T20I (4 overs)</option>
-  <option value="odi">ODI (10 overs)</option>
-  <option value="test">Test (12 overs/day, 2 innings each)</option>
-  <option value="rct">RCT (15 overs)</option>
-</select>
-</div>
+    <button onclick="startGame()">Start Game</button>
 
-<div class="section" id="game-section" style="display:none;">
-  <h2 id="matchTitle"></h2>
-  <h3 id="batsmenStatus"></h3>
-  <p id="overInfo"></p>
-
-  <label for="bowlerSelect">Select Bowler:</label>
-  <select id="bowlerSelect" onchange="setBowler()"></select>
-
-  <div class="number-buttons">
-    <button onclick="playBall(1)">1</button>
-    <button onclick="playBall(2)">2</button>
-    <button onclick="playBall(3)">3</button>
-    <button onclick="playBall(4)">4</button>
-    <button onclick="playBall(5)">5</button>
-    <button onclick="playBall(6)">6</button>
+    <h3>Mode</h3>
+    <select id="matchMode" onchange="setMode()">
+      <option value="custom">Custom</option>
+      <option value="t20i">T20I (4 overs)</option>
+      <option value="odi">ODI (10 overs)</option>
+      <option value="test">Test (12 overs/day, up to 5 days)</option>
+      <option value="rct">RCT (15 overs)</option>
+    </select>
   </div>
 
-  <div id="ballLog"></div>
-  <div id="log"></div>
-  <div id="bowlerStats"></div>
-</div>
+  <div class="section" id="game-section" style="display:none;">
+    <h2 id="matchTitle"></h2>
+    <h3 id="batsmenStatus"></h3>
+    <p id="overInfo"></p>
+
+    <label>Select Bowler:</label>
+    <select id="bowlerSelect" onchange="setBowler()"></select>
+
+    <div class="number-buttons">
+      <button onclick="playBall(0)">0</button>
+      <button onclick="playBall(1)">1</button>
+      <button onclick="playBall(2)">2</button>
+      <button onclick="playBall(3)">3</button>
+      <button onclick="playBall(4)">4</button>
+      <button onclick="playBall(5)">5</button>
+      <button onclick="playBall(6)">6</button>
+    </div>
+
+    <div id="ballLog"></div>
+    <div id="log"></div>
+    <div id="bowlerStats"></div>
+    <div id="resultBox"></div>
+  </div>
 
 <script>
-// Game State Variables
-let teamNames = ["", ""];
-let overs = 2, ballsPerOver = 6;
-let totalBalls;
+/* ========= Game State ========= */
+let teamNames = ["",""];
+let overs = 2, ballsPerOver = 6, totalBallsPerInnings = 0;
 let currentInnings = 0;
 let striker = 0, nonStriker = 1;
 
 let teamPlayers = [[], []];
-let scores = [0, 0];
-let wickets = [0, 0];
-let ballsBowled = [0, 0];
-let batsmenStats = [[], []];
-let ballByBall = [[], []];
+let scores = [0,0,0,0];
+let wickets = [0,0,0,0];
+let ballsBowled = [0,0,0,0];
+let batsmenStats = [[],[],[],[]];
+let ballByBall = [[],[],[],[]];
 let bowlerStats = [[], []];
 let currentBowler = null;
 let lastBowler = null;
 let recentUserRuns = [];
+let targets = [null,null,null,null];
 
-function startGame() {
-  teamNames[0] = document.getElementById('team1').value || "Team 1";
-  teamNames[1] = document.getElementById('team2').value || "Team 2";
+/* Toss & control */
+let userTeamIndex = 0;
+let compTeamIndex = 1;
+let userBattingFirst = true;
+let tossWinner = null;
+
+/* Test day tracking */
+let dayNumber = 1;
+let dayBallsCount = 0;            
+const dayBallsLimit = 12 * ballsPerOver;
+
+/* ========= Utilities ========= */
+function getBattingTeamIndexForInnings(inn) {
+  return (inn === 0 || inn === 2) ? (userBattingFirst ? userTeamIndex : compTeamIndex)
+                                  : (userBattingFirst ? compTeamIndex : userTeamIndex);
+}
+
+function log(msg) {
+  const l = document.getElementById('log');
+  l.innerHTML += `<p>${msg}</p>`;
+  l.scrollTop = l.scrollHeight;
+}
+
+/* ========= Toss ========= */
+function doToss(){
+  tossWinner = Math.random() < 0.5 ? userTeamIndex : compTeamIndex;
+  const decision = tossWinner === userTeamIndex ? 
+      (confirm(`${teamNames[userTeamIndex]} won toss! Bat first? OK=Bat, Cancel=Bowl`) ? "bat" : "bowl") :
+      (Math.random() < 0.5 ? "bat" : "bowl");
+
+  if(tossWinner === userTeamIndex){
+    userBattingFirst = (decision === "bat");
+    log(`${teamNames[userTeamIndex]} won toss and chose to ${decision} first.`);
+  } else {
+    userBattingFirst = (decision === "bowl");
+    log(`${teamNames[compTeamIndex]} won toss and chose to ${decision} first.`);
+  }
+}
+
+/* ========= Setup ========= */
+function setMode(){
+  const mode = document.getElementById('matchMode').value;
+  const oversInput = document.getElementById('overs');
+  if(mode === 't20i'){ oversInput.value = 4; oversInput.disabled = true; }
+  else if(mode === 'odi'){ oversInput.value = 10; oversInput.disabled = true; }
+  else if(mode === 'test'){ oversInput.value = 12; oversInput.disabled = true; }
+  else if(mode === 'rct'){ oversInput.value = 15; oversInput.disabled = true; }
+  else { oversInput.disabled = false; }
+}
+
+function startGame(){
+  teamNames[0] = document.getElementById('team1').value || "User Team";
+  teamNames[1] = document.getElementById('team2').value || "Computer";
   overs = parseInt(document.getElementById('overs').value);
-  totalBalls = overs * ballsPerOver;
+  totalBallsPerInnings = overs * ballsPerOver;
 
-  teamPlayers[0] = document.getElementById('team1Players').value.split(',').map(p => p.trim());
-  teamPlayers[1] = document.getElementById('team2Players').value.split(',').map(p => p.trim());
+  teamPlayers[0] = document.getElementById('team1Players').value.split(',').map(p=>p.trim()).filter(Boolean);
+  teamPlayers[1] = document.getElementById('team2Players').value.split(',').map(p=>p.trim()).filter(Boolean);
 
-  for (let i = 0; i < 2; i++) {
-    for (let j = 0; j < 11; j++) {
-      batsmenStats[i].push({ runs: 0, balls: 0 });
-      bowlerStats[i].push({ name: teamPlayers[i][j] || `Bowler ${j + 1}`, runs: 0, balls: 0, wickets: 0 });
+  if(teamPlayers[0].length < 2 || teamPlayers[1].length < 2) {
+    alert('Enter at least 2 players per team.');
+    return;
+  }
+
+  for(let inn=0; inn<4; inn++){
+    batsmenStats[inn] = [];
+    for(let p=0; p<11; p++){
+      batsmenStats[inn].push({ runs: 0, balls: 0 });
+    }
+    ballByBall[inn] = [];
+    scores[inn] = 0; wickets[inn] = 0; ballsBowled[inn] = 0; targets[inn] = null;
+  }
+
+  for(let t=0; t<2; t++){
+    bowlerStats[t] = [];
+    for(let j=0;j<11;j++){
+      bowlerStats[t].push({ name: teamPlayers[t][j] || `Bowler ${j+1}`, runs:0, balls:0, wickets:0 });
     }
   }
 
+  doToss();
+
+  currentInnings = 0; striker = 0; nonStriker = 1;
+  currentBowler = null; lastBowler = null; recentUserRuns = [];
+  dayNumber = 1; dayBallsCount = 0;
+
   document.getElementById('setup-section').style.display = 'none';
   document.getElementById('game-section').style.display = 'block';
-  log(`${teamNames[0]} won toss and is batting first.`);
+  document.getElementById('resultBox').style.display = 'none';
+
+  const firstBattingTeam = getBattingTeamIndexForInnings(0);
+  log(`${teamNames[firstBattingTeam]} batting first!`);
+
   updateBowlerOptions();
   updateUI();
-
-  const mode = document.getElementById("matchMode").value;
-if (mode === "test") {
-  totalBalls = overs * ballsPerOver * 2; // Two innings each team (12 overs * 6 * 2)
-} else {
-  totalBalls = overs * ballsPerOver;
-}
 }
 
-  function setMode() {
-  const mode = document.getElementById("matchMode").value;
-  const oversInput = document.getElementById("overs");
-
-  if (mode === "t20i") {
-    oversInput.value = 4;
-    oversInput.disabled = true;
-  } else if (mode === "odi") {
-    oversInput.value = 10;
-    oversInput.disabled = true;
-  } else if (mode === "test") {
-    oversInput.value = 12; // 12 overs per day
-    oversInput.disabled = true;
-  } else if (mode === "rct") {
-    oversInput.value = 15;
-    oversInput.disabled = true;
-  } else {
-    oversInput.disabled = false; // allow custom
-  }
-}
-
-function setBowler() {
-  const selected = parseInt(document.getElementById("bowlerSelect").value);
-  if (selected === lastBowler) {
-    alert("Same bowler cannot bowl consecutive overs!");
-    document.getElementById("bowlerSelect").value = "";
-    currentBowler = null;
-    togglePlayButtons(false);
-  } else {
-    currentBowler = selected;
-    togglePlayButtons(true);
-  }
-  updateUI();
-}
-
-function togglePlayButtons(enable) {
-  document.querySelectorAll(".number-buttons button").forEach(btn => btn.disabled = !enable);
-}
-
-function updateBowlerOptions() {
-  const bowlerSelect = document.getElementById("bowlerSelect");
-  bowlerSelect.innerHTML = "";
-  const bowlers = bowlerStats[1 - currentInnings];
-  bowlers.forEach((b, i) => {
-    const option = document.createElement("option");
-    option.value = i;
-    option.text = b.name;
-    bowlerSelect.appendChild(option);
-  });
-  currentBowler = null;
-  togglePlayButtons(false);
-}
-
-function updateUI() {
+/* ========= UI ========= */
+function updateUI(){
   const balls = ballsBowled[currentInnings];
   const oversCompleted = Math.floor(balls / ballsPerOver);
   const ballsInOver = balls % ballsPerOver;
-  const bats = batsmenStats[currentInnings];
-  const playerNames = teamPlayers[currentInnings];
 
-  document.getElementById('matchTitle').innerText = `${teamNames[currentInnings]} Batting`;
+  const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
+  const playerNames = teamPlayers[battingTeamIndex];
+
+  const strikerName = playerNames[striker] || `Batsman ${striker+1}`;
+  const nonStrikerName = playerNames[nonStriker] || `Batsman ${nonStriker+1}`;
+
+  document.getElementById('matchTitle').innerText = `${teamNames[battingTeamIndex]} Batting (Innings ${currentInnings+1}) - Day ${dayNumber}`;
   document.getElementById('batsmenStatus').innerText =
-    `⚾ On Strike: ${playerNames[striker]} - ${bats[striker].runs}(${bats[striker].balls}) | 🏃 Non-striker: ${playerNames[nonStriker]} - ${bats[nonStriker].runs}(${bats[nonStriker].balls})`;
-  document.getElementById('overInfo').innerText =
-    `Over: ${oversCompleted}.${ballsInOver} | Wickets: ${wickets[currentInnings]} | Runs: ${scores[currentInnings]}`;
+    `On Strike: ${strikerName} (${batsmenStats[currentInnings][striker]?.runs||0} - ${batsmenStats[currentInnings][striker]?.balls||0}) | Non-striker: ${nonStrikerName} (${batsmenStats[currentInnings][nonStriker]?.runs||0} - ${batsmenStats[currentInnings][nonStriker]?.balls||0})`;
+
+  let info = `Over: ${oversCompleted}.${ballsInOver} | Wkts: ${wickets[currentInnings]} | Runs: ${scores[currentInnings]}`;
+  if(targets[currentInnings]){
+    const rem = targets[currentInnings] - scores[currentInnings];
+    info += ` | Target: ${targets[currentInnings]} | To Win: ${rem}`;
+  }
+  info += ` | DayBalls: ${dayBallsCount}/${dayBallsLimit}`;
+  document.getElementById('overInfo').innerText = info;
+
   document.getElementById('ballLog').innerText = `Ball-by-Ball: ${ballByBall[currentInnings].join(", ")}`;
 
-  let statsHTML = "<strong>Bowler Stats:</strong><br>";
-  if (currentBowler !== null) {
-    const b = bowlerStats[1 - currentInnings][currentBowler];
-    const overs = `${Math.floor(b.balls / 6)}.${b.balls % 6}`;
-    statsHTML += `${b.name} - ${overs} ov, ${b.runs}r, ${b.wickets}w`;
+  let statsHTML = `<strong>Bowler Stats</strong><br/>`;
+  if(currentBowler !== null){
+    const bowlingTeamIdx = 1 - battingTeamIndex;
+    const b = bowlerStats[bowlingTeamIdx][currentBowler];
+    const oversB = `${Math.floor(b.balls/6)}.${b.balls%6}`;
+    statsHTML += `${b.name}: ${oversB} ov, ${b.runs}r, ${b.wickets}w`;
   } else {
     statsHTML += `No bowler selected.`;
   }
   document.getElementById('bowlerStats').innerHTML = statsHTML;
 }
 
-function getSmartOpponentRun() {
-  const ballsThisOver = ballsBowled[currentInnings] % ballsPerOver;
-
-  // If in 2nd innings (chasing), check match situation
-  if (currentInnings === 1) {
-    const runsRequired = scores[0] - scores[1] + 1;
-    const ballsLeft = totalBalls - ballsBowled[currentInnings];
-
-    // 🔥 If target is very close and ≤ 6 → bowl that exact number
-    if (runsRequired > 0 && runsRequired <= 6 && ballsLeft <= 6) {
-      return runsRequired;
-    }
-  }
-
-  // 1️⃣ Punish repetition: if batsman repeats same run 3 times, bowl that run
-  if (recentUserRuns.length >= 3) {
-    const lastThree = recentUserRuns.slice(-3);
-    if (lastThree.every(r => r === lastThree[0])) {
-      return lastThree[0];
-    }
-  }
-
-  // 2️⃣ Force exactly one 4 in every over (e.g., last ball)
-  if (ballsThisOver === 5) { 
-    return 4;
-  }
-
-  // 3️⃣ 50% chance of 6
-  if (Math.random() < 0.5) {
-    return 6;
-  }
-
-  // 4️⃣ Otherwise → FULL RANDOM (0–6), except we avoid repeating 4 since it's forced separately
-  const options = [0, 1, 2, 3, 5, 6]; // 4 excluded (comes once per over)
-  return options[Math.floor(Math.random() * options.length)];
+/* ========= Bowler selection ========= */
+function updateBowlerOptions(){
+  const sel = document.getElementById('bowlerSelect');
+  sel.innerHTML = '';
+  const bowlTeam = 1 - getBattingTeamIndexForInnings(currentInnings);
+  bowlerStats[bowlTeam].forEach((b, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx; opt.text = b.name;
+    sel.appendChild(opt);
+  });
+  currentBowler = null;
+  togglePlayButtons(false);
 }
 
-
-
-function playBall(run) {
-  if (ballsBowled[currentInnings] >= totalBalls || wickets[currentInnings] >= 10) return;
-  if (currentBowler === null) return alert("Please select a bowler.");
-
-  recentUserRuns.push(run);
-  const bats = batsmenStats[currentInnings];
-  const strikerStats = bats[striker];
-  const bowler = bowlerStats[1 - currentInnings][currentBowler];
-
-  const opponentRun = getSmartOpponentRun();
-  const out = (run === opponentRun);
-  ballsBowled++;
-
-  if (ballsBowled % 6 === 0) {
-  oversBowled++;
-  [striker, nonStriker] = [nonStriker, striker]; // strike rotates after over
+function setBowler(){
+  const sel = parseInt(document.getElementById('bowlerSelect').value);
+  if(sel === lastBowler){
+    alert('Same bowler cannot bowl consecutive overs.');
+    document.getElementById('bowlerSelect').value = '';
+    currentBowler = null; togglePlayButtons(false); return;
+  }
+  currentBowler = sel; togglePlayButtons(true); updateUI();
 }
-  if (out) {
-    log(`${teamPlayers[currentInnings][striker]} is OUT!`);
+
+function togglePlayButtons(enable){
+  document.querySelectorAll('.number-buttons button').forEach(b => b.disabled = !enable);
+}
+
+/* ========= Opponent run logic ========= */
+function getSmartOpponentRun(){
+  if(Math.random() < 0.3) return 0;
+  return Math.floor(Math.random()*6)+1;
+}
+
+/* ========= Play ball ========= */
+function playBall(run){
+  if(currentBowler === null) { alert('Please select a bowler.'); return; }
+
+  const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
+  const bowlingTeamIndex = 1 - battingTeamIndex;
+  const strikerStats = batsmenStats[currentInnings][striker];
+  const bowler = bowlerStats[bowlingTeamIndex][currentBowler];
+
+  let batsRun = 0;
+  let out = false;
+
+  if(battingTeamIndex === userTeamIndex){
+    // User batting
+    const compRun = getSmartOpponentRun();
+    batsRun = run;
+    out = (run === compRun);
+  } else {
+    // Computer batting
+    const compRun = getSmartOpponentRun();
+    batsRun = compRun;
+    out = (run === compRun);
+  }
+
+  ballsBowled[currentInnings]++; bowler.balls++;
+  dayBallsCount++;
+
+  if(out){
+    log(`${teamPlayers[battingTeamIndex][striker]} is OUT!`);
     strikerStats.balls++;
     wickets[currentInnings]++;
     bowler.wickets++;
-    bowler.balls++;
     striker = wickets[currentInnings] + 1;
   } else {
-    strikerStats.runs += run;
+    strikerStats.runs += batsRun;
     strikerStats.balls++;
-    scores[currentInnings] += run;
-    bowler.runs += run;
-    bowler.balls++;
-    if (run === 1 || run === 3) [striker, nonStriker] = [nonStriker, striker];
+    scores[currentInnings] += batsRun;
+    bowler.runs += batsRun;
+    if(batsRun === 1 || batsRun === 3) [striker, nonStriker] = [nonStriker, striker];
   }
- ballByBall[currentInnings].push(out ? 'W' : run);
-  ballsBowled[currentInnings]++;
 
-  if (ballsBowled[currentInnings] % ballsPerOver === 0) {
+  ballByBall[currentInnings].push(out ? 'W' : batsRun);
+
+  if(ballsBowled[currentInnings] % ballsPerOver === 0){
     [striker, nonStriker] = [nonStriker, striker];
     lastBowler = currentBowler;
     currentBowler = null;
     updateBowlerOptions();
-    log(`End of Over. Strike rotated. Select next bowler.`);
+    log('End of over. Select next bowler.');
   }
 
   updateUI();
 
-  if (currentInnings === 1 && scores[1] > scores[0]) {
-    log(`${teamNames[1]} WINS! 🌟`);
-    disableGame();
-  } else if (ballsBowled[currentInnings] === totalBalls || wickets[currentInnings] >= 10) {
+  if(wickets[currentInnings] >= 10 || ballsBowled[currentInnings] >= totalBallsPerInnings){
     endInnings();
   }
 }
 
-function endInnings() {
-  const mode = document.getElementById("matchMode").value;
-  log(`${teamNames[currentInnings]} innings over. ${scores[currentInnings]} / ${wickets[currentInnings]}`);
+/* ========= End Innings & Result ========= */
+function endInnings(){
+  const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
+  log(`${teamNames[battingTeamIndex]} innings over: ${scores[currentInnings]}/${wickets[currentInnings]}`);
 
-  if (mode === "test") {
-    inningsCount++;
-
-    // Follow-on check
-    if (inningsCount === 2) {
-      const lead = scores[0] - scores[1];
-      if (lead >= 150) {
-        log(`${teamNames[0]} ENFORCES FOLLOW-ON!`);
-        currentInnings = 1; // Team B bats again immediately
-      } else {
-        currentInnings = 2; // Team A second innings
-      }
-    } 
-    else if (inningsCount === 3) {
-      currentInnings = 3; // Team B second innings
-    } 
-    else if (inningsCount === 4) {
-      const totalA = scores[0] + scores[2];
-      const totalB = scores[1] + scores[3];
-      if (totalA > totalB) {
-        log(`${teamNames[0]} WIN by ${totalA - totalB} runs`);
-      } else if (totalB > totalA) {
-        log(`${teamNames[1]} WIN by ${10 - wickets[3]} wickets`);
-      } else {
-        log(`Match TIED!`);
-      }
-      disableGame();
-      return;
-    }
-
-    // Reset for next innings
-    ballsBowled = 0;
-    oversBowled = 0;
-    wickets[currentInnings] = 0;
-    updateBowlerOptions();
-    updateUI();
-
+  if(currentInnings === 0){
+    targets[1] = scores[0] + 1;
+    currentInnings = 1; striker = 0; nonStriker = 1;
+    log(`${teamNames[getBattingTeamIndexForInnings(1)]} need ${targets[1]} to win.`);
+    updateBowlerOptions(); updateUI();
   } else {
-    // existing ODI/T20/RCT logic
-    if (currentInnings === 0) {
-      currentInnings = 1;
-      striker = 0; nonStriker = 1;
-      updateBowlerOptions();
-      log(`${teamNames[1]} needs ${scores[0] + 1} to win.`);
-      updateUI();
-    } else {
-      const result = scores[1] > scores[0] ? `${teamNames[1]} WINS!` :
-                     scores[1] < scores[0] ? `${teamNames[0]} WINS!` : `Match DRAWN!`;
-      log(`Match Over! ${result}`);
-      disableGame();
-    }
+    if(scores[1] === scores[0]) finishMatch('Match TIED 🤝','tie');
+    else if(scores[1] < scores[0]) finishMatch(`${teamNames[getBattingTeamIndexForInnings(0)]} WIN by ${scores[0] - scores[1]} runs`,'win');
+    else finishMatch(`${teamNames[getBattingTeamIndexForInnings(1)]} WIN by ${10 - wickets[1]} wickets`,'win');
   }
 }
 
+/* ========= Show Scorecard ========= */
+function showScorecard(){
+  const scoreDiv = document.getElementById('log');
+  scoreDiv.innerHTML += `<hr><h3>Final Scorecard</h3>`;
+  
+  for(let t=0; t<2; t++){
+    scoreDiv.innerHTML += `<h4>${teamNames[t]}: ${scores[t]}/${wickets[t]}</h4>`;
+    
+    // Batsmen
+    let batsHTML = '<strong>Batsmen:</strong><br>';
+    const battingInnings = (t === 0) ? 0 : 1;
+    teamPlayers[t].forEach((b, idx) => {
+      const stats = batsmenStats[battingInnings][idx];
+      if(stats) batsHTML += `${b}: ${stats.runs}(${stats.balls})<br>`;
+    });
+    scoreDiv.innerHTML += batsHTML;
+    
+    // Bowlers
+    let bowlHTML = '<strong>Bowlers:</strong><br>';
+    bowlerStats[t].forEach(b => {
+      const overs = Math.floor(b.balls/6) + '.' + (b.balls%6);
+      bowlHTML += `${b.name}: ${overs} ov, ${b.runs}r, ${b.wickets}w<br>`;
+    });
+    scoreDiv.innerHTML += bowlHTML;
+  }
+}
 
-function disableGame() {
+/* ========= Finish Match ========= */
+function finishMatch(message, cls){
+  log(message);
   togglePlayButtons(false);
-  showFinalScorecard();
-}
+  const box = document.getElementById('resultBox');
+  box.innerText = message; box.className = ''; box.style.display = 'block';
+  if(cls) box.classList.add(cls);
 
-function showFinalScorecard() {
-  let scoreHTML = "<h3>Final Scorecard</h3>";
-  for (let i = 0; i < 2; i++) {
-    scoreHTML += `<strong>${teamNames[i]}</strong> - ${scores[i]}/${wickets[i]}<br>`;
-    scoreHTML += "<u>Batting:</u><br>";
-    teamPlayers[i].forEach((player, idx) => {
-      const b = batsmenStats[i][idx];
-      scoreHTML += `${player}: ${b.runs} (${b.balls})<br>`;
-    });
-    scoreHTML += "<u>Bowling:</u><br>";
-    bowlerStats[i].forEach((bowler) => {
-      if (bowler.balls > 0) {
-        const overs = `${Math.floor(bowler.balls / 6)}.${bowler.balls % 6}`;
-        scoreHTML += `${bowler.name}: ${overs} overs, ${bowler.runs} runs, ${bowler.wickets} wickets<br>`;
-      }
-    });
-    scoreHTML += "<br>";
-  }
-  log(scoreHTML);
-}
-
-function log(message) {
-  document.getElementById('log').innerHTML += `<p>${message}</p>`;
+  // Show final scorecard
+  showScorecard();
 }
 </script>
-
 </body>
 </html>
-
-
-
-
