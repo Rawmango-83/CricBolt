@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <meta charset="UTF-8" />
   <title>Hand Cricket</title>
   <style>
@@ -13,6 +14,7 @@
     #resultBox.win { background:#d1fae5; color:#065f46; }
     #resultBox.draw { background:#fef3c7; color:#92400e; }
     #resultBox.tie { background:#e0e7ff; color:#3730a3; }
+
   </style>
 </head>
 <body>
@@ -27,6 +29,32 @@
   <option value="pakistan">Pakistan</option>
   <option value="southafrica">South Africa</option>
 </select>
+
+<div id="celebrationOverlay" style="
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  font-size: 3rem;
+  z-index: 9999;
+  text-align: center;
+  animation: fadeInOut 2s ease-in-out;
+">
+  <span id="celebrationText"></span>
+</div>
+
+<style>
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: scale(0.8); }
+  20% { opacity: 1; transform: scale(1.2); }
+  50% { opacity: 1; transform: scale(1); }
+  80% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(0.8); }
+}
+</style>
 
 
   <div class="section" id="setup-section">
@@ -407,6 +435,38 @@ if(document.getElementById('matchMode').value === 'test' && globalBallsCount % d
     finishMatch("Match Drawn - 360 balls (5 days) completed","draw");
     return;
   }
+
+// 🎯 Wicket celebration
+if(out){
+  showCelebration("🎯 WICKET!");
+}
+
+// 6️⃣ Six celebration
+if(!out && batsRun === 6){
+  showCelebration("💥 SIX!");
+}
+
+// 🏏 Batsman milestones (50 / 100)
+if(!out && (strikerStats.runs === 50 || strikerStats.runs === 100)){
+  showCelebration(`🏏 ${teamPlayers[battingTeamIndex][striker]} reaches ${strikerStats.runs}!`);
+}
+
+// 🎩 Hat-trick (3 wickets in 3 balls)
+if(bowler.wickets >= 3 && bowler.wickets % 3 === 0){
+  showCelebration("🎩 HAT-TRICK!");
+}
+
+// 🎯 Bowling milestones
+if(bowler.wickets === 3){
+  showCelebration("🔥 3 WKT HAUL!");
+}
+if(bowler.wickets === 5){
+  showCelebration("🔥🔥 5 WKT HAUL!");
+}
+if(bowler.wickets === 10){
+  showCelebration("💥 LEGENDARY 10 WKT HAUL!");
+}
+
 }
 
 
@@ -478,12 +538,81 @@ function showScorecard(){
 function finishMatch(resultText, resultType){
   log(`<strong>${resultText}</strong>`);
 
-  // show final scorecard
+  // Show final scorecard
   showScorecard();
 
   // 🔒 Disable further input after match ends
   document.querySelectorAll("button").forEach(btn => btn.disabled = true);
   document.getElementById("bowlerSelect").disabled = true;
+
+  // ✅ Add Download PDF button just below result box
+  const pdfBtn = document.createElement("button");
+  pdfBtn.textContent = "📄 Download Scorecard (PDF)";
+  pdfBtn.onclick = downloadPDF;
+
+  document.getElementById("resultBox").appendChild(pdfBtn);
+  document.getElementById("resultBox").style.display = "block"; // ensure it's visible
+}
+
+
+
+function downloadPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let y = 20;
+  doc.setFontSize(16);
+  doc.text("Final Scorecard", 80, y);
+  y += 10;
+
+  for(let inn=0; inn<4; inn++){
+    const teamIndex = getBattingTeamIndexForInnings(inn);
+    if(scores[inn]===0 && wickets[inn]===0) continue;
+
+    doc.setFontSize(14);
+    doc.text(`${teamNames[teamIndex]} - Innings ${ (inn%2)+1 }: ${scores[inn]}/${wickets[inn]}`, 20, y);
+    y += 8;
+
+    // Batsmen
+    doc.setFontSize(12);
+    doc.text("Batsmen:", 20, y); y += 6;
+    for(let i=0;i<teamPlayers[teamIndex].length;i++){
+      const stats = batsmenStats[inn][i];
+      if(stats) {
+        doc.text(`${teamPlayers[teamIndex][i]}: ${stats.runs} (${stats.balls})`, 30, y);
+        y += 6;
+      }
+    }
+
+    // Bowlers
+    y += 4;
+    doc.text("Bowlers:", 20, y); y += 6;
+    const bowlingTeamIdx = 1 - teamIndex;
+    bowlerStats[bowlingTeamIdx].forEach(b=>{
+      if(b.balls>0){
+        const overs = Math.floor(b.balls/6) + "." + (b.balls%6);
+        doc.text(`${b.name}: ${overs} ov, ${b.runs}r, ${b.wickets}w`, 30, y);
+        y += 6;
+      }
+    });
+
+    y += 10;
+  }
+
+  doc.save("Scorecard.pdf");
+}
+
+function showCelebration(message) {
+  const overlay = document.getElementById("celebrationOverlay");
+  const text = document.getElementById("celebrationText");
+
+  text.innerHTML = message;
+  overlay.style.display = "flex";
+
+  // Hide after 2.5 sec
+  setTimeout(() => {
+    overlay.style.display = "none";
+  }, 2500);
 }
 
 </script>
