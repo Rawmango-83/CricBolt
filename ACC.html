@@ -350,6 +350,17 @@ function playBall(run){
   ballByBall[currentInnings].push(out ? 'W' : batsRun);
   updateUI();
 
+// ===== Universal Chase Check =====
+  if(currentInnings % 2 === 1){ // only in 2nd innings of limited overs or 4th innings of test
+  const team1Total = (scores[0] || 0) + (scores[2] || 0);
+  const team2Total = (scores[1] || 0) + (scores[3] || 0);
+
+  if(team2Total > team1Total){
+    finishMatch(`${teamNames[battingTeamIndex]} WIN by ${10 - wickets[currentInnings]} wickets`, 'win');
+    return; // stop game immediately
+  }
+}
+
   // ===== Chase check in TEST (4th innings only) =====
   if(document.getElementById('matchMode').value === 'test' && currentInnings === 3){
     const team1Total = scores[0] + scores[2];
@@ -464,13 +475,17 @@ function showScorecard(){
 
 
 /* ========= Finish Match ========= */
-function finishMatch(message, cls){
-  log(message); togglePlayButtons(false);
-  const box=document.getElementById('resultBox');
-  box.innerText=message; box.className=''; box.style.display='block';
-  if(cls) box.classList.add(cls);
+function finishMatch(resultText, resultType){
+  log(`<strong>${resultText}</strong>`);
+
+  // show final scorecard
   showScorecard();
+
+  // 🔒 Disable further input after match ends
+  document.querySelectorAll("button").forEach(btn => btn.disabled = true);
+  document.getElementById("bowlerSelect").disabled = true;
 }
+
 </script>
 
 </body>
