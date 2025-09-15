@@ -14,7 +14,7 @@
     #resultBox.win { background:#d1fae5; color:#065f46; }
     #resultBox.draw { background:#fef3c7; color:#92400e; }
     #resultBox.tie { background:#e0e7ff; color:#3730a3; }
-
+    #dayOversDisplay { margin-top:6px; font-weight:600; }
   </style>
 </head>
 <body>
@@ -83,6 +83,8 @@
     <h2 id="matchTitle"></h2>
     <h3 id="batsmenStatus"></h3>
     <p id="overInfo"></p>
+<button id="continueDayBtn" style="display:none;" onclick="continueNextDay()">Continue Next Day</button>
+<div id="dayOversDisplay">Day 1 | Over 0.0</div>
 
     <label>Select Bowler:</label>
     <select id="bowlerSelect" onchange="setBowler()"></select>
@@ -96,15 +98,12 @@
       <button onclick="playBall(5)">5</button>
       <button onclick="playBall(6)">6</button>
     </div>
-  <!-- Add this in the Setup Section above the player textareas -->
-
 
     <div id="ballLog"></div>
     <div id="log"></div>
     <div id="bowlerStats"></div>
     <div id="resultBox"></div>
   </div>
-
 <script>
 /* ========= Game State ========= */
 let teamNames = ["",""];
@@ -132,8 +131,12 @@ let tossWinner = null;
 
 /* Test day tracking */
 let dayNumber = 1;
-let dayBallsCount = 0;            
-const dayBallsLimit = 12 * ballsPerOver;
+let dayBallsCount = 0; // balls in current day
+let ballsThisInnings = 0; // balls in current innings
+let celebrationQueue = [];
+let celebrationInProgress = false;
+let totalMatchBalls = 0;   // continuous balls across the match
+const dayBallsLimit = 12 * ballsPerOver; // 12 overs per day by default
 
 /* ========= Predefined Teams ========= */
 const predefinedTeams = {
@@ -195,6 +198,9 @@ function startGame(){
   overs = parseInt(document.getElementById('overs').value);
   totalBallsPerInnings = overs * ballsPerOver;
 
+  // Recompute dayBallsLimit in case overs changed
+  // keep dayBallsLimit as 12 overs/day -> but if you want dynamic you can adjust here
+
   teamPlayers[0] = document.getElementById('team1Players').value.split(',').map(p=>p.trim()).filter(Boolean);
   teamPlayers[1] = document.getElementById('team2Players').value.split(',').map(p=>p.trim()).filter(Boolean);
 
@@ -203,16 +209,34 @@ function startGame(){
   for(let inn=0; inn<4; inn++){
     batsmenStats[inn] = [];
     for(let p=0; p<11; p++){
-      batsmenStats[inn].push({ runs: 0, balls: 0 });
+      batsmenStats[inn].push({ 
+          runs: 0, 
+          balls: 0, 
+          fiftyShown: false,
+          hundredShown: false
+      });
     }
     ballByBall[inn] = [];
-    scores[inn] = 0; wickets[inn] = 0; ballsBowled[inn] = 0; targets[inn] = null;
+    scores[inn] = 0; 
+    wickets[inn] = 0; 
+    ballsBowled[inn] = 0; 
+    targets[inn] = null;
   }
 
   for(let t=0; t<2; t++){
     bowlerStats[t] = [];
     for(let j=0;j<11;j++){
-      bowlerStats[t].push({ name: teamPlayers[t][j] || `Bowler ${j+1}`, runs:0, balls:0, wickets:0 });
+      bowlerStats[t].push({ 
+          name: teamPlayers[t][j] || `Bowler ${j+1}`, 
+          runs:0, 
+          balls:0, 
+          wickets:0,
+          hatTrickShown: false,
+          threeWktShown: false,
+          fiveWktShown: false,
+          tenWktShown: false,
+          consecutiveWickets: 0   // INITIALIZE here (fix)
+      });
     }
   }
 
@@ -221,6 +245,8 @@ function startGame(){
   currentInnings = 0; striker = 0; nonStriker = 1;
   currentBowler = null; lastBowler = null; recentUserRuns = [];
   dayNumber = 1; dayBallsCount = 0;
+  totalMatchBalls = 0;
+  ballsThisInnings = 0;
 
   document.getElementById('setup-section').style.display = 'none';
   document.getElementById('game-section').style.display = 'block';
@@ -231,6 +257,7 @@ function startGame(){
 
   updateBowlerOptions();
   updateUI();
+  updateDayOversDisplay();
 }
 
 /* ========= UI ========= */
@@ -281,6 +308,17 @@ function updateUI(){
     statsHTML += `${b.name}: ${oversB} ov, ${b.runs}r, ${b.wickets}w`;
   } else { statsHTML += `No bowler selected.`; }
   document.getElementById('bowlerStats').innerHTML = statsHTML;
+
+  updateDayOversDisplay();
+}
+
+/* ========= Day/Overs display ========= */
+function updateDayOversDisplay(){
+    // ballsThisInnings derived from ballsBowled for current innings
+    ballsThisInnings = ballsBowled[currentInnings];
+    const oversCompleted = Math.floor(ballsThisInnings / ballsPerOver);
+    const ballsInOver = ballsThisInnings % ballsPerOver;
+    document.getElementById('dayOversDisplay').innerText = `Day ${dayNumber} | Over ${oversCompleted}.${ballsInOver}`;
 }
 
 /* ========= Bowler selection ========= */
@@ -301,7 +339,9 @@ function updateBowlerOptions(){
 }
 
 function setBowler(){
-  const sel = parseInt(document.getElementById('bowlerSelect').value);
+  const val = document.getElementById('bowlerSelect').value;
+  const sel = parseInt(val);
+  if(isNaN(sel)){ return; }
   if(sel === lastBowler){ alert('Same bowler cannot bowl consecutive overs.'); return; }
   currentBowler = sel;
   document.getElementById('bowlerSelect').disabled = true;
@@ -314,23 +354,75 @@ function togglePlayButtons(enable){
 }
 
 /* ========= Smart Opponent Run ========= */
-function getSmartOpponentRun(){
-  const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
-  const isComputerBatting = (battingTeamIndex === compTeamIndex);
-  let run = Math.floor(Math.random()*7); // default 0-6
-  if(isComputerBatting){
-      if(Math.random()<0.2) run = [2,3,4,5,6][Math.floor(Math.random()*5)]; // extra runs sometimes on wicket
-  } else {
-      if(Math.random()<0.2) run = [4,5,6][Math.floor(Math.random()*3)];
-  }
-  return run;
+// (kept as-is from your code; can tweak later)
+function getSmartBattingRun(){
+    const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
+    const isComputerBatting = (battingTeamIndex === compTeamIndex);
+    if(!isComputerBatting) return null;
+
+    const ballsLeft = totalBallsPerInnings - ballsBowled[currentInnings];
+    const wicketsLeft = 10 - wickets[currentInnings];
+    const runsNeeded = targets[currentInnings] ? targets[currentInnings] - scores[currentInnings] : 0;
+    const rpo = ballsLeft > 0 ? runsNeeded / (ballsLeft/ballsPerOver) : 0;
+
+    let run;
+
+    if(wicketsLeft > 5){ 
+        const r = Math.random();
+        if(r < 0.6) run = 6;
+        else if(r < 0.85) run = Math.random() < 0.5 ? 4 : 5;
+        else run = 2 + Math.floor(Math.random()*3);
+    } else {
+        const r = Math.random();
+        if(r < 0.4) run = 2 + Math.floor(Math.random()*3);
+        else run = 4 + Math.floor(Math.random()*2);
+    }
+
+    if(targets[currentInnings]){
+        if(rpo > 8) run = Math.random() < 0.7 ? 6 : run;
+        if(ballsLeft <= 6) run = Math.random() < 0.75 ? 6 : run;
+    }
+
+    return run;
+}
+
+function getSmartBowlingRun() {
+    const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
+    const isComputerBatting = (battingTeamIndex === compTeamIndex);
+
+    if(isComputerBatting) return null;
+
+    let predictedRun = null;
+    const lastTwoUserRuns = recentUserRuns.slice(-2);
+    if(lastTwoUserRuns.length === 2 && lastTwoUserRuns[0] === lastTwoUserRuns[1]){
+        predictedRun = lastTwoUserRuns[1];
+    }
+
+    let delivery;
+
+    if(predictedRun !== null){
+        delivery = predictedRun;
+    } else {
+        const r = Math.random();
+        if(r < 0.6) delivery = 6;
+        else if(r < 0.8) delivery = Math.random() < 0.5 ? 4 : 5;
+        else delivery = Math.floor(Math.random()*4);
+    }
+
+    const ballsLeft = totalBallsPerInnings - ballsBowled[currentInnings];
+    const runsNeeded = targets[currentInnings] ? targets[currentInnings] - scores[currentInnings] : 0;
+    const rpo = ballsLeft > 0 ? runsNeeded / (ballsLeft/ballsPerOver) : 0;
+
+    if(targets[currentInnings]){
+        if(ballsLeft <= 6 || rpo > 8) delivery = Math.random() < 0.75 ? 6 : delivery;
+        else if(rpo > 5) delivery = Math.random() < 0.5 ? 6 : delivery;
+    }
+
+    return delivery;
 }
 
 /* ========= Play Ball ========= */
-// declare globally at top
-let totalMatchBalls = 0;   // ✅ continuous balls across the whole match (all days & innings)
-
-function playBall(run){
+function playBall(userRun){
   if(currentBowler === null) { alert('Please select a bowler.'); return; }
 
   const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
@@ -343,60 +435,105 @@ function playBall(run){
 
   const isComputerBatting = (battingTeamIndex === compTeamIndex);
 
+  // ===== Determine runs & out =====
   if(isComputerBatting){
-    batsRun = getSmartOpponentRun();
-    out = (run === batsRun);
+      batsRun = getSmartBattingRun();
+      out = (userRun === batsRun);
   } else {
-    batsRun = run;
-    const compRun = getSmartOpponentRun();
-    out = (run === compRun);
+      batsRun = userRun;
+      const compDelivery = getSmartBowlingRun();
+      out = (batsRun === compDelivery);
+
+      recentUserRuns.push(batsRun);
+      if(recentUserRuns.length > 5) recentUserRuns.shift();
   }
 
+  // ===== Update counts =====
   ballsBowled[currentInnings]++;
   bowler.balls++;
-  totalMatchBalls++;   // ✅ continuous match ball count
+  totalMatchBalls++;
+  dayBallsCount++; // increment balls in the current day
+  ballsThisInnings = ballsBowled[currentInnings];
 
- if(out){
-    let fakeRun = 0;
-    if(Math.random() < 0.3){
-        fakeRun = [2,3,4,5,6][Math.floor(Math.random()*5)];
-    }
+  // Prepare celebration queue for this ball
+  const thisBallQueue = [];
 
-    log(`${teamPlayers[battingTeamIndex][striker]} is OUT!${fakeRun ? ` (tried to hit ${fakeRun} runs before getting caught)` : ''}`);
-    strikerStats.balls++;
-    wickets[currentInnings]++;
-    bowler.wickets++;
-    striker = wickets[currentInnings] + 1;
+  if(out){
+      strikerStats.balls++;
+      wickets[currentInnings]++;
+      bowler.wickets++;
+      bowler.consecutiveWickets = (bowler.consecutiveWickets || 0) + 1;
+
+      let fakeRun = 0;
+      if(Math.random() < 0.3){
+          fakeRun = [2,3,4,5,6][Math.floor(Math.random()*5)];
+      }
+      log(`${teamPlayers[battingTeamIndex][striker]} is OUT!${fakeRun ? ` (tried to hit ${fakeRun} runs before getting caught)` : ''}`);
+      striker = wickets[currentInnings] + 1;
+
+      thisBallQueue.push("🎯 WICKET!");
+
+      if(bowler.consecutiveWickets === 3 && !bowler.hatTrickShown){
+          bowler.hatTrickShown = true;
+          thisBallQueue.push(`🎩 HAT-TRICK by ${bowler.name}!`);
+      }
+
+      if(!bowler.threeWktShown && bowler.wickets >= 3){
+          bowler.threeWktShown = true;
+          thisBallQueue.push(`🔥 3 WKT HAUL by ${bowler.name}!`);
+      }
+      if(!bowler.fiveWktShown && bowler.wickets >= 5){
+          bowler.fiveWktShown = true;
+          thisBallQueue.push(`🔥🔥 5 WKT HAUL by ${bowler.name}!`);
+      }
+      if(!bowler.tenWktShown && bowler.wickets >= 10){
+          bowler.tenWktShown = true;
+          thisBallQueue.push(`💥 LEGENDARY 10 WKT HAUL by ${bowler.name}!`);
+      }
+
   } else {
-    strikerStats.runs += batsRun;
-    strikerStats.balls++;
-    scores[currentInnings] += batsRun;
-    bowler.runs += batsRun;
-    if(batsRun === 1 || batsRun === 3) [striker, nonStriker] = [nonStriker, striker];
+      strikerStats.runs += batsRun;
+      strikerStats.balls++;
+      scores[currentInnings] += batsRun;
+      bowler.runs += batsRun;
+      bowler.consecutiveWickets = 0;
+
+      if(batsRun === 1 || batsRun === 3) [striker, nonStriker] = [nonStriker, striker];
+
+      if(strikerStats.runs >= 50 && !strikerStats.fiftyShown){
+          strikerStats.fiftyShown = true;
+          thisBallQueue.push(`🏏 ${teamPlayers[battingTeamIndex][striker]} reaches 50!`);
+      }
+      if(strikerStats.runs >= 100 && !strikerStats.hundredShown){
+          strikerStats.hundredShown = true;
+          thisBallQueue.push(`🏏 ${teamPlayers[battingTeamIndex][striker]} reaches 100!`);
+      }
+
+      if(batsRun === 6){
+          thisBallQueue.push("💥 SIX!");
+      }
   }
 
   ballByBall[currentInnings].push(out ? 'W' : batsRun);
   updateUI();
 
-// ===== Universal Chase Check =====
-  if(currentInnings % 2 === 1){ // only in 2nd innings of limited overs or 4th innings of test
-  const team1Total = (scores[0] || 0) + (scores[2] || 0);
-  const team2Total = (scores[1] || 0) + (scores[3] || 0);
+  // ===== Day change logic (Test mode only) =====
+  if(document.getElementById('matchMode').value === 'test' && dayBallsCount >= dayBallsLimit){
+      // Stumps for the day — pause play and require continueNextDay()
+      if(dayNumber < 5){
+          log(`--- Stumps: Day ${dayNumber} Ends ---`);
+          dayNumber++;
 
-  if(team2Total > team1Total){
-    finishMatch(`${teamNames[battingTeamIndex]} WIN by ${10 - wickets[currentInnings]} wickets`, 'win');
-    return; // stop game immediately
-  }
-}
+          document.querySelectorAll('.number-buttons button').forEach(b => b.disabled = true);
+          document.getElementById('bowlerSelect').disabled = true;
+          document.getElementById('continueDayBtn').style.display = "inline-block";
 
-  // ===== Chase check in TEST (4th innings only) =====
-  if(document.getElementById('matchMode').value === 'test' && currentInnings === 3){
-    const team1Total = scores[0] + scores[2];
-    const team2Total = scores[1] + scores[3];
-    if(team2Total > team1Total){
-      finishMatch(`${teamNames[battingTeamIndex]} WIN by ${10 - wickets[currentInnings]} wickets`, 'win');
-      return;
-    }
+          // reset dayBallsCount for next day only when continue pressed (we keep it as is until resume)
+          return; // IMPORTANT: do not proceed to innings-end checks
+      } else {
+          enqueueAndPlay(thisBallQueue, () => finishMatch("Match Drawn - 5 days completed","draw"));
+          return;
+      }
   }
 
   // ===== End of over logic =====
@@ -408,68 +545,39 @@ function playBall(run){
     log('End of over. Select next bowler.');
   }
 
-  // ===== Day change logic (every 72 balls in match) =====
-// ===== Day change logic =====
-if(document.getElementById('matchMode').value === 'test' && globalBallsCount % dayBallsLimit === 0){
-    if(dayNumber < 5){
-        log(`--- Stumps: Day ${dayNumber} Ends ---`);
-        dayNumber++;
-        log(`--- Day ${dayNumber} begins ---`);
-    } else {
-        // If Day 5 also ends and match still not finished → Draw
-        finishMatch("Match Drawn - 5 days completed","draw");
-        return;
-    }
-}
-
-
-
   // ===== End Innings check =====
   if(wickets[currentInnings] >= 10 || ballsBowled[currentInnings] >= totalBallsPerInnings){
-    endInnings();
+    enqueueAndPlay(thisBallQueue, endInnings);
     return;
   }
 
-  // ===== End Match after 360 balls (safety check) =====
+  // ===== Safety: max balls in tests (draw) =====
   if(document.getElementById('matchMode').value === 'test' && totalMatchBalls >= 360){
-    finishMatch("Match Drawn - 360 balls (5 days) completed","draw");
+    enqueueAndPlay(thisBallQueue, () => finishMatch("Match Drawn - 360 balls (5 days) completed","draw"));
     return;
   }
 
-// 🎯 Wicket celebration
-if(out){
-  showCelebration("🎯 WICKET!");
+  // Finally, if nothing above stopped the game, display this ball's celebrations
+  enqueueAndPlay(thisBallQueue);
 }
 
-// 6️⃣ Six celebration
-if(!out && batsRun === 6){
-  showCelebration("💥 SIX!");
+/* ========= helper to enqueue and optionally call callback after queue drains ========= */
+function enqueueAndPlay(queue, callback){
+    if(queue && queue.length){
+        queue.forEach(m => celebrationQueue.push(m));
+        if(!celebrationInProgress) displayNextCelebration();
+        if(callback){
+            const checkInterval = setInterval(() => {
+                if(!celebrationInProgress && celebrationQueue.length === 0){
+                    clearInterval(checkInterval);
+                    callback();
+                }
+            }, 200);
+        }
+    } else {
+        if(callback) callback();
+    }
 }
-
-// 🏏 Batsman milestones (50 / 100)
-if(!out && (strikerStats.runs === 50 || strikerStats.runs === 100)){
-  showCelebration(`🏏 ${teamPlayers[battingTeamIndex][striker]} reaches ${strikerStats.runs}!`);
-}
-
-// 🎩 Hat-trick (3 wickets in 3 balls)
-if(bowler.wickets >= 3 && bowler.wickets % 3 === 0){
-  showCelebration("🎩 HAT-TRICK!");
-}
-
-// 🎯 Bowling milestones
-if(bowler.wickets === 3){
-  showCelebration("🔥 3 WKT HAUL!");
-}
-if(bowler.wickets === 5){
-  showCelebration("🔥🔥 5 WKT HAUL!");
-}
-if(bowler.wickets === 10){
-  showCelebration("💥 LEGENDARY 10 WKT HAUL!");
-}
-
-}
-
-
 
 /* ========= End Innings & Result ========= */
 function endInnings(){
@@ -506,13 +614,11 @@ function showScorecard(){
   scoreDiv.innerHTML += `<hr><h3>Final Scorecard</h3>`;
 
   for(let inn=0; inn<4; inn++){
-    // Figure out which team batted this innings
     const teamIndex = getBattingTeamIndexForInnings(inn);
     if(scores[inn]===0 && wickets[inn]===0) continue;
 
     scoreDiv.innerHTML += `<h4>${teamNames[teamIndex]} - Innings ${ (inn%2)+1 }: ${scores[inn]}/${wickets[inn]}</h4>`;
 
-    // Batsmen stats
     let batsHTML = '<strong>Batsmen:</strong><br>';
     for(let i=0;i<teamPlayers[teamIndex].length;i++){
       const stats = batsmenStats[inn][i];
@@ -520,7 +626,6 @@ function showScorecard(){
     }
     scoreDiv.innerHTML += batsHTML;
 
-    // Bowlers stats
     let bowlHTML = '<strong>Bowlers:</strong><br>';
     const bowlingTeamIdx = 1 - teamIndex;
     bowlerStats[bowlingTeamIdx].forEach(b=>{
@@ -533,50 +638,39 @@ function showScorecard(){
   }
 }
 
-
 /* ========= Finish Match ========= */
 function finishMatch(resultText, resultType){
   log(`<strong>${resultText}</strong>`);
-
-  // Show final scorecard
   showScorecard();
-
-  // 🔒 Disable further input after match ends
   document.querySelectorAll("button").forEach(btn => btn.disabled = true);
   document.getElementById("bowlerSelect").disabled = true;
-
-  // ✅ Add Download PDF button just below result box
   const pdfBtn = document.createElement("button");
   pdfBtn.textContent = "📄 Download Scorecard (PDF)";
   pdfBtn.onclick = downloadPDF;
-
-  document.getElementById("resultBox").appendChild(pdfBtn);
-  document.getElementById("resultBox").style.display = "block"; // ensure it's visible
+  const rb = document.getElementById("resultBox");
+  rb.innerHTML = ''; rb.appendChild(pdfBtn); rb.style.display = "block";
 }
-
-
 
 function downloadPDF(){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-
-  let y = 20;
-  doc.setFontSize(16);
-  doc.text("Final Scorecard", 80, y);
+  let y = 20; 
+  doc.setFontSize(16); 
+  doc.text("Final Scorecard", 80, y); 
   y += 10;
 
   for(let inn=0; inn<4; inn++){
     const teamIndex = getBattingTeamIndexForInnings(inn);
     if(scores[inn]===0 && wickets[inn]===0) continue;
 
-    doc.setFontSize(14);
-    doc.text(`${teamNames[teamIndex]} - Innings ${ (inn%2)+1 }: ${scores[inn]}/${wickets[inn]}`, 20, y);
+    doc.setFontSize(14); 
+    doc.text(`${teamNames[teamIndex]} - Innings ${ (inn%2)+1 }: ${scores[inn]}/${wickets[inn]}`, 20, y); 
     y += 8;
 
-    // Batsmen
     doc.setFontSize(12);
-    doc.text("Batsmen:", 20, y); y += 6;
-    for(let i=0;i<teamPlayers[teamIndex].length;i++){
+    doc.text("Batsmen:", 20, y); 
+    y += 6;
+    for(let i=0; i<teamPlayers[teamIndex].length; i++){
       const stats = batsmenStats[inn][i];
       if(stats) {
         doc.text(`${teamPlayers[teamIndex][i]}: ${stats.runs} (${stats.balls})`, 30, y);
@@ -584,38 +678,61 @@ function downloadPDF(){
       }
     }
 
-    // Bowlers
     y += 4;
-    doc.text("Bowlers:", 20, y); y += 6;
+    doc.text("Bowlers:", 20, y); 
+    y += 6;
     const bowlingTeamIdx = 1 - teamIndex;
     bowlerStats[bowlingTeamIdx].forEach(b=>{
       if(b.balls>0){
-        const overs = Math.floor(b.balls/6) + "." + (b.balls%6);
+        const overs = Math.floor(b.balls/6) + '.' + (b.balls%6);
         doc.text(`${b.name}: ${overs} ov, ${b.runs}r, ${b.wickets}w`, 30, y);
         y += 6;
       }
     });
-
     y += 10;
   }
 
   doc.save("Scorecard.pdf");
 }
 
-function showCelebration(message) {
-  const overlay = document.getElementById("celebrationOverlay");
-  const text = document.getElementById("celebrationText");
 
-  text.innerHTML = message;
-  overlay.style.display = "flex";
+/* ========= Celebrations (queue) ========= */
+function showCelebration(message){
+    celebrationQueue.push(message);
+    if(!celebrationInProgress){ displayNextCelebration(); }
+}
+function displayNextCelebration(){
+    if(celebrationQueue.length === 0){ celebrationInProgress = false; return; }
+    celebrationInProgress = true;
+    const overlay = document.getElementById("celebrationOverlay");
+    const text = document.getElementById("celebrationText");
+    const msg = celebrationQueue.shift();
+    text.innerHTML = msg; overlay.style.display = "flex";
+    setTimeout(() => { overlay.style.display = "none"; setTimeout(displayNextCelebration, 300); }, 2500);
+}
 
-  // Hide after 2.5 sec
-  setTimeout(() => {
-    overlay.style.display = "none";
-  }, 2500);
+function continueNextDay() {
+    // Increment day number
+    dayNumber++;
+    dayBallsCount = 0; // reset balls for the new day
+
+    // Re-enable bowler selection and play buttons
+    currentBowler = null;
+    lastBowler = null;
+    document.getElementById('bowlerSelect').disabled = false;
+    togglePlayButtons(false); // wait until bowler is selected
+
+    // Hide Continue button
+    document.getElementById('continueDayBtn').style.display = 'none';
+
+    log(`--- Day ${dayNumber} Starts ---`);
+    updateUI();
+    updateDayOversDisplay();
 }
 
 </script>
 
 </body>
 </html>
+
+
