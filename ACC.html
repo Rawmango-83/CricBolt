@@ -350,108 +350,102 @@ function togglePlayButtons(enable){
 }
 
 /* ========= Smart Opponent Run ========= */
+let lastBattingRuns = [];
+
 function getSmartBattingRun() {
     const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
     const isComputerBatting = (battingTeamIndex === compTeamIndex);
     if (!isComputerBatting) return null;
 
-    const ballsLeft = totalBallsPerInnings - ballsBowled[currentInnings];
     const wicketsLost = wickets[currentInnings];
-    const runsNeeded = targets[currentInnings] ? targets[currentInnings] - scores[currentInnings] : 0;
-    const rpo = ballsLeft > 0 ? runsNeeded / (ballsLeft / ballsPerOver) : 0;
-
-    const mode = document.getElementById("matchMode").value;
-    let run = 0;
+    let run;
     let rand = Math.random();
 
-    // ---------- TEST MATCH LOGIC ----------
-    if (mode === "test") {
-        if (wicketsLost > 5) {
-            // If collapse happens, play safe for 4 balls
-            if (Math.random() < 0.7) {
-                const safe = [0,1,2,3,4];
-                run = safe[Math.floor(Math.random() * safe.length)];
-            } else {
-                const aggressive = [3,4,5,6];
-                run = aggressive[Math.floor(Math.random() * aggressive.length)];
-            }
-        } else {
-            // Normal Test mode: long random patterns
-            const pattern = [3,4,5,6];
-            run = pattern[Math.floor(Math.random() * pattern.length)];
-        }
+    // --- 1. If wickets fall quickly (>= 5 wickets) → play safe ---
+    if (wicketsLost >= 5) {
+        if (rand < 0.5) run = 1;
+        else run = 2;
     } 
-    
-    // ---------- LIMITED OVERS (T20I, ODI, IPL) ----------
+    // --- 2. Aggressive batting pattern (3,4,5,6) ---
     else {
-        const pattern = [3,4,5,6];
-
-        if (targets[currentInnings]) { // chasing case
-            if (rpo > 0 && scores[currentInnings] / ((ballsBowled[currentInnings]+1)/ballsPerOver) < rpo) {
-                // If below required run rate, boost a little
-                const chaseBoost = [4,5,6];
-                run = chaseBoost[Math.floor(Math.random() * chaseBoost.length)];
-            } else {
-                // Slightly above required RR (1–2 extra runs)
-                if (rand < 0.5) run = 4;
-                else if (rand < 0.8) run = 5;
-                else run = 6;
-            }
-        } else { 
-            // Batting first → free flowing
-            run = pattern[Math.floor(Math.random() * pattern.length)];
-        }
+        let options = [3,4,5,6];
+        run = options[Math.floor(Math.random() * options.length)];
     }
 
-    return Math.min(run, 6);
+    // --- 3. Prevent repeating same number more than 2 times ---
+    lastBattingRuns.push(run);
+    if (lastBattingRuns.length > 3) lastBattingRuns.shift();
+
+    if (lastBattingRuns.length === 3 &&
+        lastBattingRuns[0] === lastBattingRuns[1] &&
+        lastBattingRuns[1] === lastBattingRuns[2]) {
+        
+        // force change number
+        let alt = [3,4,5,6].filter(r => r !== run);
+        run = alt[Math.floor(Math.random()*alt.length)];
+        lastBattingRuns[lastBattingRuns.length-1] = run;
+    }
+
+    return run;
 }
 
-function getSmartBowlingRun() {
-    const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
-    const isComputerBatting = (battingTeamIndex === compTeamIndex);
-    if (isComputerBatting) return null;
 
-    // Track frequent user runs
-    const freq = {};
-    recentUserRuns.forEach(r => { freq[r] = (freq[r] || 0) + 1; });
-    const sortedNums = Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).map(Number);
+// Track last few deliveries to avoid streaks
+let lastBowlingRuns = [];
+let lastUserInputs = [];
 
-    let predictedRun = sortedNums.length ? sortedNums[0] : null;
-    const mode = document.getElementById('matchMode').value;
-
-    const oversBowled = Math.floor(ballsBowled[currentInnings] / ballsPerOver);
+function getSmartBowlingRun(userInput) {
+    const ballsLeft = totalBallsPerInnings - ballsBowled[currentInnings];
     let delivery;
-    let rand = Math.random();
 
-    // ---------- LIMITED OVERS (T20I, ODI, IPL) ----------
-    if (mode === 't20i' || mode === 'odi' || mode === 'rct' || mode === 'ipl') {
-        const totalOvers = totalBallsPerInnings / ballsPerOver;
-        
-        if (oversBowled >= totalOvers - 2) {
-            // Death overs → attack with 4,5,6
-            const attack = [4,5,6];
-            delivery = attack[Math.floor(Math.random() * attack.length)];
-        } else {
-            if (predictedRun !== null && rand < 0.6) {
-                delivery = predictedRun; // bowl to counter user's favorite
-            } else {
-                delivery = [0,1,2,3,4,5,6][Math.floor(Math.random() * 7)];
-            }
+    // Track user history
+    if (userInput !== undefined) {
+        lastUserInputs.push(userInput);
+        if (lastUserInputs.length > 3) lastUserInputs.shift();
+    }
+
+    // --- 1. End game trap: last 4 balls = 70% chance of 6 ---
+    if (ballsLeft <= 4 && Math.random() < 0.7) {
+        delivery = 6;
+    } 
+    // --- 2. User repetition trap ---
+    else if (lastUserInputs.length >= 2 &&
+             lastUserInputs[lastUserInputs.length-1] === lastUserInputs[lastUserInputs.length-2]) {
+        // If same number repeated twice
+        if (Math.random() < 0.8) {
+            delivery = lastUserInputs[lastUserInputs.length-1]; // trap wicket ball
         }
     } 
-    
-    // ---------- TEST MATCH ----------
+    // --- 3. Normal probability model ---
     else {
-        if (predictedRun !== null && rand < 0.6) {
-            delivery = predictedRun;
-        } else {
-            // keep things tighter
-            delivery = [0,1,2,3,4][Math.floor(Math.random() * 5)];
-        }
+        let rand = Math.random();
+        if (rand < 0.5) delivery = 6;       // 50% 6
+        else if (rand < 0.75) delivery = 4; // 25% 4
+        else delivery = 5;                  // 25% 5
+    }
+
+    // --- Prevent nonsense repetition 4 times ---
+    lastBowlingRuns.push(delivery);
+    if (lastBowlingRuns.length > 4) lastBowlingRuns.shift();
+
+    const allSame = lastBowlingRuns.every(r => r === lastBowlingRuns[0]);
+    if (allSame && lastBowlingRuns.length === 4) {
+        // force change
+        let alt = [0,1,2,3].filter(r => r !== delivery);
+        delivery = alt[Math.floor(Math.random()*alt.length)];
+        lastBowlingRuns[lastBowlingRuns.length-1] = delivery;
     }
 
     return delivery;
 }
+
+// Helper: Pick something different
+function getDifferentRun(current) {
+    let options = [0,1,2,3,4,5,6].filter(r => r !== current);
+    return options[Math.floor(Math.random()*options.length)];
+}
+
+
 
 
 /* ========= Play Ball ========= */
@@ -774,15 +768,29 @@ function showCelebration(message){
     celebrationQueue.push(message);
     if(!celebrationInProgress){ displayNextCelebration(); }
 }
+
 function displayNextCelebration(){
-    if(celebrationQueue.length === 0){ celebrationInProgress = false; return; }
+    if(celebrationQueue.length === 0){ 
+        celebrationInProgress = false; 
+        return; 
+    }
     celebrationInProgress = true;
     const overlay = document.getElementById('celebrationOverlay');
     const text = document.getElementById('celebrationText');
     const msg = celebrationQueue.shift();
-    text.innerHTML = msg; overlay.style.display = 'flex';
-    setTimeout(() => { overlay.style.display = 'none'; setTimeout(displayNextCelebration, 300); }, 2500);
+
+    text.innerHTML = msg; 
+    overlay.style.display = 'flex';
+
+    // 🔊 Speak commentary (sound only)
+    speakCommentary(msg);
+
+    setTimeout(() => { 
+        overlay.style.display = 'none'; 
+        setTimeout(displayNextCelebration, 300); 
+    }, 2500);
 }
+
 
 function continueNextDay() {
     // Just re-enable play — days are calculated from totalMatchBalls
@@ -829,6 +837,62 @@ function updatePredefinedTeams(teamsObj){
   }
 }
 
+function commentaryEngine(event, data = {}) {
+    let text = "";
+
+    switch(event) {
+        case "run":
+            text = `${data.batsman} takes ${data.runs} run${data.runs>1 ? "s" : ""}`;
+            break;
+        case "six":
+            text = `It's a massive six by ${data.batsman}!`;
+            break;
+        case "four":
+            text = `Beautiful shot! ${data.batsman} smashes a boundary!`;
+            break;
+        case "wicket":
+            text = `Wicket! ${data.batsman} is out! ${data.bowler} gets him!`;
+            break;
+        case "fifty":
+            text = `${data.batsman} reaches a well played fifty!`;
+            break;
+        case "hundred":
+            text = `${data.batsman} reaches a magnificent century!`;
+            break;
+        case "hatTrick":
+            text = `Unbelievable! ${data.bowler} takes a hat-trick!`;
+            break;
+        case "threeWktHaul":
+            text = `${data.bowler} completes a 3 wicket haul!`;
+            break;
+        case "fiveWktHaul":
+            text = `${data.bowler} completes a 5 wicket haul!`;
+            break;
+        case "tenWktHaul":
+            text = `${data.bowler} takes 10 wickets! Legendary spell!`;
+            break;
+        case "overEnd":
+            text = `End of the over. ${data.bowler} finishes his spell.`;
+            break;
+    }
+
+    if (text) {
+        speakCommentary(text); // 🔊 only sound
+    }
+}
+
+
+/* ===== Commentary Voice ===== */
+function speakCommentary(text) {
+    if (!text) return;
+    // emojis remove karke clean bolne ke liye
+    const clean = text.replace(/[^a-zA-Z0-9\s]/g, '');
+    const utter = new SpeechSynthesisUtterance(clean);
+    utter.rate = 1;
+    utter.pitch = 1;
+    utter.volume = 1;
+    speechSynthesis.speak(utter);
+}
 
 
 </script>
