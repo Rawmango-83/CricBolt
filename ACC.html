@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <meta charset="UTF-8" />
   <title>Hand Cricket - Fixed</title>
   <style>
@@ -75,6 +76,7 @@
       <option value="odi">ODI (10 overs)</option>
       <option value="test">Test (12 overs/day, up to 5 days)</option>
       <option value="rct">RCT (15 overs)</option>
+      <option value="ipl">IPL (5 overs)</option>
     </select>
   </div>
 
@@ -103,6 +105,7 @@
     <div id="bowlerStats"></div>
     <div id="resultBox"></div>
   </div>
+
 <script>
 /* ========= Game State ========= */
 let teamNames = ["",""];
@@ -147,10 +150,21 @@ const predefinedTeams = {
   southafrica: ["Quinton de Kock","Faf du Plessis","Temba Bavuma","Rassie van der Dussen","Kagiso Rabada","Anrich Nortje","Lungi Ngidi","David Miller","Aiden Markram","Dwaine Pretorius","Heinrich Klaasen"]
 };
 
+const iplTeams = {
+  csk: ["MS Dhoni","Ravindra Jadeja","Ruturaj Gaikwad","Deepak Chahar","Dwaine Pretorius","Moeen Ali","Devon Conway","Noor Ahmed","Shivam Dube","Josh Hazlewood","Maheesh Theekshana"],
+  mi: ["Rohit Sharma","Suryakumar Yadav","Ishan Kishan","Jasprit Bumrah","Kieron Pollard","Tilak Varma","Daniel Sams","Cameron Green","Hrithik Shokeen","Nehal Wadhera","Tim David"],
+  rcb: ["Faf du Plessis","Virat Kohli","Glenn Maxwell","Shahbaz Ahmed","Mohammed Siraj","Dinesh Karthik","Harshal Patel","Wanindu Hasaranga","Daniel Sams","Mohammed Azharuddeen","David Willey"],
+  dc: ["Prithvi Shaw","David Warner","Rashid Khan","Anrich Nortje","Mitchell Marsh","David Willey","Steve Smith","Axar Patel","Kuldeep Yadav","Avesh Khan","Rishabh Pant"],
+  kkr: ["Shreyas Iyer","Venkatesh Iyer","Andre Russell","Rajat Patidar","Pat Cummins","Varun Chakravarthy","Sunil Narine","Rahul Tripathi","Nitish Rana","Shivam Mavi","Harshit Rana"],
+  srh: ["Kane Williamson","Abhishek Sharma","Bhuvneshwar Kumar","Rashid Khan","Umran Malik","Nicholas Pooran","Washington Sundar","Rahul Tripathi","Kartik Tyagi","T Natarajan","Aiden Markram"]
+};
+
 function selectPredefinedTeam(){
   const teamKey = document.getElementById('predefinedTeams').value;
   if(!teamKey) return;
-  document.getElementById('team2Players').value = predefinedTeams[teamKey].join(', ');
+  const mode = document.getElementById('matchMode').value;
+  if(mode === 'ipl') document.getElementById('team2Players').value = iplTeams[teamKey].join(', ');
+  else document.getElementById('team2Players').value = predefinedTeams[teamKey].join(', ');
 }
 
 /* ========= Utilities ========= */
@@ -185,11 +199,14 @@ function doToss(){
 function setMode(){
   const mode = document.getElementById('matchMode').value;
   const oversInput = document.getElementById('overs');
-  if(mode === 't20i'){ oversInput.value = 4; oversInput.disabled = true; }
-  else if(mode === 'odi'){ oversInput.value = 10; oversInput.disabled = true; }
-  else if(mode === 'test'){ oversInput.value = 12; oversInput.disabled = true; }
-  else if(mode === 'rct'){ oversInput.value = 15; oversInput.disabled = true; }
-  else { oversInput.disabled = false; }
+  const teamSelect = document.getElementById('predefinedTeams');
+  
+  if(mode === 't20i'){ oversInput.value = 4; oversInput.disabled = true; updatePredefinedTeams(predefinedTeams); }
+  else if(mode === 'odi'){ oversInput.value = 10; oversInput.disabled = true; updatePredefinedTeams(predefinedTeams); }
+  else if(mode === 'test'){ oversInput.value = 12; oversInput.disabled = true; updatePredefinedTeams(predefinedTeams); }
+  else if(mode === 'rct'){ oversInput.value = 15; oversInput.disabled = true; updatePredefinedTeams(predefinedTeams); }
+  else if(mode === 'ipl'){ oversInput.value = 5; oversInput.disabled = true; updatePredefinedTeams(iplTeams); }
+  else { oversInput.disabled = false; updatePredefinedTeams(predefinedTeams); }
 }
 
 function startGame(){
@@ -636,15 +653,18 @@ function showScorecard(){
 function finishMatch(resultText, resultType){
   log(`<strong>${resultText}</strong>`);
   showScorecard();
-  document.querySelectorAll("button").forEach(btn => btn.disabled = true);
-  document.getElementById("bowlerSelect").disabled = true;
+
+document.querySelectorAll('.number-buttons button').forEach(btn => btn.disabled = true);
+document.getElementById("bowlerSelect").disabled = true;
+
   const pdfBtn = document.createElement("button");
   pdfBtn.textContent = "📄 Download Scorecard (PDF)";
   pdfBtn.onclick = downloadPDF;
   const rb = document.getElementById("resultBox");
   rb.innerHTML = ''; rb.appendChild(pdfBtn); rb.style.display = "block";
-}
 
+
+}
 function downloadPDF(){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -688,6 +708,7 @@ function downloadPDF(){
 
   doc.save("Scorecard.pdf");
 }
+
 
 
 /* ========= Celebrations (queue) ========= */
@@ -737,6 +758,19 @@ function autoSelectBowlerForComputer() {
   
   logMessage("🤖 Computer selected bowler: " + chosen);
 }
+
+function updatePredefinedTeams(teamsObj){
+  const sel = document.getElementById('predefinedTeams');
+  sel.innerHTML = '<option value="">--Select Team--</option>';
+  for(const key in teamsObj){
+    const opt = document.createElement('option');
+    opt.value = key;
+    // Convert key to uppercase first letters for display
+    opt.text = key.toUpperCase();
+    sel.appendChild(opt);
+  }
+}
+
 
 
 </script>
