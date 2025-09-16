@@ -74,7 +74,7 @@
       <option value="custom">Custom</option>
       <option value="t20i">T20I (4 overs)</option>
       <option value="odi">ODI (10 overs)</option>
-      <option value="test">Test (12 overs/day, up to 5 days)</option>
+      <option value="test">Test (25 overs/day, up to 5 days)</option>
       <option value="rct">RCT (15 overs)</option>
       <option value="ipl">IPL (5 overs)</option>
     </select>
@@ -132,7 +132,7 @@ let userBattingFirst = true;
 let tossWinner = null;
 
 /* Test match universal tracking */
-const dayOvers = 12;        // overs per day
+const dayOvers = 25;        // overs per day
 const maxDays = 5;
 const totalMatchOvers = dayOvers * maxDays; // 60
 const totalMatchBallsLimit = totalMatchOvers * ballsPerOver; // 360
@@ -350,71 +350,109 @@ function togglePlayButtons(enable){
 }
 
 /* ========= Smart Opponent Run ========= */
-function getSmartBattingRun(){
+function getSmartBattingRun() {
     const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
     const isComputerBatting = (battingTeamIndex === compTeamIndex);
-    if(!isComputerBatting) return null;
+    if (!isComputerBatting) return null;
 
     const ballsLeft = totalBallsPerInnings - ballsBowled[currentInnings];
-    const wicketsLeft = 10 - wickets[currentInnings];
+    const wicketsLost = wickets[currentInnings];
     const runsNeeded = targets[currentInnings] ? targets[currentInnings] - scores[currentInnings] : 0;
-    const rpo = ballsLeft > 0 ? runsNeeded / (ballsLeft/ballsPerOver) : 0;
+    const rpo = ballsLeft > 0 ? runsNeeded / (ballsLeft / ballsPerOver) : 0;
 
-    let run;
+    const mode = document.getElementById("matchMode").value;
+    let run = 0;
+    let rand = Math.random();
 
-    if(wicketsLeft > 5){ 
-        const r = Math.random();
-        if(r < 0.6) run = 6;
-        else if(r < 0.85) run = Math.random() < 0.5 ? 4 : 5;
-        else run = 2 + Math.floor(Math.random()*3);
-    } else {
-        const r = Math.random();
-        if(r < 0.4) run = 2 + Math.floor(Math.random()*3);
-        else run = 4 + Math.floor(Math.random()*2);
+    // ---------- TEST MATCH LOGIC ----------
+    if (mode === "test") {
+        if (wicketsLost > 5) {
+            // If collapse happens, play safe for 4 balls
+            if (Math.random() < 0.7) {
+                const safe = [0,1,2,3,4];
+                run = safe[Math.floor(Math.random() * safe.length)];
+            } else {
+                const aggressive = [3,4,5,6];
+                run = aggressive[Math.floor(Math.random() * aggressive.length)];
+            }
+        } else {
+            // Normal Test mode: long random patterns
+            const pattern = [3,4,5,6];
+            run = pattern[Math.floor(Math.random() * pattern.length)];
+        }
+    } 
+    
+    // ---------- LIMITED OVERS (T20I, ODI, IPL) ----------
+    else {
+        const pattern = [3,4,5,6];
+
+        if (targets[currentInnings]) { // chasing case
+            if (rpo > 0 && scores[currentInnings] / ((ballsBowled[currentInnings]+1)/ballsPerOver) < rpo) {
+                // If below required run rate, boost a little
+                const chaseBoost = [4,5,6];
+                run = chaseBoost[Math.floor(Math.random() * chaseBoost.length)];
+            } else {
+                // Slightly above required RR (1–2 extra runs)
+                if (rand < 0.5) run = 4;
+                else if (rand < 0.8) run = 5;
+                else run = 6;
+            }
+        } else { 
+            // Batting first → free flowing
+            run = pattern[Math.floor(Math.random() * pattern.length)];
+        }
     }
 
-    if(targets[currentInnings]){
-        if(rpo > 8) run = Math.random() < 0.7 ? 6 : run;
-        if(ballsLeft <= 6) run = Math.random() < 0.75 ? 6 : run;
-    }
-
-    return run;
+    return Math.min(run, 6);
 }
 
 function getSmartBowlingRun() {
     const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
     const isComputerBatting = (battingTeamIndex === compTeamIndex);
+    if (isComputerBatting) return null;
 
-    if(isComputerBatting) return null;
+    // Track frequent user runs
+    const freq = {};
+    recentUserRuns.forEach(r => { freq[r] = (freq[r] || 0) + 1; });
+    const sortedNums = Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).map(Number);
 
-    let predictedRun = null;
-    const lastTwoUserRuns = recentUserRuns.slice(-2);
-    if(lastTwoUserRuns.length === 2 && lastTwoUserRuns[0] === lastTwoUserRuns[1]){
-        predictedRun = lastTwoUserRuns[1];
-    }
+    let predictedRun = sortedNums.length ? sortedNums[0] : null;
+    const mode = document.getElementById('matchMode').value;
 
+    const oversBowled = Math.floor(ballsBowled[currentInnings] / ballsPerOver);
     let delivery;
+    let rand = Math.random();
 
-    if(predictedRun !== null){
-        delivery = predictedRun;
-    } else {
-        const r = Math.random();
-        if(r < 0.6) delivery = 6;
-        else if(r < 0.8) delivery = Math.random() < 0.5 ? 4 : 5;
-        else delivery = Math.floor(Math.random()*4);
-    }
-
-    const ballsLeft = totalBallsPerInnings - ballsBowled[currentInnings];
-    const runsNeeded = targets[currentInnings] ? targets[currentInnings] - scores[currentInnings] : 0;
-    const rpo = ballsLeft > 0 ? runsNeeded / (ballsLeft/ballsPerOver) : 0;
-
-    if(targets[currentInnings]){
-        if(ballsLeft <= 6 || rpo > 8) delivery = Math.random() < 0.75 ? 6 : delivery;
-        else if(rpo > 5) delivery = Math.random() < 0.5 ? 6 : delivery;
+    // ---------- LIMITED OVERS (T20I, ODI, IPL) ----------
+    if (mode === 't20i' || mode === 'odi' || mode === 'rct' || mode === 'ipl') {
+        const totalOvers = totalBallsPerInnings / ballsPerOver;
+        
+        if (oversBowled >= totalOvers - 2) {
+            // Death overs → attack with 4,5,6
+            const attack = [4,5,6];
+            delivery = attack[Math.floor(Math.random() * attack.length)];
+        } else {
+            if (predictedRun !== null && rand < 0.6) {
+                delivery = predictedRun; // bowl to counter user's favorite
+            } else {
+                delivery = [0,1,2,3,4,5,6][Math.floor(Math.random() * 7)];
+            }
+        }
+    } 
+    
+    // ---------- TEST MATCH ----------
+    else {
+        if (predictedRun !== null && rand < 0.6) {
+            delivery = predictedRun;
+        } else {
+            // keep things tighter
+            delivery = [0,1,2,3,4][Math.floor(Math.random() * 5)];
+        }
     }
 
     return delivery;
 }
+
 
 /* ========= Play Ball ========= */
 function playBall(userRun){
@@ -423,7 +461,9 @@ function playBall(userRun){
 
   const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
   const bowlingTeamIndex = 1 - battingTeamIndex;
-  const strikerStats = batsmenStats[currentInnings][striker];
+  const strikerIndex = striker;
+  const strikerStats = batsmenStats[currentInnings][strikerIndex];
+
   const bowler = bowlerStats[bowlingTeamIndex][currentBowler];
 
   let batsRun = 0;
@@ -472,28 +512,46 @@ function playBall(userRun){
       if(!bowler.tenWktShown && bowler.wickets >= 10){ bowler.tenWktShown = true; thisBallQueue.push(`💥 LEGENDARY 10 WKT HAUL by ${bowler.name}!`); }
 
   } else {
-      strikerStats.runs += batsRun;
-      strikerStats.balls++;
-      scores[currentInnings] += batsRun;
+    // index of the batsman who faced this delivery
+    const batsmanIdx = strikerIndex;
+    const batsmanName = teamPlayers[battingTeamIndex][batsmanIdx] || `Batsman ${batsmanIdx+1}`;
 
-      // Immediate chase check for limited overs
-      if(targets[currentInnings] && scores[currentInnings] >= targets[currentInnings]){
-          ballByBall[currentInnings].push(batsRun);
-          updateUI();
-          enqueueAndPlay(thisBallQueue, endInnings);
-          return; // stop further processing
-      }
+    // Update that batsman's stats
+    batsmenStats[currentInnings][batsmanIdx].runs += batsRun;
+    batsmenStats[currentInnings][batsmanIdx].balls++;
+    scores[currentInnings] += batsRun;
 
-      bowler.runs += batsRun;
-      bowler.consecutiveWickets = 0;
+    // Immediate chase check for limited overs
+    if (targets[currentInnings] && scores[currentInnings] >= targets[currentInnings]) {
+        ballByBall[currentInnings].push(batsRun);
+        updateUI();
+        enqueueAndPlay(thisBallQueue, endInnings);
+        return; // stop further processing
+    }
 
-      if(batsRun === 1 || batsRun === 3) [striker, nonStriker] = [nonStriker, striker];
+    // update bowler
+    bowler.runs += batsRun;
+    bowler.consecutiveWickets = 0;
 
-      if(strikerStats.runs >= 50 && !strikerStats.fiftyShown){ strikerStats.fiftyShown = true; thisBallQueue.push(`🏏 ${teamPlayers[battingTeamIndex][striker]} reaches 50!`); }
-      if(strikerStats.runs >= 100 && !strikerStats.hundredShown){ strikerStats.hundredShown = true; thisBallQueue.push(`🏏 ${teamPlayers[battingTeamIndex][striker]} reaches 100!`); }
+    // handle strike change BEFORE updating UI but AFTER updating batsman stats
+    if (batsRun === 1 || batsRun === 3) {
+        [striker, nonStriker] = [nonStriker, striker];
+    }
 
-      if(batsRun === 6){ thisBallQueue.push("💥 SIX!"); }
-  }
+    // milestone checks MUST use the batsman who actually faced the ball
+    const batsStat = batsmenStats[currentInnings][batsmanIdx];
+    if (batsStat.runs >= 50 && !batsStat.fiftyShown) {
+        batsStat.fiftyShown = true;
+        thisBallQueue.push(`🏏 ${batsmanName} reaches 50!`);
+    }
+    if (batsStat.runs >= 100 && !batsStat.hundredShown) {
+        batsStat.hundredShown = true;
+        thisBallQueue.push(`🏏 ${batsmanName} reaches 100!`);
+    }
+
+    if (batsRun === 6) { thisBallQueue.push("💥 SIX!"); }
+}
+
 
   ballByBall[currentInnings].push(out ? 'W' : batsRun);
   updateUI();
@@ -518,7 +576,7 @@ function playBall(userRun){
 
       // 3) Match draw if total balls reached
       if(totalMatchBalls >= totalMatchBallsLimit){
-          enqueueAndPlay(thisBallQueue, () => finishMatch("Match Drawn - 60 overs completed","draw"));
+          enqueueAndPlay(thisBallQueue, () => finishMatch("Match Drawn - 125 overs completed","draw"));
           return;
       }
   }
