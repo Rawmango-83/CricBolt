@@ -507,23 +507,37 @@ function playBall(userRun){
   }
 
   // ===== End of over logic =====
-  if(document.getElementById('matchMode').value === 'test'){
-      if(totalMatchBalls % ballsPerOver === 0){
-          [striker, nonStriker] = [nonStriker, striker];
-          lastBowler = currentBowler;
-          currentBowler = null;
-          document.getElementById('bowlerSelect').disabled = false;
-          log('End of over. Select next bowler.');
-      }
-  } else {
-      if(ballsBowled[currentInnings] % ballsPerOver === 0){
-          [striker, nonStriker] = [nonStriker, striker];
-          lastBowler = currentBowler;
-          currentBowler = null;
-          document.getElementById('bowlerSelect').disabled = false;
-          log('End of over. Select next bowler.');
-      }
-  }
+  if(ballsBowled[currentInnings] % ballsPerOver === 0){
+    [striker, nonStriker] = [nonStriker, striker];
+    lastBowler = currentBowler;
+
+    const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
+    const bowlingTeamIdx = 1 - battingTeamIndex;
+
+    if(bowlingTeamIdx === compTeamIndex){
+        // Computer bowling – auto select next bowler (not same as last)
+        let nextBowler;
+        do {
+            nextBowler = Math.floor(Math.random() * teamPlayers[bowlingTeamIdx].length);
+        } while(nextBowler === lastBowler);
+
+        currentBowler = nextBowler;
+        log(`Computer chose ${teamPlayers[bowlingTeamIdx][currentBowler]} to bowl next over.`);
+
+        // Update dropdown UI
+        document.getElementById('bowlerSelect').value = currentBowler;
+        document.getElementById('bowlerSelect').disabled = true;
+        togglePlayButtons(true);
+    } else {
+        // User bowling – ask to select bowler
+        currentBowler = null;
+        document.getElementById('bowlerSelect').disabled = false;
+        togglePlayButtons(false);
+        log('End of over. Select next bowler.');
+    }
+}
+
+
 
   // ===== End Innings check for limited overs =====n
   if(wickets[currentInnings] >= 10 || (ballsBowled[currentInnings] >= totalBallsPerInnings && document.getElementById('matchMode').value !== 'test')){
@@ -704,6 +718,26 @@ function continueNextDay() {
     updateUI();
     updateDayOversDisplay();
 }
+
+function autoSelectBowlerForComputer() {
+  // Suppose team2 is computer team
+  let availableBowlers = team2.slice(6); // last 5 bowlers
+  
+  // Avoid same bowler back-to-back
+  let validBowlers = availableBowlers.filter(b => b !== lastBowlerComputer);
+  
+  // If only one valid left, allow it
+  if (validBowlers.length === 0) validBowlers = availableBowlers;
+  
+  // Random choice
+  let chosen = validBowlers[Math.floor(Math.random() * validBowlers.length)];
+  
+  lastBowlerComputer = chosen;
+  currentBowler = chosen;
+  
+  logMessage("🤖 Computer selected bowler: " + chosen);
+}
+
 
 </script>
 
