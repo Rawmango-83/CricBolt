@@ -643,31 +643,89 @@ function enqueueAndPlay(queue, callback){
 }
 
 /* ========= End Innings & Result ========= */
-function endInnings(){
+function endInnings() {
   const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
   log(`${teamNames[battingTeamIndex]} innings over: ${scores[currentInnings]}/${wickets[currentInnings]}`);
 
-  if(document.getElementById('matchMode').value==='test'){
-    if(currentInnings<3){
-      currentInnings++; striker=0; nonStriker=1; // DO NOT reset totalMatchBalls or day counters
-      log(`${teamNames[getBattingTeamIndexForInnings(currentInnings)]} start batting for innings ${currentInnings+1}`);
-      updateBowlerOptions(); updateUI();
-    } else {
-      const team1Total = scores[0]+scores[2];
-      const team2Total = scores[1]+scores[3];
-      if(team1Total===team2Total) finishMatch('Match TIED 🤝','tie');
-      else if(team1Total>team2Total) finishMatch(`${teamNames[userTeamIndex]} WIN by ${team1Total-team2Total} runs`,'win');
-      else finishMatch(`${teamNames[compTeamIndex]} WIN by ${team2Total-team1Total} runs`,'win');
-    }
+  if (document.getElementById('matchMode').value === 'test') {
+    // --- Test Match Special Logic ---
+
+    if (currentInnings === 1) {
+  const team1Total = scores[0];
+  const team2Total = scores[1];
+  const diff = team1Total - team2Total;
+
+  if (diff > 0) {
+    log(`📢 ${teamNames[getBattingTeamIndexForInnings(1)]} trail by ${diff} runs`);
+  } else if (diff < 0) {
+    log(`📢 ${teamNames[getBattingTeamIndexForInnings(1)]} lead by ${Math.abs(diff)} runs`);
   } else {
-    if(currentInnings===0){
-      targets[1]=scores[0]+1; currentInnings=1; striker=0; nonStriker=1;
+    log(`📢 Scores are level after both teams' first innings`);
+  }
+}
+
+
+    
+    // After 3rd innings → check for innings win only if Team 2 is about to bat
+if (currentInnings === 2) {
+  const team1Total = scores[0] + scores[2]; // Team batting 1st + 3rd
+  const team2Total = scores[1];             // Only 1st innings of 2nd team so far
+
+  if (team2Total > team1Total) {
+    const winMargin = team2Total - team1Total;
+    finishMatch(`${teamNames[getBattingTeamIndexForInnings(1)]} WIN by an innings and ${winMargin} runs`, 'win');
+    return;
+  } else {
+    const lead = team1Total - team2Total;
+    log(`📢 ${teamNames[getBattingTeamIndexForInnings(1)]} require ${lead + 1} runs to win in the 4th innings.`);
+  }
+}
+
+
+
+    // After 4th innings → decide winner
+    if (currentInnings === 3) {
+      const team1Total = scores[0] + scores[2];
+      const team2Total = scores[1] + scores[3];
+
+      if (team2Total === team1Total) {
+        finishMatch('Match TIED 🤝', 'tie');
+      } else if (team2Total > team1Total) {
+        finishMatch(`${teamNames[compTeamIndex]} WIN by ${10 - wickets[3]} wickets`, 'win');
+      } else {
+        finishMatch(`${teamNames[userTeamIndex]} WIN by ${team1Total - team2Total} runs`, 'win');
+      }
+      return;
+    }
+
+    // If not finished, continue next innings
+    if (currentInnings < 3) {
+      currentInnings++;
+      striker = 0; 
+      nonStriker = 1;
+      log(`${teamNames[getBattingTeamIndexForInnings(currentInnings)]} start batting for innings ${currentInnings + 1}`);
+      updateBowlerOptions(); 
+      updateUI();
+    }
+
+  } else {
+    // --- Limited Overs Logic ---
+    if (currentInnings === 0) {
+      targets[1] = scores[0] + 1;
+      currentInnings = 1;
+      striker = 0; 
+      nonStriker = 1;
       log(`${teamNames[getBattingTeamIndexForInnings(1)]} need ${targets[1]} to win.`);
-      updateBowlerOptions(); updateUI();
+      updateBowlerOptions(); 
+      updateUI();
     } else {
-      if(scores[1]===scores[0]) finishMatch('Match TIED 🤝','tie');
-      else if(scores[1]<scores[0]) finishMatch(`${teamNames[getBattingTeamIndexForInnings(0)]} WIN by ${scores[0]-scores[1]} runs`,'win');
-      else finishMatch(`${teamNames[getBattingTeamIndexForInnings(1)]} WIN by ${10-wickets[1]} wickets`,'win');
+      if (scores[1] === scores[0]) {
+        finishMatch('Match TIED 🤝', 'tie');
+      } else if (scores[1] < scores[0]) {
+        finishMatch(`${teamNames[getBattingTeamIndexForInnings(0)]} WIN by ${scores[0] - scores[1]} runs`, 'win');
+      } else {
+        finishMatch(`${teamNames[getBattingTeamIndexForInnings(1)]} WIN by ${10 - wickets[1]} wickets`, 'win');
+      }
     }
   }
 }
@@ -899,4 +957,5 @@ function speakCommentary(text) {
 
 </body>
 </html>
+
 
