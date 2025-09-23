@@ -2,13 +2,60 @@
 <html lang="en">
 <head>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <meta charset="UTF-8" />
   <title>Hand Cricket - Fixed</title>
   <style>
     body { font-family: 'Segoe UI', sans-serif; background:#f3f7fb; padding:20px; text-align:center; }
-    .section { margin:20px auto; max-width:900px; padding:15px; background:#fff; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
-    input, select, textarea, button { font-size:15px; padding:6px 10px; margin:6px; }
-    .number-buttons button { width:60px; height:44px; margin:6px; font-size:16px; }
+    .section {
+  margin: 20px auto;
+  max-width: 95%; /* instead of 900px */
+  width: 100%;
+  padding: 15px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+  box-sizing: border-box;
+}
+
+    input, select, textarea, button {
+  font-size: 16px;
+  padding: 10px;
+  margin: 6px 0;
+  width: 100%;  /* Full width on mobile */
+  box-sizing: border-box;
+}
+
+.number-buttons button {
+  width: 48%;
+  max-width: 80px;
+  margin: 5px 1%;
+  font-size: 18px;
+}
+@media (max-width: 600px) {
+  .number-buttons button {
+    width: 30%;
+    margin: 5px 1%;
+    font-size: 16px;
+  }
+  
+  #celebrationOverlay {
+    font-size: 2rem;
+    padding: 10px;
+  }
+
+  #dayOversDisplay {
+    font-size: 14px;
+  }
+}
+@media (max-width: 600px) {
+  .team-inputs {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
     #log, #ballLog, #bowlerStats { max-height:160px; overflow:auto; border:1px solid #ddd; background:#fafafa; padding:10px; text-align:left; font-family:monospace; }
     #resultBox { margin-top:16px; padding:12px; font-weight:bold; display:none; border-radius:6px; }
     #resultBox.win { background:#d1fae5; color:#065f46; }
@@ -59,8 +106,11 @@
 
   <div class="section" id="setup-section">
     <h2>Setup Match</h2>
-    <input id="team1" placeholder="Your Team Name" />
-    <input id="team2" placeholder="Computer Team Name" value="Computer" />
+    <div class="team-inputs">
+  <input id="team1" placeholder="Your Team Name" />
+  <input id="team2" placeholder="Computer Team Name" value="Computer" />
+</div>
+
     <input id="overs" type="number" min="1" max="50" value="2" /> Overs
 
     <h3>Players (comma-separated)</h3>
@@ -350,7 +400,10 @@ function togglePlayButtons(enable){
 }
 
 /* ========= Smart Opponent Run ========= */
+// ----- Batting -----
 let lastBattingRuns = [];
+let bannedRuns = []; // numbers that caused wicket recently
+let bannedCounter = {}; // run -> balls left banned
 
 function getSmartBattingRun() {
     const battingTeamIndex = getBattingTeamIndexForInnings(currentInnings);
@@ -358,41 +411,46 @@ function getSmartBattingRun() {
     if (!isComputerBatting) return null;
 
     const wicketsLost = wickets[currentInnings];
-    let run;
-    let rand = Math.random();
+    let options = [3,4,5,6];
 
-    // --- 1. If wickets fall quickly (>= 5 wickets) → play safe ---
-    if (wicketsLost >= 5) {
-        if (rand < 0.5) run = 1;
-        else run = 2;
-    } 
-    // --- 2. Aggressive batting pattern (3,4,5,6) ---
-    else {
-        let options = [3,4,5,6];
-        run = options[Math.floor(Math.random() * options.length)];
+    // Remove banned runs
+    options = options.filter(r => !bannedRuns.includes(r));
+
+    // Remove runs used twice in a row
+    if (lastBattingRuns.length >= 2 && lastBattingRuns[lastBattingRuns.length-1] === lastBattingRuns[lastBattingRuns.length-2]) {
+        options = options.filter(r => r !== lastBattingRuns[lastBattingRuns.length-1]);
     }
 
-    // --- 3. Prevent repeating same number more than 2 times ---
+    if (options.length === 0) options = [3,4,5,6]; // fallback
+
+    let run = options[Math.floor(Math.random() * options.length)];
+
+    // Track last runs
     lastBattingRuns.push(run);
     if (lastBattingRuns.length > 3) lastBattingRuns.shift();
 
-    if (lastBattingRuns.length === 3 &&
-        lastBattingRuns[0] === lastBattingRuns[1] &&
-        lastBattingRuns[1] === lastBattingRuns[2]) {
-        
-        // force change number
-        let alt = [3,4,5,6].filter(r => r !== run);
-        run = alt[Math.floor(Math.random()*alt.length)];
-        lastBattingRuns[lastBattingRuns.length-1] = run;
+    // Update banned counters
+    for (let r in bannedCounter) {
+        bannedCounter[r]--;
+        if (bannedCounter[r] <= 0) {
+            bannedRuns = bannedRuns.filter(x => x != r);
+            delete bannedCounter[r];
+        }
     }
 
     return run;
 }
 
+// Call this when computer loses wicket
+function banRunAfterWicket(run) {
+    bannedRuns.push(run);
+    bannedCounter[run] = 4; // block next 4 balls
+}
 
-// Track last few deliveries to avoid streaks
+// ----- Bowling -----
 let lastBowlingRuns = [];
 let lastUserInputs = [];
+let overKillMode = false; // all 5/6 over
 
 function getSmartBowlingRun(userInput) {
     const ballsLeft = totalBallsPerInnings - ballsBowled[currentInnings];
@@ -401,48 +459,52 @@ function getSmartBowlingRun(userInput) {
     // Track user history
     if (userInput !== undefined) {
         lastUserInputs.push(userInput);
-        if (lastUserInputs.length > 3) lastUserInputs.shift();
+        if (lastUserInputs.length > 6) lastUserInputs.shift(); // keep last 6 balls
     }
 
-    // --- 1. End game trap: last 4 balls = 70% chance of 6 ---
-    if (ballsLeft <= 4 && Math.random() < 0.7) {
-        delivery = 6;
+    // Random “kill over” - all 5 or 6
+    if (!overKillMode && Math.random() < 0.05) {
+        overKillMode = true;
+    }
+
+    if (overKillMode) {
+        delivery = Math.random() < 0.5 ? 5 : 6;
+        if (lastBowlingRuns.length >= 5) overKillMode = false; // reset after over
     } 
-    // --- 2. User repetition trap ---
+    // Trap repeated user number (70% chance)
     else if (lastUserInputs.length >= 2 &&
-             lastUserInputs[lastUserInputs.length-1] === lastUserInputs[lastUserInputs.length-2]) {
-        // If same number repeated twice
-        if (Math.random() < 0.8) {
-            delivery = lastUserInputs[lastUserInputs.length-1]; // trap wicket ball
+             lastUserInputs[lastUserInputs.length-1] === lastUserInputs[lastUserInputs.length-2] &&
+             Math.random() < 0.7) {
+        delivery = lastUserInputs[lastUserInputs.length-1];
+    } 
+    // Follow detected pattern from previous over
+    else if (lastUserInputs.length >= 3) {
+        let pattern = lastUserInputs.slice(0,3); // first 3 balls of last over
+        if (pattern.every((v,i) => v === lastUserInputs[i]) && Math.random() < 0.5) {
+            delivery = pattern[lastBowlingRuns.length % 3];
+        } else {
+            delivery = [4,5,6][Math.floor(Math.random()*3)];
         }
     } 
-    // --- 3. Normal probability model ---
+    // Default probability
     else {
         let rand = Math.random();
-        if (rand < 0.5) delivery = 6;       // 50% 6
-        else if (rand < 0.75) delivery = 4; // 25% 4
-        else delivery = 5;                  // 25% 5
+        if (rand < 0.5) delivery = 6;
+        else if (rand < 0.75) delivery = 4;
+        else delivery = 5;
     }
 
-    // --- Prevent nonsense repetition 4 times ---
+    // Prevent 4 deliveries same
     lastBowlingRuns.push(delivery);
     if (lastBowlingRuns.length > 4) lastBowlingRuns.shift();
-
-    const allSame = lastBowlingRuns.every(r => r === lastBowlingRuns[0]);
+    const allSame = lastBowlingRuns.every(r => r === delivery);
     if (allSame && lastBowlingRuns.length === 4) {
-        // force change
-        let alt = [0,1,2,3].filter(r => r !== delivery);
+        let alt = [0,1,2,3,4,5,6].filter(r => r !== delivery);
         delivery = alt[Math.floor(Math.random()*alt.length)];
         lastBowlingRuns[lastBowlingRuns.length-1] = delivery;
     }
 
     return delivery;
-}
-
-// Helper: Pick something different
-function getDifferentRun(current) {
-    let options = [0,1,2,3,4,5,6].filter(r => r !== current);
-    return options[Math.floor(Math.random()*options.length)];
 }
 
 
@@ -957,5 +1019,4 @@ function speakCommentary(text) {
 
 </body>
 </html>
-
 
