@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ask a Doubt</title>
+<style>
+/* ---------- Global ---------- */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  background: linear-gradient(120deg, #f0f4ff, #f9fbff);
+  color: #333;
+}
+
+/* ---------- Header ---------- */
+.top-header {
+  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  color: white;
+  padding: 30px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.top-header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.top-header p {
+  margin: 5px 0 0;
+  opacity: 0.9;
+}
+
+/* ---------- Buttons ---------- */
+.btn-primary {
+  background: white;
+  color: #3b82f6;
+  padding: 12px 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.btn-primary:hover {
+  background: #eef2ff;
+  transform: translateY(-2px);
+}
+
+/* ---------- Layout ---------- */
+.container {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+/* ---------- Doubt Card ---------- */
+.doubt-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+  transition: 0.3s;
+}
+
+.doubt-card:hover {
+  transform: translateY(-4px);
+}
+
+.doubt-card h3 {
+  margin-top: 0;
+  color: #4f46e5;
+}
+
+.doubt-card .question {
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 15px 0;
+}
+
+.doubt-card button {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.doubt-card button:hover {
+  background: #4338ca;
+}
+
+/* ---------- Form ---------- */
+.form-container {
+  max-width: 500px;
+  background: white;
+  margin: 60px auto;
+  padding: 30px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.form-container h2 {
+  margin-top: 0;
+  color: #4f46e5;
+}
+
+.form-container p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+textarea {
+  height: 120px;
+  resize: none;
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: #4f46e5;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 600px) {
+  .top-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+}
+
+</style>
+ </head>
+<body>
+
+<div class="form-container">
+    <h2>Submit Your Doubt</h2>
+    <p>Your question may help many others 📘</p>
+
+    <form id="doubtForm">
+      <input type="text" id="name" placeholder="Your Name (optional)">
+      <input type="text" id="subject" placeholder="Subject" required>
+      <textarea id="question" placeholder="Write your doubt clearly..." required></textarea>
+      <button type="submit" class="btn-primary">Submit Doubt</button>
+    </form>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+const firebaseConfig = {
+
+  apiKey: "AIzaSyD2b7olNiSiSHlmARKsi5Z4dtexcNFmHCc",
+
+  authDomain: "acc7-fa0f8.firebaseapp.com",
+
+  projectId: "acc7-fa0f8",
+
+  storageBucket: "acc7-fa0f8.firebasestorage.app",
+
+  messagingSenderId: "1028865640931",
+
+  appId: "1:1028865640931:web:cf14d0f1648342de88b8d6",
+
+  measurementId: "G-M57T2EQTCE"
+
+};
+
+
+// Initialize Firebase
+
+const app = initializeApp(firebaseConfig);
+
+const analytics = getAnalytics(app);
+
+document.getElementById("doubtForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const name = document.getElementById("name").value || "Anonymous";
+  const subject = document.getElementById("subject").value;
+  const question = document.getElementById("question").value;
+
+  await db.collection("doubts").add({
+    name,
+    subject,
+    question,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  alert("Doubt submitted successfully!");
+  e.target.reset();
+});
+
+const container = document.getElementById("doubts-container");
+
+db.collection("doubts")
+  .orderBy("createdAt", "desc")
+  .onSnapshot(snapshot => {
+    container.innerHTML = "";
+
+    snapshot.forEach(doc => {
+      const d = doc.data();
+
+      const div = document.createElement("div");
+      div.className = "doubt-card";
+      div.innerHTML = `
+        <h3>${d.subject}</h3>
+        <p><strong>${d.name}</strong></p>
+        <p class="question">${d.question}</p>
+        <button onclick="downloadPDF(this)">Download PDF</button>
+      `;
+      container.appendChild(div);
+    });
+  });
+
+
+function downloadPDF(button) {
+  const card = button.parentElement;
+
+  const options = {
+    margin: 10,
+    filename: 'student-doubt.pdf',
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().from(card).set(options).save();
+}
+
+</script>
+  
+
+</body>
+</html>
