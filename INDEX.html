@@ -282,86 +282,68 @@ input:focus, textarea:focus {
 
   <!-- Libraries -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 
   <!-- Custom JS -->
-  <script>
-import { initializeApp } from "firebase/app";
-
-import { getAnalytics } from "firebase/analytics";
-
-// TODO: Add SDKs for Firebase products that you want to use
-
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-
-// Your web app's Firebase configuration
-
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-
-const firebaseConfig = {
-
-  apiKey: "AIzaSyD2b7olNiSiSHlmARKsi5Z4dtexcNFmHCc",
-
-  authDomain: "acc7-fa0f8.firebaseapp.com",
-
-  projectId: "acc7-fa0f8",
-
-  storageBucket: "acc7-fa0f8.firebasestorage.app",
-
-  messagingSenderId: "1028865640931",
-
-  appId: "1:1028865640931:web:cf14d0f1648342de88b8d6",
-
-  measurementId: "G-M57T2EQTCE"
-
-};
-
-
-// Initialize Firebase
-
-const app = initializeApp(firebaseConfig);
-
-const analytics = getAnalytics(app);
-
-const container = document.getElementById("doubts-container");
-
-db.collection("doubts")
-  .orderBy("createdAt", "desc")
-  .onSnapshot(snapshot => {
-    container.innerHTML = "";
-
-    snapshot.forEach(doc => {
-      const d = doc.data();
-
-      const div = document.createElement("div");
-      div.className = "doubt-card";
-      div.innerHTML = `
-        <h3>${d.subject}</h3>
-        <p><strong>${d.name}</strong></p>
-        <p class="question">${d.question}</p>
-        <button onclick="downloadPDF(this)">Download PDF</button>
-      `;
-      container.appendChild(div);
-    });
-  });
-
-function downloadPDF(button) {
-  const card = button.parentElement;
-
-  const options = {
-    margin: 10,
-    filename: 'student-doubt.pdf',
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+<script>
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyD2b7olNiSiSHlmARKsi5Z4dtexcNFmHCc",
+    authDomain: "acc7-fa0f8.firebaseapp.com",
+    projectId: "acc7-fa0f8",
+    storageBucket: "acc7-fa0f8.appspot.com",
+    messagingSenderId: "1028865640931",
+    appId: "1:1028865640931:web:cf14d0f1648342de88b8d6"
   };
 
-  html2pdf().from(card).set(options).save();
-}
+  // Initialize Firebase (COMPAT WAY)
+  firebase.initializeApp(firebaseConfig);
 
+  // Initialize Firestore
+  const db = firebase.firestore();
+
+  const container = document.getElementById("doubts-container");
+
+  // Fetch doubts
+  db.collection("doubts")
+    .orderBy("createdAt", "desc")
+    .onSnapshot(snapshot => {
+      container.innerHTML = "";
+
+      if (snapshot.empty) {
+        container.innerHTML = "<p>No doubts submitted yet.</p>";
+        return;
+      }
+
+      snapshot.forEach(doc => {
+        const d = doc.data();
+
+        const div = document.createElement("div");
+        div.className = "doubt-card";
+        div.innerHTML = `
+          <h3>${d.subject}</h3>
+          <p><strong>${d.name}</strong></p>
+          <p class="question">${d.question}</p>
+          <button onclick="downloadPDF(this)">Download PDF</button>
+        `;
+        container.appendChild(div);
+      });
+    });
+
+  // PDF download
+  function downloadPDF(button) {
+    const card = button.parentElement;
+
+    html2pdf().from(card).set({
+      margin: 10,
+      filename: "student-doubt.pdf",
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4" }
+    }).save();
+  }
 </script>
 
 </body>
 </html>
-
