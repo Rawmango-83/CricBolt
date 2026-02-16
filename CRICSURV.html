@@ -1,51 +1,77 @@
-<!DOCTYPE html>
+<!DOCTYPE HTML>
 <HTML>
 <HEAD>
-<TITLE>Cricket survey</TITLE>
+<TITLE>Sample HTML/CSS </TITLE>
 </HEAD>
-<BODY BGCOLOR = "YELLOW">
-<H1><CENTER>--------------------------------------------------Registration--------------------------------------------------</CENTER></H1>
-<FORM METHOD="POST" ACTION = "MAILTO:sunitaotta1989@gmail.com">
-<P><CENTER>ENTER YOUR FULL NAME: <INPUT TYPE= "text"NAME = "urname" SIZE = "30" MAX LENGTH = "40"></P></CENTER>
-<BR><CENTER>FAVOURITE PLAYER : <INPUT TYPE = "text"NAME = "FAV PLAYER" SIZE = "30" MAX LENGTH = "40"></CENTER>
-<BR><BR>
-<P><CENTER>CRICKET ROLE :</CENTER></P>
-<BR><CENTER><INPUT TYPE = "checkbox" NAME ="cric role" Value = "BATTER"CHECKED>BATTER</CENTER>
-<CENTER><INPUT TYPE = "checkbox" NAME ="cric role" Value = "BALLER">BALLER</CENTER>
-<CENTER><INPUT TYPE = "checkbox" NAME ="cric role" Value = "FIELDER">FIELDER</CENTER>
-<CENTER><INPUT TYPE = "checkbox" NAME ="cric role" Value = "WICKET KEEPER">WICKET KEEPER</CENTER>
-<BR><BR>
-<BR><CENTER>YOUR HIGHEST RUNS SCORE IN CRICKET :<INPUT TYPE = "number"NAME = "HIGH  RUN SCORE" SIZE = "30" MAX LENGTH = "40"></CENTER>
-<BR><CENTER>YOUR BEST BALLING FIGURE IN CRICKET :<INPUT TYPE = "fraction"NAME = "BEST BALLING FIGURE" SIZE = "30" MAX LENGTH = "40"></CENTER>
+<Style type = "text/css">
+     H1{
+          font-family : verdana;
+          font-style : italic, bold;
+          color : Red;
+          text-align : center;
+          text-transformation : uppercase;
+        }
 
+     P{   
+          font-family : Arial;
+          font-style : italic;
+          color : Blue;
+          text-indent : 50px;
+          word-spacing : 3px;
+      }
+     body{
+          background : Yellow;
+         }   
 
-   <p>1.Which Country won the 1999 ODI World Cup?</p>
-    <input type="radio" id="Australia" name="q1" value="Australia">
-    <label for="Australia">Australia</label><br>
-    <input type="radio" id="India" name="q1" value="India">
-    <label for="India">India</label><br>
-    <input type="radio" id="Sri Lanka" name="q1" value="Sri Lanka">
-    <label for="Sri Lanka">Sri Lanka</label><br><br>
-
-    <!-- Question 2 -->
-    <p>2. </p>
-    <input type="radio" id="mars" name="q2" value="Mars">
-    <label for="mars">Mars</label><br>
-    <input type="radio" id="jupiter" name="q2" value="Jupiter">
-    <label for="jupiter">Jupiter</label><br>
-    <input type="radio" id="venus" name="q2" value="Venus">
-    <label for="venus">Venus</label><br><br>
-
-    <!-- Question 3 -->
-    <p>3. Who wrote the national anthem of India?</p>
-    <input type="radio" id="tagore" name="q3" value="Rabindranath Tagore">
-    <label for="tagore">Rabindranath Tagore</label><br>
-    <input type="radio" id="gandhi" name="q3" value="Mahatma Gandhi">
-    <label for="gandhi">Mahatma Gandhi</label><br>
-    <input type="radio" id="nehru" name="q3" value="Jawaharlal Nehru">
-    <label for="nehru">Jawaharlal Nehru</label><br><br>
-
-<P><INPUT TYPE="Submit" VALUE="SUBMIT"></P>
+     table{
+           font family : Arial;
+           font size : Small;
+           color : Red;
+          }         
+</style>
+<BODY>
+<H1>Registration Form</H1>
+<HR>
+<P>This form is to inform you that Recruitment for ACC has opened. Please fill the form and be prepared for the examinations later.</P>
+<FORM ID ="sampleform" method = "post" action = "mailto:sohamshantotta@gmail.com">
+<P>Name : <INPUT type = "text" name ="name" /></p><BR><BR>
+<P>Class : <INPUT type = "text" name ="class" /></P><BR><BR>
+<P>Roll no. :<INPUT type = "text" name ="Rollno." /></P><BR><BR>
+<P>Role in Cricket :- <BR><BR><INPUT type = "radio" name ="Role" value="Batsman"/>Batsman<BR><BR>
+                   <INPUT type = "radio" name ="Role" value="Bowler"/>Bowler<BR><BR>
+                   <INPUT type = "radio" name ="Role" value="All rounder"/>All rounder<BR><BR>
+                   <INPUT type = "radio" name ="Role" value="Wicketkeeper"/>Wicketkeepr<BR><BR>
+</P>
+<P>Were you a part of ACC in previous year? 
+<INPUT type = "checkbox" name = "Yes" value ="Yes"/>Yes 
+<INPUT type = "checkbox" name = "No" value ="No"/>No</P>
+<P>Enter Password : <INPUT type = "password" name = "pass" /></P><BR><BR>
+<HR>
+<P>Comment :
+<TEXTAREA rows ="5" cols= "6" name= "comment"/></TEXTAREA>
+</P>
+<P>Area you live in:
+<Select name = "area">
+<option value = "SV"> Shankar Vihar
+<option value = "YV">Yogendra Vihar
+<option value = "APS C"> APS Colony
+</select>
+</P>
+<INPUT type = "RESET" />
+<INPUT type = "Submit" name = "Submit" />
 </FORM>
+<hr>
+<table>
+<tr>
+<th> S No.</th>
+<th> Active Members</th>
+</tr>
+<tr><td>1</td><td>Soham</td></tr>
+<tr><td>2</td><td>Siddhant</td></tr>
+<tr><td>3</td><td>Akshay</td></tr>
+<tr><td>4</td><td>Pratyush</td></tr>
+</table>
+<hr>
+<A HREF = "https://google.com">Click here to search more about cricket</a>
 </BODY>
 </HTML>
