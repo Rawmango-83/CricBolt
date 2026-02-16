@@ -653,15 +653,24 @@
     'use strict';
 
     // ========= FIREBASE CONFIGURATION =========
-    const firebaseConfig = {
-      apiKey: "AIzaSyBxVn8P3fF5Q8YxK2vRZ9mJ4nL6wT8sU0A",
-      authDomain: "hand-cricket-game.firebaseapp.com",
-      projectId: "hand-cricket-game",
-      storageBucket: "hand-cricket-game.appspot.com",
-      messagingSenderId: "123456789012",
-      appId: "1:123456789012:web:abcdef1234567890"
-    };
+    
+const firebaseConfig = {
 
+  apiKey: "AIzaSyD2b7olNiSiSHlmARKsi5Z4dtexcNFmHCc",
+
+  authDomain: "acc7-fa0f8.firebaseapp.com",
+
+  projectId: "acc7-fa0f8",
+
+  storageBucket: "acc7-fa0f8.firebasestorage.app",
+
+  messagingSenderId: "1028865640931",
+
+  appId: "1:1028865640931:web:cf14d0f1648342de88b8d6",
+
+  measurementId: "G-M57T2EQTCE"
+
+};
     // Initialize Firebase variables
     let app, auth, db, currentUser = null;
     let firebaseInitialized = false;
@@ -704,26 +713,7 @@
         return;
       }
 
-const firebaseConfig = {
-
-  apiKey: "AIzaSyD2b7olNiSiSHlmARKsi5Z4dtexcNFmHCc",
-
-  authDomain: "acc7-fa0f8.firebaseapp.com",
-
-  projectId: "acc7-fa0f8",
-
-  storageBucket: "acc7-fa0f8.firebasestorage.app",
-
-  messagingSenderId: "1028865640931",
-
-  appId: "1:1028865640931:web:cf14d0f1648342de88b8d6",
-
-  measurementId: "G-M57T2EQTCE"
-
-};
-
-
-      const provider = new firebase.auth.GoogleAuthProvider();
+     const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider)
         .then((result) => {
           currentUser = result.user;
@@ -4821,3 +4811,4 @@ const firebaseConfig = {
   </script>
 </body>
 </html>
+
