@@ -384,6 +384,122 @@
       .section { padding: 15px; }
       .number-buttons button { font-size: 18px; padding: 12px; }
     }
+
+   .home-button {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      z-index: 1000;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+    
+    .home-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
+    }
+    
+    .history-button {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+      z-index: 1000;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+    
+    .history-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(245, 158, 11, 0.6);
+    }
+    
+    /* History Modal */
+    .history-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    
+    .history-modal.active {
+      display: flex;
+    }
+    
+    .history-content {
+      background: white;
+      border-radius: 16px;
+      max-width: 1000px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 30px;
+      position: relative;
+    }
+    
+    .history-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    
+    .match-history-item {
+      background: #f7fafc;
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 10px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .match-history-item.won {
+      border-left-color: #48bb78;
+      background: #f0fff4;
+    }
+    
+    .match-history-item.lost {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+    
+    .match-history-item.draw {
+      border-left-color: #f59e0b;
+      background: #fffbeb;
+    }
+
   </style>
 </head>
 <body>
@@ -484,6 +600,34 @@
         </div>
       </div>
 
+ <!-- Home Button (appears on all screens except welcome) -->
+    <button class="home-button" id="homeBtn" onclick="goToHome()" style="display: none;">
+      🏠 Home
+    </button>
+    
+    <!-- History Button -->
+    <button class="history-button" id="historyBtn" onclick="openHistory()">
+      📊 History
+    </button>
+    
+    <!-- History Modal -->
+    <div class="history-modal" id="historyModal">
+      <div class="history-content">
+        <button class="history-close" onclick="closeHistory()">×</button>
+        <h2 style="color: #667eea; margin-bottom: 20px;">📊 Match & Tournament History</h2>
+        
+        <div style="margin-bottom: 20px;">
+          <button onclick="showHistoryTab('all')" class="history-tab-btn" style="padding: 10px 20px; margin: 5px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">All Matches</button>
+          <button onclick="showHistoryTab('tournaments')" class="history-tab-btn" style="padding: 10px 20px; margin: 5px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Tournaments</button>
+          <button onclick="showHistoryTab('stats')" class="history-tab-btn" style="padding: 10px 20px; margin: 5px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Career Stats</button>
+          <button onclick="clearAllHistory()" style="padding: 10px 20px; margin: 5px; background: #ef4444; color: white; border: none; border-radius: 5px; cursor: pointer;">Clear History</button>
+        </div>
+        
+        <div id="historyContent">
+          <!-- History content will be dynamically inserted here -->
+        </div>
+      </div>
+    </div>
       <button onclick="startHandCricket()" style="
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -653,24 +797,24 @@
     'use strict';
 
     // ========= FIREBASE CONFIGURATION =========
-    
- const firebaseConfig = {
+    const firebaseConfig = {
 
-    apiKey: "AIzaSyD846b0cpScA0dms4ZlgxoZr8NnDudK7WE",
+  apiKey: "AIzaSyD2b7olNiSiSHlmARKsi5Z4dtexcNFmHCc",
 
-    authDomain: "hc-ai-9e557.firebaseapp.com",
+  authDomain: "acc7-fa0f8.firebaseapp.com",
 
-    projectId: "hc-ai-9e557",
+  projectId: "acc7-fa0f8",
 
-    storageBucket: "hc-ai-9e557.firebasestorage.app",
+  storageBucket: "acc7-fa0f8.firebasestorage.app",
 
-    messagingSenderId: "1048313925900",
+  messagingSenderId: "1028865640931",
 
-    appId: "1:1048313925900:web:3bf3a38c3b12963e4ef929",
+  appId: "1:1028865640931:web:cf14d0f1648342de88b8d6",
 
-    measurementId: "G-187PW5TZB9"
+  measurementId: "G-M57T2EQTCE"
 
-  };
+};
+
     // Initialize Firebase variables
     let app, auth, db, currentUser = null;
     let firebaseInitialized = false;
@@ -713,7 +857,8 @@
         return;
       }
 
-     const provider = new firebase.auth.GoogleAuthProvider();
+
+      const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider)
         .then((result) => {
           currentUser = result.user;
@@ -4808,8 +4953,443 @@
         `Non-striker: ${nonStrikerName} (${nonStrikerStats.runs} - ${nonStrikerStats.balls})`
       );
     }
+
+
+const DataManager = {
+      // Save match to history
+      saveMatch(matchData) {
+        const history = this.getMatchHistory();
+        const match = {
+          id: Date.now(),
+          timestamp: new Date().toISOString(),
+          date: new Date().toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          ...matchData
+        };
+        history.push(match);
+        localStorage.setItem('handCricket_matchHistory', JSON.stringify(history));
+        console.log('✅ Match saved to history:', match);
+        
+        // Update career stats
+        this.updateCareerStats(matchData);
+        
+        return match;
+      },
+      
+      // Get all match history
+      getMatchHistory() {
+        const history = localStorage.getItem('handCricket_matchHistory');
+        return history ? JSON.parse(history) : [];
+      },
+      
+      // Update career statistics
+      updateCareerStats(matchData) {
+        const stats = this.getCareerStats();
+        
+        stats.totalMatches++;
+        if (matchData.result === 'won') stats.won++;
+        else if (matchData.result === 'lost') stats.lost++;
+        else stats.drawn++;
+        
+        stats.totalRuns += matchData.userRuns || 0;
+        stats.totalWickets += matchData.userWickets || 0;
+        stats.totalBalls += matchData.userBalls || 0;
+        
+        if (matchData.userRuns > stats.highestScore) {
+          stats.highestScore = matchData.userRuns;
+        }
+        
+        if (matchData.userWickets > stats.bestBowling) {
+          stats.bestBowling = matchData.userWickets;
+        }
+        
+        localStorage.setItem('handCricket_careerStats', JSON.stringify(stats));
+      },
+      
+      // Get career statistics
+      getCareerStats() {
+        const stats = localStorage.getItem('handCricket_careerStats');
+        return stats ? JSON.parse(stats) : {
+          totalMatches: 0,
+          won: 0,
+          lost: 0,
+          drawn: 0,
+          totalRuns: 0,
+          totalWickets: 0,
+          totalBalls: 0,
+          highestScore: 0,
+          bestBowling: 0
+        };
+      },
+      
+      // Save tournament progress
+      saveTournamentProgress() {
+        const tournamentData = {
+          state: JSON.parse(JSON.stringify(TournamentState)),
+          gameState: JSON.parse(JSON.stringify(GameState)),
+          timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('handCricket_tournament', JSON.stringify(tournamentData));
+        console.log('✅ Tournament progress saved');
+      },
+      
+      // Load tournament progress
+      loadTournamentProgress() {
+        const data = localStorage.getItem('handCricket_tournament');
+        if (data) {
+          const tournamentData = JSON.parse(data);
+          Object.assign(TournamentState, tournamentData.state);
+          Object.assign(GameState, tournamentData.gameState);
+          console.log('✅ Tournament progress loaded');
+          return true;
+        }
+        return false;
+      },
+      
+      // Clear all history
+      clearAllData() {
+        if (confirm('⚠️ Are you sure you want to clear ALL history and data?\n\nThis will delete:\n- All match history\n- Career statistics\n- Tournament progress\n\nThis cannot be undone!')) {
+          localStorage.removeItem('handCricket_matchHistory');
+          localStorage.removeItem('handCricket_careerStats');
+          localStorage.removeItem('handCricket_tournament');
+          localStorage.removeItem('handCricketHistory'); // Old tournament history
+          alert('✅ All data cleared!');
+          location.reload();
+        }
+      }
+    };
+
+    // ========= HOME BUTTON FUNCTIONALITY =========
+    function goToHome() {
+      // Save current state before going home
+      if (GameState.isTournament) {
+        DataManager.saveTournamentProgress();
+      }
+      
+      // Hide all sections
+      document.getElementById('setup-section').style.display = 'none';
+      document.getElementById('game-section').style.display = 'none';
+      document.getElementById('tournament-section').style.display = 'none';
+      
+      // Show welcome section
+      document.getElementById('welcome-section').style.display = 'block';
+      document.getElementById('main-title').style.display = 'none';
+      document.getElementById('homeBtn').style.display = 'none';
+      
+      console.log('🏠 Returned to home');
+    }
+
+    // Update startHandCricket to show home button
+    const originalStartHandCricket = startHandCricket;
+    startHandCricket = function() {
+      originalStartHandCricket();
+      document.getElementById('homeBtn').style.display = 'block';
+    };
+
+    // ========= HISTORY MODAL FUNCTIONALITY =========
+    function openHistory() {
+      document.getElementById('historyModal').classList.add('active');
+      showHistoryTab('all'); // Show all matches by default
+    }
+
+    function closeHistory() {
+      document.getElementById('historyModal').classList.remove('active');
+    }
+
+    function showHistoryTab(tab) {
+      const content = document.getElementById('historyContent');
+      
+      if (tab === 'all') {
+        displayAllMatches(content);
+      } else if (tab === 'tournaments') {
+        displayTournaments(content);
+      } else if (tab === 'stats') {
+        displayCareerStats(content);
+      }
+    }
+
+    function displayAllMatches(container) {
+      const history = DataManager.getMatchHistory();
+      
+      if (history.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #718096; padding: 40px;">No matches played yet! Start playing to build your history! 🏏</p>';
+        return;
+      }
+      
+      let html = '<h3 style="color: #2d3748; margin-bottom: 20px;">All Matches (Total: ' + history.length + ')</h3>';
+      
+      // Sort by most recent first
+      history.reverse().forEach(match => {
+        const resultClass = match.result === 'won' ? 'won' : 
+                           match.result === 'lost' ? 'lost' : 'draw';
+        const resultEmoji = match.result === 'won' ? '🏆' : 
+                           match.result === 'lost' ? '😞' : '🤝';
+        
+        html += `
+          <div class="match-history-item ${resultClass}">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+              <div>
+                <h4 style="margin: 0; color: #2d3748;">${resultEmoji} ${match.teamNames ? match.teamNames[0] : 'You'} vs ${match.teamNames ? match.teamNames[1] : 'Computer'}</h4>
+                <p style="color: #718096; font-size: 14px; margin: 5px 0;">${match.date}</p>
+              </div>
+              <div style="text-align: right;">
+                <span style="
+                  background: ${match.result === 'won' ? '#48bb78' : match.result === 'lost' ? '#ef4444' : '#f59e0b'};
+                  color: white;
+                  padding: 5px 15px;
+                  border-radius: 20px;
+                  font-weight: bold;
+                  font-size: 12px;
+                  text-transform: uppercase;
+                ">${match.result}</span>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+              <div style="background: white; padding: 15px; border-radius: 8px;">
+                <p style="color: #718096; font-size: 12px; margin: 0;">Your Score</p>
+                <p style="font-size: 24px; font-weight: bold; color: #2d3748; margin: 5px 0;">${match.userRuns || 0}/${match.userWickets || 0}</p>
+                <p style="color: #718096; font-size: 14px;">${match.userBalls || 0} balls</p>
+              </div>
+              
+              <div style="background: white; padding: 15px; border-radius: 8px;">
+                <p style="color: #718096; font-size: 12px; margin: 0;">Opponent Score</p>
+                <p style="font-size: 24px; font-weight: bold; color: #2d3748; margin: 5px 0;">${match.oppRuns || 0}/${match.oppWickets || 0}</p>
+                <p style="color: #718096; font-size: 14px;">${match.oppBalls || 0} balls</p>
+              </div>
+            </div>
+            
+            ${match.format ? `<p style="margin-top: 10px; color: #667eea; font-weight: 600;">📋 Format: ${match.format}</p>` : ''}
+            ${match.tournament ? `<p style="margin-top: 5px; color: #f59e0b; font-weight: 600;">🏆 Tournament: ${match.tournament}</p>` : ''}
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+
+    function displayTournaments(container) {
+      const history = TournamentHistory.getHistory();
+      
+      if (history.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #718096; padding: 40px;">No tournaments won yet! Win a tournament to appear here! 🏆</p>';
+        return;
+      }
+      
+      let html = '<h3 style="color: #2d3748; margin-bottom: 20px;">🏆 Tournament Victories (Total: ' + history.length + ')</h3>';
+      
+      history.reverse().forEach(win => {
+        const formatNames = {
+          odiWorldCup: '🏆 ODI World Cup',
+          t20WorldCup: '🏆 T20 World Cup',
+          wtc: '🏆 WTC',
+          ipl: '🏆 IPL'
+        };
+        
+        const date = new Date(win.date);
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        html += `
+          <div class="match-history-item won">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h4 style="margin: 0; color: #2d3748;">${formatNames[win.format] || win.format}</h4>
+                <p style="color: #48bb78; font-weight: bold; margin: 10px 0;">Winner: ${win.teamName}</p>
+              </div>
+              <div style="text-align: right;">
+                <p style="color: #718096; font-size: 14px;">${dateStr}</p>
+                <span style="background: #48bb78; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 12px; margin-top: 5px; display: inline-block;">CHAMPION</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+
+    function displayCareerStats(container) {
+      const stats = DataManager.getCareerStats();
+      
+      if (stats.totalMatches === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #718096; padding: 40px;">No stats yet! Play some matches to see your career statistics! 📊</p>';
+        return;
+      }
+      
+      const winPercentage = ((stats.won / stats.totalMatches) * 100).toFixed(1);
+      const avgRuns = (stats.totalRuns / stats.totalMatches).toFixed(1);
+      const avgWickets = (stats.totalWickets / stats.totalMatches).toFixed(1);
+      
+      const html = `
+        <h3 style="color: #2d3748; margin-bottom: 20px;">📊 Career Statistics</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+            <p style="margin: 0; font-size: 14px; opacity: 0.9;">Total Matches</p>
+            <p style="margin: 10px 0; font-size: 36px; font-weight: bold;">${stats.totalMatches}</p>
+          </div>
+          
+          <div style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+            <p style="margin: 0; font-size: 14px; opacity: 0.9;">Matches Won</p>
+            <p style="margin: 10px 0; font-size: 36px; font-weight: bold;">${stats.won}</p>
+            <p style="margin: 0; font-size: 14px; opacity: 0.9;">${winPercentage}% Win Rate</p>
+          </div>
+          
+          <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+            <p style="margin: 0; font-size: 14px; opacity: 0.9;">Matches Lost</p>
+            <p style="margin: 10px 0; font-size: 36px; font-weight: bold;">${stats.lost}</p>
+          </div>
+          
+          <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+            <p style="margin: 0; font-size: 14px; opacity: 0.9;">Drawn</p>
+            <p style="margin: 10px 0; font-size: 36px; font-weight: bold;">${stats.drawn}</p>
+          </div>
+        </div>
+        
+        <h4 style="color: #2d3748; margin: 30px 0 20px;">Batting Records</h4>
+        <div style="background: #f7fafc; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px;">
+            <div>
+              <p style="color: #718096; font-size: 14px; margin: 0;">Total Runs</p>
+              <p style="color: #2d3748; font-size: 28px; font-weight: bold; margin: 5px 0;">${stats.totalRuns}</p>
+            </div>
+            <div>
+              <p style="color: #718096; font-size: 14px; margin: 0;">Highest Score</p>
+              <p style="color: #2d3748; font-size: 28px; font-weight: bold; margin: 5px 0;">${stats.highestScore}</p>
+            </div>
+            <div>
+              <p style="color: #718096; font-size: 14px; margin: 0;">Average Runs</p>
+              <p style="color: #2d3748; font-size: 28px; font-weight: bold; margin: 5px 0;">${avgRuns}</p>
+            </div>
+          </div>
+        </div>
+        
+        <h4 style="color: #2d3748; margin: 30px 0 20px;">Bowling Records</h4>
+        <div style="background: #f7fafc; padding: 20px; border-radius: 12px; border-left: 4px solid #f59e0b;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px;">
+            <div>
+              <p style="color: #718096; font-size: 14px; margin: 0;">Total Wickets</p>
+              <p style="color: #2d3748; font-size: 28px; font-weight: bold; margin: 5px 0;">${stats.totalWickets}</p>
+            </div>
+            <div>
+              <p style="color: #718096; font-size: 14px; margin: 0;">Best Bowling</p>
+              <p style="color: #2d3748; font-size: 28px; font-weight: bold; margin: 5px 0;">${stats.bestBowling}</p>
+            </div>
+            <div>
+              <p style="color: #718096; font-size: 14px; margin: 0;">Average Wickets</p>
+              <p style="color: #2d3748; font-size: 28px; font-weight: bold; margin: 5px 0;">${avgWickets}</p>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      container.innerHTML = html;
+    }
+
+    function clearAllHistory() {
+      DataManager.clearAllData();
+    }
+
+    // ========= AUTO-SAVE MATCH DATA =========
+    // Modify the finishMatch function to save match data
+    const originalFinishMatch = finishMatch;
+    finishMatch = function(resultText, resultType) {
+      // Determine result
+      let result = 'draw';
+      if (resultType === 'win') {
+        if (resultText.includes(GameState.teamNames[GameState.userTeamIndex])) {
+          result = 'won';
+        } else {
+          result = 'lost';
+        }
+      } else if (resultType === 'tie') {
+        result = 'draw';
+      }
+      
+      // Prepare match data
+      const matchData = {
+        teamNames: [GameState.teamNames[0], GameState.teamNames[1]],
+        result: result,
+        userRuns: GameState.scores[GameState.userBattingFirst ? 0 : 1],
+        userWickets: GameState.wickets[GameState.userBattingFirst ? 0 : 1],
+        userBalls: GameState.ballsBowled[GameState.userBattingFirst ? 0 : 1],
+        oppRuns: GameState.scores[GameState.userBattingFirst ? 1 : 0],
+        oppWickets: GameState.wickets[GameState.userBattingFirst ? 1 : 0],
+        oppBalls: GameState.ballsBowled[GameState.userBattingFirst ? 1 : 0],
+        format: GameState.matchMode,
+        tournament: GameState.isTournament ? TournamentState.format : null,
+        overs: GameState.overs
+      };
+      
+      // Save match to history
+      DataManager.saveMatch(matchData);
+      
+      // Call original function
+      originalFinishMatch(resultText, resultType);
+    };
+
+    // ========= AUTO-SAVE TOURNAMENT PROGRESS =========
+    // Save tournament progress after each match
+    const originalAutoSaveProgress = autoSaveProgress;
+    autoSaveProgress = function() {
+      DataManager.saveTournamentProgress();
+      if (originalAutoSaveProgress) {
+        originalAutoSaveProgress();
+      }
+    };
+
+    // ========= LOAD SAVED DATA ON PAGE LOAD =========
+    window.addEventListener('DOMContentLoaded', () => {
+      // Try to load tournament progress
+      const hasSavedProgress = DataManager.loadTournamentProgress();
+      
+      if (hasSavedProgress) {
+        console.log('✅ Found saved tournament progress!');
+        // You can show a notification or button to resume
+      }
+      
+      console.log('📊 Match History:', DataManager.getMatchHistory().length, 'matches');
+      console.log('📈 Career Stats:', DataManager.getCareerStats());
+    });
+
+    // Close history modal when clicking outside
+    document.getElementById('historyModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeHistory();
+      }
+    });
+
+function resumeSavedTournament() {
+      if (DataManager.loadTournamentProgress()) {
+        document.getElementById('welcome-section').style.display = 'none';
+        document.getElementById('tournament-section').style.display = 'block';
+        document.getElementById('homeBtn').style.display = 'block';
+        
+        // Show appropriate tournament stage
+        if (TournamentState.currentStage === 'wtc') {
+          showWTCStage();
+        } else if (TournamentState.currentStage === 'ipl') {
+          showIPLStage();
+        } else {
+          showTournamentStage(TournamentState.currentStage);
+        }
+      }
+    }
+
+    // Show resume button if saved data exists
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedData = localStorage.getItem('handCricket_tournament');
+      if (savedData) {
+        document.getElementById('resumeTournament').style.display = 'block';
+      }
+    });
+
+
   </script>
 </body>
 </html>
-
-
