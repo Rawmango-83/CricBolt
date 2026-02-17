@@ -384,122 +384,6 @@
       .section { padding: 15px; }
       .number-buttons button { font-size: 18px; padding: 12px; }
     }
-
-   .home-button {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 50px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-      z-index: 1000;
-      transition: all 0.3s;
-      text-transform: uppercase;
-      font-size: 14px;
-    }
-    
-    .home-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
-    }
-    
-    .history-button {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 50px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-      z-index: 1000;
-      transition: all 0.3s;
-      text-transform: uppercase;
-      font-size: 14px;
-    }
-    
-    .history-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(245, 158, 11, 0.6);
-    }
-    
-    /* History Modal */
-    .history-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 2000;
-      overflow-y: auto;
-      padding: 20px;
-    }
-    
-    .history-modal.active {
-      display: flex;
-    }
-    
-    .history-content {
-      background: white;
-      border-radius: 16px;
-      max-width: 1000px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 30px;
-      position: relative;
-    }
-    
-    .history-close {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: #ef4444;
-      color: white;
-      border: none;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 20px;
-      font-weight: bold;
-    }
-    
-    .match-history-item {
-      background: #f7fafc;
-      padding: 20px;
-      margin: 15px 0;
-      border-radius: 10px;
-      border-left: 4px solid #667eea;
-    }
-    
-    .match-history-item.won {
-      border-left-color: #48bb78;
-      background: #f0fff4;
-    }
-    
-    .match-history-item.lost {
-      border-left-color: #ef4444;
-      background: #fef2f2;
-    }
-    
-    .match-history-item.draw {
-      border-left-color: #f59e0b;
-      background: #fffbeb;
-    }
-
   </style>
 </head>
 <body>
@@ -584,7 +468,7 @@
               <img id="userPhoto" src="" alt="User" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #667eea;">
               <div style="text-align: left;">
                 <p style="color: #2d3748; font-weight: bold; margin: 0;" id="userName">User Name</p>
-                <p style="color: #718096; font-size: 14px; margin: 5px 0 0 0;" id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="374244524577525a565e5b1954585a">[email&#160;protected]</a></p>
+                <p style="color: #718096; font-size: 14px; margin: 5px 0 0 0;" id="userEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0e7b7d6b7c4e6b636f6762206d6163">[email&#160;protected]</a></p>
               </div>
             </div>
             <div style="display: flex; gap: 10px;">
@@ -600,34 +484,6 @@
         </div>
       </div>
 
- <!-- Home Button (appears on all screens except welcome) -->
-    <button class="home-button" id="homeBtn" onclick="goToHome()" style="display: none;">
-      🏠 Home
-    </button>
-    
-    <!-- History Button -->
-    <button class="history-button" id="historyBtn" onclick="openHistory()">
-      📊 History
-    </button>
-    
-    <!-- History Modal -->
-    <div class="history-modal" id="historyModal">
-      <div class="history-content">
-        <button class="history-close" onclick="closeHistory()">×</button>
-        <h2 style="color: #667eea; margin-bottom: 20px;">📊 Match & Tournament History</h2>
-        
-        <div style="margin-bottom: 20px;">
-          <button onclick="showHistoryTab('all')" class="history-tab-btn" style="padding: 10px 20px; margin: 5px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">All Matches</button>
-          <button onclick="showHistoryTab('tournaments')" class="history-tab-btn" style="padding: 10px 20px; margin: 5px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Tournaments</button>
-          <button onclick="showHistoryTab('stats')" class="history-tab-btn" style="padding: 10px 20px; margin: 5px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Career Stats</button>
-          <button onclick="clearAllHistory()" style="padding: 10px 20px; margin: 5px; background: #ef4444; color: white; border: none; border-radius: 5px; cursor: pointer;">Clear History</button>
-        </div>
-        
-        <div id="historyContent">
-          <!-- History content will be dynamically inserted here -->
-        </div>
-      </div>
-    </div>
       <button onclick="startHandCricket()" style="
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -641,6 +497,22 @@
         transition: transform 0.2s;
       " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
         🎮 Try Hand Cricket
+      </button>
+
+      <button id="resumeTournamentBtn" onclick="resumeSavedTournament()" style="
+        display: none;
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        color: white;
+        padding: 15px 40px;
+        font-size: 1.2em;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        margin: 10px 0 30px 0;
+        box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+        transition: transform 0.2s;
+      " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+        ▶️ Resume Tournament
       </button>
 
       <p style="color: #a0aec0; margin-top: 30px;">Made with ❤️ for Cricket Fans | Version 2.0</p>
@@ -731,6 +603,7 @@
         <button onclick="showTournamentStage('worldCup')">World Cup</button>
         <button onclick="showTournamentStage('standings')">Standings</button>
         <button onclick="showStatsCorner()" style="background: #f59e0b;">📊 Stats Corner</button>
+        <button onclick="returnToHome()" style="background: #718096;">🏠 Return Home</button>
       </div>
 
       <!-- Stats Corner Button for WTC/IPL (shown when nav hidden) -->
@@ -782,6 +655,10 @@
         ⏸️ Pause & Return to Tournament
       </button>
 
+      <button id="returnHomeFromGameBtn" style="display:none; margin: 10px 0; background: #718096;" onclick="returnToHome()">
+        🏠 Return Home
+      </button>
+
       <button id="continueDayBtn" style="display:none;" onclick="continueNextDay()">
         ▶️ Continue Next Day
       </button>
@@ -794,26 +671,16 @@
   </div>
 
   <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-    'use strict';
 
     // ========= FIREBASE CONFIGURATION =========
     const firebaseConfig = {
-
-  apiKey: "AIzaSyD846b0cpScA0dms4ZlgxoZr8NnDudK7WE",
-
-  authDomain: "hc-ai-9e557.firebaseapp.com",
-
-  projectId: "hc-ai-9e557",
-
-  storageBucket: "hc-ai-9e557.firebasestorage.app",
-
-  messagingSenderId: "1048313925900",
-
-  appId: "1:1048313925900:web:3bf3a38c3b12963e4ef929",
-
-  measurementId: "G-187PW5TZB9"
-
-};
+      apiKey: "AIzaSyBxVn8P3fF5Q8YxK2vRZ9mJ4nL6wT8sU0A",
+      authDomain: "hand-cricket-game.firebaseapp.com",
+      projectId: "hand-cricket-game",
+      storageBucket: "hand-cricket-game.appspot.com",
+      messagingSenderId: "123456789012",
+      appId: "1:123456789012:web:abcdef1234567890"
+    };
 
     // Initialize Firebase variables
     let app, auth, db, currentUser = null;
@@ -826,6 +693,7 @@
         if (typeof firebase === 'undefined') {
           console.log('ℹ️ Firebase not loaded - cloud features disabled');
           console.log('💡 This is normal for local testing. Features will work once you set up Firebase.');
+          checkForSavedTournament(); // Still check local storage
           return;
         }
 
@@ -848,6 +716,109 @@
         console.error('❌ Firebase init error:', error);
         console.log('💡 Cloud features will be disabled. You can still play locally!');
       }
+      
+      // Always check for locally saved tournament (works without Firebase)
+      checkForSavedTournament();
+    });
+
+    // ========= LOCAL SAVE / RESUME FUNCTIONS =========
+    function saveTournamentLocally() {
+      try {
+        const saveData = {
+          tournamentState: JSON.parse(JSON.stringify(TournamentState)),
+          timestamp: Date.now()
+        };
+        localStorage.setItem('handCricket_tournament', JSON.stringify(saveData));
+        console.log('💾 Tournament saved locally');
+        // Show resume button in case it was hidden
+        const btn = document.getElementById('resumeTournamentBtn');
+        if (btn) btn.style.display = 'inline-block';
+      } catch (e) {
+        console.error('❌ Local save error:', e);
+      }
+    }
+
+    function checkForSavedTournament() {
+      const saved = localStorage.getItem('handCricket_tournament');
+      const btn = document.getElementById('resumeTournamentBtn');
+      if (saved && btn) {
+        btn.style.display = 'inline-block';
+        console.log('✅ Saved tournament found — Resume button shown');
+      }
+    }
+
+    function returnToHome() {
+      // Save everything before going home
+      saveTournamentLocally();
+      if (currentUser && firebaseInitialized) saveProgressToCloud();
+
+      // Hide all sections, show welcome
+      document.getElementById('game-section').style.display = 'none';
+      document.getElementById('tournament-section').style.display = 'none';
+      document.getElementById('setup-section').style.display = 'none';
+      document.getElementById('main-title').style.display = 'none';
+      document.getElementById('welcome-section').style.display = 'block';
+
+      // Refresh history display
+      TournamentHistory.displayHistory();
+
+      console.log('🏠 Returned home — progress saved');
+    }
+    window.returnToHome = returnToHome;
+
+    function resumeSavedTournament() {      const saved = localStorage.getItem('handCricket_tournament');
+      if (!saved) {
+        alert('No saved tournament found!');
+        return;
+      }
+      try {
+        const data = JSON.parse(saved);
+        if (data.tournamentState) {
+          Object.assign(TournamentState, data.tournamentState);
+          // Ensure playerInnings exists after restore (backwards compat)
+          if (!TournamentState.userStats.playerInnings) {
+            TournamentState.userStats.playerInnings = {};
+          }
+        }
+        // Show tournament UI
+        document.getElementById('welcome-section').style.display = 'none';
+        document.getElementById('setup-section').style.display = 'none';
+        document.getElementById('game-section').style.display = 'none';
+        document.getElementById('tournament-section').style.display = 'block';
+        document.getElementById('main-title').style.display = 'block';
+        // Navigate to the correct stage
+        const stage = TournamentState.currentStage;
+        if (stage === 'wtc') {
+          showWTCStage();
+        } else if (stage === 'ipl') {
+          showIPLStage();
+        } else if (stage) {
+          showTournamentStage(stage);
+        }
+        console.log('✅ Tournament resumed from local save');
+        const msg = document.createElement('div');
+        msg.textContent = '✅ Tournament resumed!';
+        msg.style.cssText = 'position:fixed;top:20px;right:20px;background:#48bb78;color:white;padding:15px 25px;border-radius:8px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.2);';
+        document.body.appendChild(msg);
+        setTimeout(() => msg.remove(), 3000);
+      } catch (e) {
+        console.error('❌ Resume error:', e);
+        alert('Failed to resume tournament. Data may be corrupted.');
+      }
+    }
+
+    // Periodic auto-save every 60 seconds when tournament is active
+    setInterval(() => {
+      if (GameState.isTournament || TournamentState.currentStage) {
+        saveTournamentLocally();
+      }
+    }, 60000);
+
+    // Save on page unload
+    window.addEventListener('beforeunload', () => {
+      if (GameState.isTournament || TournamentState.currentStage) {
+        saveTournamentLocally();
+      }
     });
 
     // ========= AUTHENTICATION FUNCTIONS =========
@@ -856,7 +827,6 @@
         alert('⚠️ Firebase is not initialized.\n\nTo use cloud features:\n1. Create a Firebase project at console.firebase.google.com\n2. Enable Google Authentication\n3. Replace the firebaseConfig with your project credentials\n\nFor now, you can play without cloud sync!');
         return;
       }
-
 
       const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider)
@@ -922,6 +892,9 @@
       }
 
       try {
+        // Always save locally first
+        saveTournamentLocally();
+        
         const userData = {
           tournamentState: JSON.parse(JSON.stringify(TournamentState)),
           userStats: JSON.parse(JSON.stringify(TournamentState.userStats)),
@@ -960,12 +933,19 @@
           // Restore tournament state
           if (data.tournamentState) {
             Object.assign(TournamentState, data.tournamentState);
+            // Ensure playerInnings exists after restore
+            if (!TournamentState.userStats.playerInnings) {
+              TournamentState.userStats.playerInnings = {};
+            }
             console.log('✅ Tournament state loaded');
           }
           
           // Restore user stats
           if (data.userStats) {
             TournamentState.userStats = data.userStats;
+            if (!TournamentState.userStats.playerInnings) {
+              TournamentState.userStats.playerInnings = {};
+            }
             console.log('✅ User stats loaded');
           }
           
@@ -975,6 +955,10 @@
             TournamentHistory.displayHistory();
             console.log('✅ History loaded');
           }
+          
+          // Save to localStorage so resume button appears
+          saveTournamentLocally();
+          checkForSavedTournament();
           
           // Update last sync time
           if (data.lastUpdated) {
@@ -1079,6 +1063,7 @@
       document.getElementById('setup-section').style.display = 'block';
       document.getElementById('main-title').style.display = 'block';
     }
+    window.startHandCricket = startHandCricket;
 
     // Load history on page load
     window.addEventListener('DOMContentLoaded', () => {
@@ -1244,9 +1229,10 @@
       
       // USER TEAM STATISTICS
       userStats: {
+        playerInnings: {}, // tracks each innings separately to prevent double-counting
         players: {}, // playerName: { runs, balls, wickets, runsConceded, ... }
         highestScore: { runs: 0, player: '', match: '' },
-        bestBowling: { wickets: 0, runs: 0, player: '', match: '' },
+        bestBowling: { wickets: 0, runs: 999, player: '', match: '' },
         centuries: [],
         fifties: [],
         hatTricks: [],
@@ -1305,9 +1291,10 @@
           final: null
         };
         this.userStats = {
+          playerInnings: {},
           players: {},
           highestScore: { runs: 0, player: '', match: '' },
-          bestBowling: { wickets: 0, runs: 0, player: '', match: '' },
+          bestBowling: { wickets: 0, runs: 999, player: '', match: '' },
           centuries: [],
           fifties: [],
           hatTricks: [],
@@ -1823,6 +1810,7 @@
           
           // Show pause button for tournament matches
           Utils.getElement('pauseMatchBtn').style.display = 'block';
+          Utils.getElement('returnHomeFromGameBtn').style.display = 'block';
         } else {
           // Simulate AI vs AI match
           const result = Utils.simulateMatch(match.team1, match.team2, TournamentState.matchOvers);
@@ -2270,14 +2258,14 @@
           <div style="background: white; border-radius: 10px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
             <h4 style="color: #f5576c; margin-bottom: 20px; border-bottom: 2px solid #f5576c; padding-bottom: 10px;">🔥 Bowling Milestones</h4>
             
-            ${stats.bestBowling.wickets > 0 ? `
+            ${stats.bestBowling && stats.bestBowling.wickets > 0 ? `
               <div style="background: #fff5f5; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                 <h5 style="color: #2d3748; margin: 0 0 10px 0;">Best Bowling Figures</h5>
                 <p style="margin: 5px 0; font-size: 1.1em;"><strong>${stats.bestBowling.wickets}/${stats.bestBowling.runs}</strong> by ${stats.bestBowling.player}</p>
                 <p style="margin: 5px 0; color: #718096; font-size: 0.9em;">${stats.bestBowling.match}</p>
               </div>
-            ` : '<p style="color: #a0aec0; font-style: italic;">No bowling data yet</p>'}
-            
+            ` : ''}
+
             ${renderStatTable('Hat-tricks', stats.hatTricks, 'hatTrick')}
             ${renderStatTable('10-Wicket Hauls', stats.tenWickets, 'bowling')}
             ${renderStatTable('5-Wicket Hauls', stats.fiveWickets, 'bowling')}
@@ -2505,12 +2493,6 @@
           ${generatePDFTable('Half-Centuries (50-99)', stats.fifties, 'batting')}
           
           <h2>🔥 Bowling Milestones</h2>
-          ${stats.bestBowling.wickets > 0 ? `
-            <div class="highlight">
-              <strong>Best Bowling:</strong> ${stats.bestBowling.wickets}/${stats.bestBowling.runs} by ${stats.bestBowling.player}<br>
-              <span style="color: #718096;">${stats.bestBowling.match}</span>
-            </div>
-          ` : '<p><em>No bowling data yet</em></p>'}
           
           ${generatePDFTable('Hat-tricks', stats.hatTricks, 'hatTrick')}
           ${generatePDFTable('10-Wicket Hauls', stats.tenWickets, 'bowling')}
@@ -2856,6 +2838,7 @@
         updateBowlerOptions();
         updateUI();
         Utils.getElement('pauseMatchBtn').style.display = 'block';
+          Utils.getElement('returnHomeFromGameBtn').style.display = 'block';
         
         // Show day/overs display for test match
         Utils.getElement('dayOversDisplay').style.display = 'block';
@@ -2932,7 +2915,10 @@
     function simulateWTCSeries(seriesKey) {
       const series = TournamentState.wtc.seriesProgress[seriesKey];
       series.matches.forEach(match => {
-        if (!match.completed) {
+        // Only simulate matches that do NOT involve the user's team
+        if (!match.completed &&
+            match.team1 !== TournamentState.userTeam &&
+            match.team2 !== TournamentState.userTeam) {
           const result = Utils.simulateMatch(match.team1, match.team2, TournamentState.matchOvers);
           updateWTCMatchResult(match, result);
         }
@@ -3241,6 +3227,7 @@
         updateBowlerOptions();
         updateUI();
         Utils.getElement('pauseMatchBtn').style.display = 'block';
+          Utils.getElement('returnHomeFromGameBtn').style.display = 'block';
       } else {
         // AI vs AI
         const result = Utils.simulateMatch(match.team1, match.team2, TournamentState.matchOvers);
@@ -3251,7 +3238,10 @@
 
     function simulateAllIPLMatches() {
       TournamentState.ipl.roundRobinMatches.forEach(match => {
-        if (!match.completed) {
+        // Only simulate matches that do NOT involve the user's team
+        if (!match.completed &&
+            match.team1 !== TournamentState.userTeam &&
+            match.team2 !== TournamentState.userTeam) {
           const result = Utils.simulateMatch(match.team1, match.team2, TournamentState.matchOvers);
           updateIPLMatchResult(match, result);
         }
@@ -3703,6 +3693,13 @@
       
       console.log('✅ Match paused and saved');
       
+      // Save to localStorage immediately
+      saveTournamentLocally();
+      // Also sync to cloud if signed in
+      if (currentUser && firebaseInitialized) {
+        saveProgressToCloud();
+      }
+      
       // Return to tournament
       Utils.getElement('game-section').style.display = 'none';
       Utils.getElement('tournament-section').style.display = 'block';
@@ -3796,6 +3793,7 @@
       
       // Show pause button
       Utils.getElement('pauseMatchBtn').style.display = 'block';
+          Utils.getElement('returnHomeFromGameBtn').style.display = 'block';
       
       console.log('✅ Match fully restored:', {
         innings: GameState.currentInnings,
@@ -4447,6 +4445,7 @@
         match.pausedState = null;
         
         Utils.getElement('pauseMatchBtn').style.display = 'none';
+          Utils.getElement('returnHomeFromGameBtn').style.display = 'none';
         
         // Update WTC standings
         if (TournamentState.currentStage === 'wtc') {
@@ -4559,6 +4558,7 @@
           
           // Hide pause button
           Utils.getElement('pauseMatchBtn').style.display = 'none';
+          Utils.getElement('returnHomeFromGameBtn').style.display = 'none';
           
           // Update standings
           if (TournamentState.currentStage === 'challengeLeague') {
@@ -4614,146 +4614,141 @@
     // ========= STATS TRACKING =========
     function updateUserStats() {
       if (!GameState.isTournament) return;
-      
+
       const userTeamIndex = GameState.userTeamIndex;
       const matchName = `${GameState.teamNames[0]} vs ${GameState.teamNames[1]}`;
-      
-      // Track batting stats for user's innings
+
+      // Ensure trackers exist (backwards compat with old saves)
+      if (!TournamentState.userStats.playerInnings) TournamentState.userStats.playerInnings = {};
+      if (!TournamentState.userStats.bestBowling) TournamentState.userStats.bestBowling = { wickets: 0, runs: 999, player: '', match: '' };
+
+      // Process ALL 4 innings (handles both limited-overs and Test matches)
       for (let inn = 0; inn < 4; inn++) {
+        // Skip innings that were never played
+        if (inn >= 2 && GameState.scores[inn] === 0 && GameState.wickets[inn] === 0 && GameState.ballsBowled[inn] === 0) {
+          continue;
+        }
+
         const battingTeamIndex = Utils.getBattingTeamIndex(inn);
-        if (battingTeamIndex !== userTeamIndex) continue;
-        
-        const batsmenStats = GameState.batsmenStats[inn];
-        if (!batsmenStats || batsmenStats.length === 0) continue;
-        
-        batsmenStats.forEach(batsman => {
-          if (!batsman || !batsman.name) return;
-          
-          // Initialize player if not exists
-          if (!TournamentState.userStats.players[batsman.name]) {
-            TournamentState.userStats.players[batsman.name] = {
-              runs: 0,
-              balls: 0,
-              wickets: 0,
-              runsConceded: 0,
-              matches: 0
-            };
-          }
-          
-          const player = TournamentState.userStats.players[batsman.name];
-          player.runs += batsman.runs;
-          player.balls += batsman.balls;
-          player.matches++;
-          
-          // Check for highest score
-          if (batsman.runs > TournamentState.userStats.highestScore.runs) {
-            TournamentState.userStats.highestScore = {
-              runs: batsman.runs,
-              player: batsman.name,
-              match: matchName
-            };
-          }
-          
-          // Check for centuries
-          if (batsman.runs >= 100) {
-            TournamentState.userStats.centuries.push({
-              player: batsman.name,
-              runs: batsman.runs,
-              balls: batsman.balls,
-              match: matchName
-            });
-          }
-          
-          // Check for fifties
-          if (batsman.runs >= 50 && batsman.runs < 100) {
-            TournamentState.userStats.fifties.push({
-              player: batsman.name,
-              runs: batsman.runs,
-              balls: batsman.balls,
-              match: matchName
-            });
-          }
-        });
+        const bowlingTeamIndex = 1 - battingTeamIndex;
+
+        // ===== BATTING STATS (when user's team batted) =====
+        if (battingTeamIndex === userTeamIndex) {
+          const batsmenStats = GameState.batsmenStats[inn];
+          if (!batsmenStats || batsmenStats.length === 0) continue;
+
+          batsmenStats.forEach((batsman, idx) => {
+            if (!batsman || batsman.balls === 0) return;
+
+            // FIXED: batsmenStats have no .name — look up from teamPlayers by index
+            const playerName = GameState.teamPlayers[userTeamIndex][idx];
+            if (!playerName) return;
+
+            // Initialize player entry
+            if (!TournamentState.userStats.players[playerName]) {
+              TournamentState.userStats.players[playerName] = { runs: 0, balls: 0, wickets: 0, runsConceded: 0, matches: 0 };
+            }
+            const player = TournamentState.userStats.players[playerName];
+
+            // Unique innings key prevents double-counting across resume/recall
+            const inningsKey = `${matchName}_Inn${inn + 1}_Bat_${playerName}`;
+            if (TournamentState.userStats.playerInnings[inningsKey]) return;
+            TournamentState.userStats.playerInnings[inningsKey] = { runs: batsman.runs, balls: batsman.balls };
+
+            player.runs += batsman.runs;
+            player.balls += batsman.balls;
+            player.matches++;
+
+            // Highest score
+            if (batsman.runs > TournamentState.userStats.highestScore.runs) {
+              TournamentState.userStats.highestScore = {
+                runs: batsman.runs,
+                player: playerName,
+                match: `${matchName} (Inn ${inn + 1})`
+              };
+            }
+
+            // Centuries
+            if (batsman.runs >= 100) {
+              TournamentState.userStats.centuries.push({
+                player: playerName, runs: batsman.runs, balls: batsman.balls,
+                match: `${matchName} (Inn ${inn + 1})`
+              });
+            }
+
+            // Fifties
+            if (batsman.runs >= 50 && batsman.runs < 100) {
+              TournamentState.userStats.fifties.push({
+                player: playerName, runs: batsman.runs, balls: batsman.balls,
+                match: `${matchName} (Inn ${inn + 1})`
+              });
+            }
+          });
+        }
+
+        // ===== BOWLING STATS (when user's team bowled) =====
+        if (bowlingTeamIndex === userTeamIndex) {
+          const bowlerStats = GameState.bowlerStats[userTeamIndex];
+          if (!bowlerStats || bowlerStats.length === 0) continue;
+
+          bowlerStats.forEach(bowler => {
+            if (!bowler || !bowler.name || bowler.balls === 0) return;
+
+            // Initialize player entry
+            if (!TournamentState.userStats.players[bowler.name]) {
+              TournamentState.userStats.players[bowler.name] = { runs: 0, balls: 0, wickets: 0, runsConceded: 0, matches: 0 };
+            }
+            const player = TournamentState.userStats.players[bowler.name];
+
+            // Unique innings key prevents double-counting
+            const inningsKey = `${matchName}_Inn${inn + 1}_Bowl_${bowler.name}`;
+            if (TournamentState.userStats.playerInnings[inningsKey]) return;
+            TournamentState.userStats.playerInnings[inningsKey] = { wickets: bowler.wickets, runs: bowler.runs };
+
+            player.wickets += bowler.wickets;
+            player.runsConceded += bowler.runs;
+
+            // Best bowling figures (more wickets wins; same wickets — fewer runs wins)
+            const best = TournamentState.userStats.bestBowling;
+            if (bowler.wickets > best.wickets || (bowler.wickets === best.wickets && bowler.runs < best.runs)) {
+              TournamentState.userStats.bestBowling = {
+                wickets: bowler.wickets, runs: bowler.runs,
+                player: bowler.name, match: `${matchName} (Inn ${inn + 1})`
+              };
+            }
+
+            // Hat-tricks
+            if (bowler.hatTrickShown) {
+              TournamentState.userStats.hatTricks.push({ player: bowler.name, match: `${matchName} (Inn ${inn + 1})` });
+            }
+
+            // 3-wicket hauls
+            if (bowler.wickets >= 3 && bowler.wickets < 5) {
+              TournamentState.userStats.threeWickets.push({
+                player: bowler.name, wickets: bowler.wickets, runs: bowler.runs,
+                match: `${matchName} (Inn ${inn + 1})`
+              });
+            }
+
+            // 5-wicket hauls
+            if (bowler.wickets >= 5 && bowler.wickets < 10) {
+              TournamentState.userStats.fiveWickets.push({
+                player: bowler.name, wickets: bowler.wickets, runs: bowler.runs,
+                match: `${matchName} (Inn ${inn + 1})`
+              });
+            }
+
+            // 10-wicket hauls
+            if (bowler.wickets >= 10) {
+              TournamentState.userStats.tenWickets.push({
+                player: bowler.name, wickets: bowler.wickets, runs: bowler.runs,
+                match: `${matchName} (Inn ${inn + 1})`
+              });
+            }
+          });
+        }
       }
-      
-      // Track bowling stats for opponent's innings
-      for (let inn = 0; inn < 4; inn++) {
-        const battingTeamIndex = Utils.getBattingTeamIndex(inn);
-        if (battingTeamIndex === userTeamIndex) continue; // Skip when user is batting
-        
-        const bowlerStats = GameState.bowlerStats[battingTeamIndex === 0 ? 1 : 0];
-        if (!bowlerStats || bowlerStats.length === 0) continue;
-        
-        bowlerStats.forEach(bowler => {
-          if (!bowler || !bowler.name) return;
-          
-          // Initialize player if not exists
-          if (!TournamentState.userStats.players[bowler.name]) {
-            TournamentState.userStats.players[bowler.name] = {
-              runs: 0,
-              balls: 0,
-              wickets: 0,
-              runsConceded: 0,
-              matches: 0
-            };
-          }
-          
-          const player = TournamentState.userStats.players[bowler.name];
-          player.wickets += bowler.wickets;
-          player.runsConceded += bowler.runs;
-          
-          // Check for best bowling figure
-          const currentBest = TournamentState.userStats.bestBowling;
-          if (bowler.wickets > currentBest.wickets || 
-              (bowler.wickets === currentBest.wickets && bowler.runs < currentBest.runs)) {
-            TournamentState.userStats.bestBowling = {
-              wickets: bowler.wickets,
-              runs: bowler.runs,
-              player: bowler.name,
-              match: matchName
-            };
-          }
-          
-          // Check for hat-tricks
-          if (bowler.hatTrickShown) {
-            TournamentState.userStats.hatTricks.push({
-              player: bowler.name,
-              match: matchName
-            });
-          }
-          
-          // Check for 3-wicket hauls
-          if (bowler.wickets >= 3 && bowler.wickets < 5) {
-            TournamentState.userStats.threeWickets.push({
-              player: bowler.name,
-              wickets: bowler.wickets,
-              runs: bowler.runs,
-              match: matchName
-            });
-          }
-          
-          // Check for 5-wicket hauls
-          if (bowler.wickets >= 5 && bowler.wickets < 10) {
-            TournamentState.userStats.fiveWickets.push({
-              player: bowler.name,
-              wickets: bowler.wickets,
-              runs: bowler.runs,
-              match: matchName
-            });
-          }
-          
-          // Check for 10-wicket hauls
-          if (bowler.wickets >= 10) {
-            TournamentState.userStats.tenWickets.push({
-              player: bowler.name,
-              wickets: bowler.wickets,
-              runs: bowler.runs,
-              match: matchName
-            });
-          }
-        });
-      }
-      
+
       console.log('✅ Stats updated:', TournamentState.userStats);
     }
 
@@ -4764,7 +4759,9 @@
       // Update tournament stats if tournament mode
       if (GameState.isTournament) {
         updateUserStats();
-        autoSaveProgress(); // Auto-save to cloud
+        // Save locally immediately, then sync to cloud
+        saveTournamentLocally();
+        autoSaveProgress();
       }
 
       Utils.toggleButtons('.number-buttons button', false);
@@ -4930,11 +4927,7 @@
       GameState.currentBowler = null;
       GameState.lastBowler = null;
       Utils.getElement('bowlerSelect').disabled = false;
-      Utils.toggleButtons('.number-buttons button', false);
-      Utils.getElement('continueDayBtn').style.display = 'none';
-
-      const nextDay = Math.floor(GameState.totalMatchBalls / (GameState.dayOvers * GameState.ballsPerOver)) + 1;
-     Utils.log(`--- Day ${nextDay} begins ---`);
+      Utils.toggleButton.log(`--- Day ${nextDay} begins ---`);
       updateUI();
     }
 
@@ -5393,4 +5386,3 @@ function resumeSavedTournament() {
   </script>
 </body>
 </html>
-
