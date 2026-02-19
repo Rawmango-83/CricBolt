@@ -764,3 +764,4 @@ declareBattingInnings = function() {
   _declareBattingInningsOriginal();
   _snapshotLiveTournamentMatch();
 };
+
