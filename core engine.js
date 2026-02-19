@@ -494,12 +494,13 @@ const DataManager = {
   },
 
   clearAll() {
-    if (!confirm('Clear ALL history and saved tournaments? This cannot be undone!')) return;
-    Object.values(this.KEYS).forEach(k => localStorage.removeItem(k));
-    localStorage.removeItem('handCricket_tournament');
-    localStorage.removeItem(DATA_VERSION_KEY);
-    alert('All data cleared!');
-    location.reload();
+    uiConfirm('Clear ALL history and saved tournaments? This cannot be undone!', 'Clear All Data').then(ok => {
+      if (!ok) return;
+      Object.values(this.KEYS).forEach(k => localStorage.removeItem(k));
+      localStorage.removeItem('handCricket_tournament');
+      localStorage.removeItem(DATA_VERSION_KEY);
+      uiAlert('All data cleared!', 'Done').then(() => location.reload());
+    });
   }
 };
 
@@ -629,6 +630,47 @@ const Utils = {
   }
 };
 
+function _openDialog(title, message, buttons) {
+  return new Promise(resolve => {
+    const modal = document.getElementById('appDialogModal');
+    const t = document.getElementById('appDialogTitle');
+    const m = document.getElementById('appDialogMessage');
+    const row = document.getElementById('appDialogButtons');
+    if (!modal || !t || !m || !row) {
+      resolve(buttons && buttons[0] ? buttons[0].value : true);
+      return;
+    }
+    t.textContent = title || 'Notice';
+    m.textContent = message || '';
+    row.innerHTML = '';
+    buttons.forEach(b => {
+      const btn = document.createElement('button');
+      btn.textContent = b.label;
+      btn.style.width = 'auto';
+      btn.style.background = b.bg;
+      btn.onclick = () => {
+        modal.style.display = 'none';
+        resolve(b.value);
+      };
+      row.appendChild(btn);
+    });
+    modal.style.display = 'flex';
+  });
+}
+
+function uiAlert(message, title='Notice') {
+  return _openDialog(title, message, [{ label: 'OK', value: true, bg: '#667eea' }]);
+}
+
+function uiConfirm(message, title='Confirm') {
+  return _openDialog(title, message, [
+    { label: 'Yes', value: true, bg: '#48bb78' },
+    { label: 'Cancel', value: false, bg: '#718096' }
+  ]);
+}
+
+window.uiAlert = uiAlert;
+window.uiConfirm = uiConfirm;
 function showToast(msg, bg) {
   const t = document.createElement('div');
   t.textContent = msg;
@@ -676,3 +718,5 @@ Object.keys(CRICKET_TEAMS).forEach(k => {
 });
 
 console.log('✅ Part 1 FIXED loaded: Core systems initialized with all bowling milestones');
+
+
