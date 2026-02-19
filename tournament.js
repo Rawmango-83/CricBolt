@@ -1017,7 +1017,19 @@ async function _enforceRankedTurnTimeout(roomId){
 
 async function _resumeActiveRankedRoom(){
   if(!(firebaseInitialized&&db&&currentUser)) return false;
-  if(rankedRoomId) return true;
+  if(rankedRoomId){
+    // Reattach listener on reopen and clear stale local state if room no longer exists.
+    try{
+      const existing=await db.collection('hc_rankedRooms').doc(rankedRoomId).get();
+      if(existing.exists){
+        _listenRankedRoom(rankedRoomId);
+        return true;
+      }
+    } catch(e){
+      console.error('resume existing ranked room error:',e);
+    }
+    rankedRoomId=null;
+  }
   try{
     const q=db.collection('hc_rankedQueue');
     const mine=await q.where('uid','==',currentUser.uid).limit(5).get();
@@ -1251,7 +1263,18 @@ async function startRankedQueue(){
   const cancelBtn=document.getElementById('rankedCancelBtn');
   const findBtn=document.getElementById('rankedFindBtn');
   if(!statusEl||!cancelBtn||!findBtn) return;
-  if(rankedQueueTimer||rankedQueueDocId||rankedRoomId) return;
+  if(rankedQueueTimer||rankedQueueDocId){
+    statusEl.textContent='You are already in queue. Cancel first to restart.';
+    return;
+  }
+  if(rankedRoomId){
+    const resumed=await _resumeActiveRankedRoom();
+    if(resumed){
+      statusEl.textContent='You already have an active ranked room.';
+      return;
+    }
+    rankedRoomId=null;
+  }
   const rankedOvers=Security.validateNumber(Utils.getValue('rankedOversSelect'),2,10,4);
   if(!DataManager.spendMatchTokens(1)){
     showToast('Need at least 1 match token for ranked queue','#e53e3e');
@@ -2577,6 +2600,8 @@ window.genE3=genE3;
 window.genFinal=genFinal;
 
 console.log('✅ Hand Cricket v3.5.0 - Ranked queue placeholder enabled.');
+
+
 
 
 
