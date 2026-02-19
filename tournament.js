@@ -14,8 +14,9 @@ const RANKED_QUEUE_WAIT_MS = 45000;
 const RANKED_STALE_QUEUE_MS = 120000;
 const RANKED_MAX_RP_GAP = 450;
 const RANKED_SETTLEMENT_KEY = 'hc_ranked_settled_rooms';
-const RANKED_TURN_TIMEOUT_MS = 20000;
+const RANKED_TURN_TIMEOUT_MS = 90000;
 let rankedTurnTimeoutTimer = null;
+let rankedTossShownForRoom = null;
 
 // ============================================================================
 // TOURNAMENT FUNCTIONS
@@ -664,7 +665,7 @@ function _stampPausedState(pausedState,match,stage,phase){
   }
 }
 
-function returnToHome(){
+async function returnToHome(){
   cancelRankedQueue();
   const gameVisible=document.getElementById('game-section')?.style.display!=='none';
   
@@ -677,7 +678,7 @@ function returnToHome(){
       showToast('⏸️ Match paused & saved! Tap "Resume Tournament" to continue.','#f59e0b');
       return;
     } else {
-      if(!confirm('A match is in progress. Leave and abandon it?')) return;
+      if(!(await uiConfirm('A match is in progress. Leave and abandon it?', 'Leave Match'))) return;
     }
   }
   
@@ -729,7 +730,7 @@ async function openRankedModal(){
 
 async function closeRankedModal(){
   if(rankedRoomId){
-    const ok=confirm('Leave ranked room? If match is live, this counts as forfeit.');
+    const ok=await uiConfirm('Leave ranked room? If match is live, this counts as forfeit.', 'Leave Ranked Room');
     if(!ok) return;
     await leaveRankedRoom(true);
   }
@@ -861,13 +862,14 @@ function _getRankedPlayers(room){
   return [p1,p2];
 }
 
-function _buildInitialRankedGame(room){
+function _buildInitialRankedGame(room, battingUidOverride, bowlingUidOverride){
   const [p1,p2]=_getRankedPlayers(room);
-  const battingUid=p1.uid;
-  const bowlingUid=p2.uid;
+  const battingUid=battingUidOverride||p1.uid;
+  const bowlingUid=bowlingUidOverride||p2.uid;
+  const overs=Security.validateNumber(room?.overs,2,10,4);
   return {
     innings:1,
-    maxBalls:RANKED_MAX_BALLS,
+    maxBalls:overs*6,
     balls:0,
     scores:{[battingUid]:0,[bowlingUid]:0},
     wickets:{[battingUid]:0,[bowlingUid]:0},
@@ -876,8 +878,7 @@ function _buildInitialRankedGame(room){
     bowlingUid,
     submissions:{},
     turn:1,
-    turnStartedAtMs:Date.now(),
-    lastEvent:'Match started'
+    turnStartedAtMs:Date.now(),    lastEvent:'Match started ('+overs+' overs)'
   };
 }
 
@@ -910,7 +911,7 @@ function _updateRankedRoomUI(room){
   const [p1,p2]=_getRankedPlayers(room);
 
   if(room.status==='waiting_start'){
-    statusEl.textContent=`Room ready: ${readyCount}/2 (${p1.name||'P1'} vs ${p2.name||'P2'})`;
+    statusEl.textContent=`Room ready: ${readyCount}/2 (${p1.name||'P1'} vs ${p2.name||'P2'}) - ${room.overs||4} overs`;
     readyBtn.style.display='inline-block';
     readyBtn.disabled=!!readyMap[currentUser?.uid];
     livePanel.style.display='none';
@@ -932,6 +933,11 @@ function _updateRankedRoomUI(room){
     const myRole=meUid===batUid?'Batting':'Bowling';
 
     statusEl.textContent=`Live Room ${rankedRoomId} | ${myRole}`;
+    if(room.tossWinnerUid&&room.tossChoice&&rankedTossShownForRoom!==rankedRoomId){
+      rankedTossShownForRoom=rankedRoomId;
+      const tossWinnerName=room.tossWinnerUid===p1.uid?(p1.name||'P1'):(p2.name||'P2');
+      TossAnim.show('TOSS','Ranked Toss',`${tossWinnerName} won toss and chose to ${room.tossChoice} first.`,`${room.overs||4} overs each`).catch(()=>{});
+    }
     readyBtn.style.display='none';
     livePanel.style.display='block';
     numberRow.style.display='grid';
@@ -966,6 +972,7 @@ function _cleanupRankedRoomListener(){
     rankedRoomUnsub();
     rankedRoomUnsub=null;
   }
+  rankedTossShownForRoom=null;
   _clearRankedTurnTimeoutTimer();
 }
 
@@ -1082,9 +1089,16 @@ async function rankedMarkReady(){
       const bothReady=!!readyMap[p1.uid]&&!!readyMap[p2.uid];
       const payload={readyMap};
       if(bothReady){
+        const tossWinnerUid=Math.random()<0.5?p1.uid:p2.uid;
+        const tossChoice=Math.random()<0.5?'bat':'bowl';
+        const otherUid=tossWinnerUid===p1.uid?p2.uid:p1.uid;
+        const battingUid=tossChoice==='bat'?tossWinnerUid:otherUid;
+        const bowlingUid=battingUid===p1.uid?p2.uid:p1.uid;
         payload.status='live';
         payload.startedAt=firebase.firestore.FieldValue.serverTimestamp();
-        payload.game=room.game||_buildInitialRankedGame(room);
+        payload.tossWinnerUid=tossWinnerUid;
+        payload.tossChoice=tossChoice;
+        payload.game=room.game||_buildInitialRankedGame(room, battingUid, bowlingUid);
       }
       tx.update(ref,payload);
     });
@@ -1238,12 +1252,13 @@ async function startRankedQueue(){
   const findBtn=document.getElementById('rankedFindBtn');
   if(!statusEl||!cancelBtn||!findBtn) return;
   if(rankedQueueTimer||rankedQueueDocId||rankedRoomId) return;
+  const rankedOvers=Security.validateNumber(Utils.getValue('rankedOversSelect'),2,10,4);
   if(!DataManager.spendMatchTokens(1)){
     showToast('Need at least 1 match token for ranked queue','#e53e3e');
     statusEl.textContent='Insufficient tokens. Play matches to earn more.';
     return;
   }
-  statusEl.textContent='Searching for opponent...';
+  statusEl.textContent='Searching for opponent... ('+rankedOvers+' overs)';
   cancelBtn.style.display='inline-block';
   findBtn.disabled=true;
   findBtn.textContent='Queueing...';
@@ -1299,6 +1314,7 @@ async function startRankedQueue(){
       name:currentUser.displayName||'Player',
       rankTier:profile.rankTier,
       rankPoints:profile.rankPoints||0,
+      rankedOvers,
       status:'searching',
       roomId:null,
       createdAt:firebase.firestore.FieldValue.serverTimestamp(),
@@ -1335,6 +1351,7 @@ async function startRankedQueue(){
     const pool=candidatesSnap.docs
       .filter(d=>d.id!==myRef.id && d.data().uid!==currentUser.uid)
       .filter(d=>(Date.now()-(d.data().createdAtMs||0))<=RANKED_STALE_QUEUE_MS)
+      .filter(d=>Number(d.data().rankedOvers||4)===rankedOvers)
       .map(d=>({ doc:d, rp:Number(d.data().rankPoints||0), createdAtMs:Number(d.data().createdAtMs||0) }));
     if(!pool.length){
       statusEl.textContent='In queue... waiting for opponent.';
@@ -1358,6 +1375,7 @@ async function startRankedQueue(){
         status:'waiting_start',
         createdAt:firebase.firestore.FieldValue.serverTimestamp(),
         createdAtMs:Date.now(),
+        overs:rankedOvers,
         readyMap:{},
         playerUids:[me.uid,op.uid],
         players:[
@@ -1444,7 +1462,7 @@ function handleModeChange(){
   }
 }
 
-function handleTournamentFormatChange(){
+async function handleTournamentFormatChange(){
   const f=Utils.getValue('tournamentFormat');
   const d=Utils.getElement('tournamentFormatDetails');
   
@@ -1460,7 +1478,7 @@ function handleTournamentFormatChange(){
     const stageNames={challengeLeague:'Challenge League',super6:'Super 6',qualifier:'Qualifier',worldCup:'World Cup',wtc:'WTC League',ipl:'IPL'};
     const msg=`You have a saved ${fmtNames[f]||f} tournament in progress!\n\nTeam: ${newest.teamName}\nStage: ${stageNames[newest.stage]||newest.stage}\nLast saved: ${newest.lastSaved}\n\nResume this tournament?`;
     
-    if(confirm(msg)){
+    if(await uiConfirm(msg, 'Resume Tournament?')){
       resumeTournamentSlot(newest.id);
       Utils.getElement('tournamentFormat').value='';
       d.style.display='none';
@@ -1512,13 +1530,13 @@ function handleTeamSelection(){
 
 async function startTournament(){
   if(!TournamentState.format){
-    alert('Select tournament format!');
+    await uiAlert('Select tournament format!', 'Tournament Setup');
     return;
   }
   
   const u=Utils.getValue('userTournamentTeam');
   if(!u){
-    alert('Select your team!');
+    await uiAlert('Select your team!', 'Tournament Setup');
     return;
   }
   
@@ -1588,7 +1606,7 @@ async function startGame(){
   GameState.teamPlayers[1]=Utils.parsePlayerList(Utils.getValue('team2Players'));
   
   if(GameState.teamPlayers[0].length<2||GameState.teamPlayers[1].length<2){
-    alert('At least 2 players per team.');
+    await uiAlert('At least 2 players per team.', 'Invalid Team Setup');
     return;
   }
   
@@ -2404,7 +2422,7 @@ function showStatsCorner(){
 // ============================================================================
 function resumeMatch(match){
   if(!match||!match.pausedState){
-    alert('No saved match data. Starting fresh.');
+    uiAlert('No saved match data. Starting fresh.', 'Resume Match');
     if(match.team1===TournamentState.userTeam||match.team2===TournamentState.userTeam){
       if(TournamentState.currentStage==='wtc') playWTCMatchNew(match);
       else if(TournamentState.currentStage==='ipl') playIPLMatchNew(match);
@@ -2511,7 +2529,15 @@ window.addEventListener('DOMContentLoaded',()=>{
       if(e.target===this) closeRankedModal();
     });
   }
-  
+  const adm=document.getElementById('appDialogModal');
+  if(adm){
+    adm.addEventListener('click',function(e){
+      if(e.target===this){
+        const cancel=document.querySelector('#appDialogButtons button:last-child');
+        if(cancel) cancel.click();
+      }
+    });
+  }  
   console.log('🏏 Hand Cricket v'+APP_VERSION+' loaded!');
   console.log('💾 Saved tournaments:',DataManager.getPendingTournaments().length,'| Match history:',DataManager.getMatchHistory().length);
 });
@@ -2551,3 +2577,21 @@ window.genE3=genE3;
 window.genFinal=genFinal;
 
 console.log('✅ Hand Cricket v3.5.0 - Ranked queue placeholder enabled.');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
