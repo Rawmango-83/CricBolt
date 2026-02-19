@@ -805,11 +805,12 @@ function _seasonClaimKey(clanId, uid){
 function _ensureClanExtendedUI(){
   const modal = document.getElementById('clanModal');
   if (!modal) return;
-  const box = modal.querySelector('.rmodal-box');
-  if (!box || document.getElementById('clanAdvancedSection')) return;
+  const mount = document.getElementById('clanSettingsMount');
+  if (!mount || document.getElementById('clanAdvancedSection')) return;
+
   const section = document.createElement('div');
   section.id = 'clanAdvancedSection';
-  section.style.cssText = 'margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px';
+  section.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px';
   section.innerHTML = `
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:left">
       <h4 style="margin:0 0 8px 0;color:#2d3748">Clan Settings</h4>
@@ -830,9 +831,8 @@ function _ensureClanExtendedUI(){
       <div id="clanJoinRequests" style="max-height:120px;overflow:auto;font-size:12px;color:#334155;margin-bottom:8px">No pending requests.</div>
       <div id="clanClashHistory" style="max-height:140px;overflow:auto;font-size:12px;color:#334155">No clash history.</div>
     </div>`;
-  const closeRow = Array.from(box.querySelectorAll('div')).find(d => (d.style && d.style.justifyContent === 'flex-end'));
-  if (closeRow && closeRow.parentNode) closeRow.parentNode.insertBefore(section, closeRow);
-  else box.appendChild(section);
+
+  mount.appendChild(section);
 }
 
 function _renderSeasonRewardPrompt(clans){
@@ -1341,6 +1341,7 @@ const _baseOpenClanModal = openClanModal;
 openClanModal = async function(){
   _ensureClanExtendedUI();
   await _baseOpenClanModal();
+  showClanSubSection('createJoin');
   _listenClanJoinRequests();
   _startClanAutoResolveTimer();
 };
@@ -1375,3 +1376,429 @@ window.approveJoinRequest = approveJoinRequest;
 window.rejectJoinRequest = rejectJoinRequest;
 window.saveClanSettings = saveClanSettings;
 window.claimClanSeasonReward = claimClanSeasonReward;
+window.showClanSubSection = showClanSubSection;
+
+
+function showClanSubSection(section){
+  const ids = ['createJoin','members','chat','clash','leaderboard','settings'];
+  ids.forEach(id => {
+    const sec = document.getElementById('clanSection' + id.charAt(0).toUpperCase() + id.slice(1));
+    const tab = document.getElementById('clanTab' + id.charAt(0).toUpperCase() + id.slice(1));
+    if (sec) sec.classList.toggle('active', id === section);
+    if (tab) tab.classList.toggle('active', id === section);
+  });
+}
+
+
+// CLAN_CLASH_MODE_V2
+function _clashModeDefaults(mode){
+  const map = { t20i:4, odi:10, test:25, rct:15 };
+  return map[mode] || 4;
+}
+
+function onClanClashModeChange(){
+  const modeEl = document.getElementById('clanClashMode');
+  const oversEl = document.getElementById('clanClashOvers');
+  if (!modeEl || !oversEl) return;
+  const mode = String(modeEl.value || 't20i');
+  if (mode === 'custom') {
+    oversEl.disabled = false;
+  } else {
+    oversEl.disabled = true;
+    oversEl.value = _clashModeDefaults(mode);
+  }
+}
+
+createClanChallenge = async function(){
+  if (!_clanSignedIn() || !myClanId) {
+    await uiAlert('Join a clan first.', 'Clan Clash');
+    return;
+  }
+  if (!_isClanAdminRole(myClanRole)) {
+    await uiAlert('Only clan leader/co-leader can start clan clashes.', 'Clan Clash');
+    return;
+  }
+
+  const target = document.getElementById('clanTargetSelect');
+  const toClanId = target ? target.value : '';
+  const modeEl = document.getElementById('clanClashMode');
+  const oversEl = document.getElementById('clanClashOvers');
+  const clashMode = String((modeEl && modeEl.value) || 't20i');
+  let clashOvers = Number((oversEl && oversEl.value) || _clashModeDefaults(clashMode));
+  if (!Number.isFinite(clashOvers) || clashOvers < 1) clashOvers = _clashModeDefaults(clashMode);
+
+  if (!toClanId || toClanId === myClanId) {
+    await uiAlert('Select a valid target clan.', 'Clan Clash');
+    return;
+  }
+
+  try {
+    const toSnap = await _clanRef(toClanId).get();
+    if (!toSnap.exists) {
+      await uiAlert('Target clan not found.', 'Clan Clash');
+      return;
+    }
+    const toClan = toSnap.data() || {};
+
+    await db.collection('hc_clanClashes').add({
+      fromClanId: myClanId,
+      fromClanName: myClanName || 'Clan',
+      toClanId,
+      toClanName: toClan.name || 'Clan',
+      participants: [myClanId, toClanId],
+      initiatorUid: currentUser.uid,
+      mode: clashMode,
+      overs: clashOvers,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAtMs: Date.now()
+    });
+
+    showToast(`Clan clash request sent (${clashMode.toUpperCase()} ${clashOvers}ov).`, '#0ea5e9');
+  } catch(e){
+    console.error('create clan clash error:', e);
+    await uiAlert('Could not create clan clash.', 'Clan Clash');
+  }
+};
+
+_renderClashes = function(items){
+  const activeBox = document.getElementById('clanChallenges');
+  const historyBox = document.getElementById('clanClashHistory');
+  const sorted = [...items].sort((a,b)=>Number(b.createdAtMs||0)-Number(a.createdAtMs||0));
+  const active = sorted.filter(c => ['pending','accepted','live'].includes(c.status));
+  const finished = sorted.filter(c => c.status === 'finished' || c.status === 'rejected');
+
+  if (activeBox) {
+    if (!active.length) {
+      activeBox.innerHTML = '<p style="margin:0;color:#64748b">No active clan clashes.</p>';
+    } else {
+      activeBox.innerHTML = active.map(c => {
+        const status = c.status || 'pending';
+        const mineAsTarget = c.toClanId === myClanId;
+        const mineAsSource = c.fromClanId === myClanId;
+        const modeText = `${String(c.mode || 't20i').toUpperCase()} ${Number(c.overs||0)}ov`;
+        let actions = '';
+        if (status === 'pending' && mineAsTarget && _isClanAdminRole(myClanRole)) {
+          actions = `<button onclick="respondClanChallenge('${_clanEsc(c.id)}','accepted')" style="width:auto;padding:5px 9px;background:#16a34a">Accept</button> <button onclick="respondClanChallenge('${_clanEsc(c.id)}','rejected')" style="width:auto;padding:5px 9px;background:#dc2626">Reject</button>`;
+        } else if ((status === 'accepted' || status === 'live') && _isClanAdminRole(myClanRole) && (mineAsTarget || mineAsSource)) {
+          const otherId = mineAsTarget ? c.fromClanId : c.toClanId;
+          actions = `<button onclick="finishClanChallenge('${_clanEsc(c.id)}','${_clanEsc(myClanId)}')" style="width:auto;padding:5px 9px;background:#0ea5e9">Mark Win</button> <button onclick="finishClanChallenge('${_clanEsc(c.id)}','${_clanEsc(otherId)}')" style="width:auto;padding:5px 9px;background:#64748b">Mark Lose</button>`;
+        }
+        return `<div style="padding:6px 0;border-bottom:1px solid #e2e8f0"><div>${_clanEsc(c.fromClanName||'Clan')} vs ${_clanEsc(c.toClanName||'Clan')} | <strong>${_clanEsc(status)}</strong> | ${_clanEsc(modeText)}</div><div style="margin-top:4px">${actions}</div></div>`;
+      }).join('');
+    }
+  }
+
+  if (historyBox) {
+    if (!finished.length) {
+      historyBox.innerHTML = '<p style="margin:0;color:#64748b">No clash history.</p>';
+    } else {
+      historyBox.innerHTML = finished.slice(0, 30).map(c => {
+        const winner = c.winnerClanName ? `Winner: ${_clanEsc(c.winnerClanName)}` : `Result: ${_clanEsc(c.status || '-')}`;
+        const modeText = `${String(c.mode || 't20i').toUpperCase()} ${Number(c.overs||0)}ov`;
+        return `<div style="padding:5px 0;border-bottom:1px solid #e2e8f0">${_clanEsc(c.fromClanName||'Clan')} vs ${_clanEsc(c.toClanName||'Clan')}<br><span style="color:#475569">${winner} • ${_clanEsc(modeText)}</span></div>`;
+      }).join('');
+    }
+  }
+};
+
+_settleClanClash = async function(ref, c, winnerClanId, mode){
+  const modeKey = String(c.mode || 't20i');
+  const modeScale = { t20i: 1, rct: 1.1, odi: 1.35, test: 1.6, custom: 1.2 };
+  const winPts = Math.max(10, Math.round(25 * (modeScale[modeKey] || 1)));
+  const losePts = Math.max(4, Math.round(8 * (modeScale[modeKey] || 1)));
+
+  const loserClanId = winnerClanId === c.fromClanId ? c.toClanId : c.fromClanId;
+  const winnerName = winnerClanId === c.fromClanId ? c.fromClanName : c.toClanName;
+  await db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const live = snap.data() || {};
+    if (live.status === 'finished' || live.status === 'rejected') return;
+
+    tx.set(ref, {
+      status: 'finished',
+      winnerClanId,
+      winnerClanName: winnerName,
+      finishedAtMs: Date.now(),
+      finishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      settledByUid: currentUser ? currentUser.uid : null,
+      settleMode: mode || 'manual'
+    }, { merge: true });
+
+    tx.set(_clanRef(winnerClanId), {
+      wins: firebase.firestore.FieldValue.increment(1),
+      clashes: firebase.firestore.FieldValue.increment(1),
+      seasonPoints: firebase.firestore.FieldValue.increment(winPts),
+      seasonWins: firebase.firestore.FieldValue.increment(1),
+      seasonId: _getSeasonId(),
+      updatedAtMs: Date.now()
+    }, { merge: true });
+
+    tx.set(_clanRef(loserClanId), {
+      losses: firebase.firestore.FieldValue.increment(1),
+      clashes: firebase.firestore.FieldValue.increment(1),
+      seasonPoints: firebase.firestore.FieldValue.increment(losePts),
+      seasonLosses: firebase.firestore.FieldValue.increment(1),
+      seasonId: _getSeasonId(),
+      updatedAtMs: Date.now()
+    }, { merge: true });
+  });
+};
+
+window.onClanClashModeChange = onClanClashModeChange;
+window.addEventListener('DOMContentLoaded',()=>{
+  const modeEl = document.getElementById('clanClashMode');
+  if (modeEl) {
+    modeEl.addEventListener('change', onClanClashModeChange);
+    onClanClashModeChange();
+  }
+});
+
+// CLAN_WAR_MATCHMAKING_V1
+let clanWarQueueUnsub = null;
+let clanWarMatchTimer = null;
+
+function _clanWarQueueRef(){
+  if (!_clanSignedIn() || !myClanId) return null;
+  return db.collection('hc_clanWarQueue').doc(myClanId);
+}
+
+function _setClanQueueStatus(msg, color){
+  const el = document.getElementById('clanQueueStatus');
+  if (!el) return;
+  el.textContent = msg;
+  if (color) el.style.color = color;
+}
+
+function _setClanQueueButtons(searching){
+  const joinBtn = document.getElementById('clanQueueJoinBtn');
+  const leaveBtn = document.getElementById('clanQueueLeaveBtn');
+  if (joinBtn) joinBtn.style.display = searching ? 'none' : 'inline-block';
+  if (leaveBtn) leaveBtn.style.display = searching ? 'inline-block' : 'none';
+}
+
+function _getClanWarModeOvers(){
+  const modeEl = document.getElementById('clanClashMode');
+  const oversEl = document.getElementById('clanClashOvers');
+  const mode = String((modeEl && modeEl.value) || 't20i');
+  let overs = Number((oversEl && oversEl.value) || _clashModeDefaults(mode));
+  if (!Number.isFinite(overs) || overs < 1) overs = _clashModeDefaults(mode);
+  overs = Math.max(1, Math.min(50, Math.floor(overs)));
+  return { mode, overs };
+}
+
+function _clanPower(c){
+  const aura = Number(c.avgAura || 0);
+  const points = Number(c.seasonPoints || 0);
+  const members = Number(c.memberCount || 0);
+  return aura + points * 0.08 + Math.min(10, members * 0.2);
+}
+
+async function _attemptClanWarMatchmaking(){
+  if (!_clanSignedIn() || !myClanId || !_isClanAdminRole(myClanRole)) return;
+  const meRef = _clanWarQueueRef();
+  if (!meRef) return;
+
+  const meSnap = await meRef.get();
+  if (!meSnap.exists) return;
+  const me = meSnap.data() || {};
+  if (me.status !== 'searching') return;
+
+  const mode = String(me.mode || 't20i');
+  const overs = Number(me.overs || 4);
+  const q = await db.collection('hc_clanWarQueue')
+    .where('status', '==', 'searching')
+    .limit(40)
+    .get();
+
+  const pool = q.docs
+    .map(d => ({ id: d.id, ...(d.data() || {}) }))
+    .filter(x => x.id !== myClanId && x.clanId && x.status === 'searching' && String(x.mode||'')===mode && Number(x.overs||0)===overs);
+  if (!pool.length) return;
+
+  const myPower = _clanPower(me);
+  pool.sort((a, b) => Math.abs(_clanPower(a) - myPower) - Math.abs(_clanPower(b) - myPower));
+  const opp = pool[0];
+  if (!opp || !opp.clanId) return;
+
+  const oppRef = db.collection('hc_clanWarQueue').doc(opp.clanId);
+  const clashRef = db.collection('hc_clanClashes').doc();
+
+  let created = false;
+  await db.runTransaction(async tx => {
+    const [liveMe, liveOpp] = await Promise.all([tx.get(meRef), tx.get(oppRef)]);
+    if (!liveMe.exists || !liveOpp.exists) return;
+
+    const m = liveMe.data() || {};
+    const o = liveOpp.data() || {};
+    const sameConfig = String(m.mode||'') === String(o.mode||'') && Number(m.overs||0) === Number(o.overs||0);
+    if (m.status !== 'searching' || o.status !== 'searching' || !sameConfig) return;
+
+    const now = Date.now();
+    tx.set(clashRef, {
+      fromClanId: m.clanId,
+      fromClanName: m.clanName || 'Clan',
+      toClanId: o.clanId,
+      toClanName: o.clanName || 'Clan',
+      participants: [m.clanId, o.clanId],
+      initiatorUid: currentUser.uid,
+      mode,
+      overs,
+      status: 'live',
+      queueMatch: true,
+      liveAtMs: now,
+      autoResolveAtMs: now + 90000,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAtMs: now
+    }, { merge: true });
+
+    tx.delete(meRef);
+    tx.delete(oppRef);
+    created = true;
+  });
+
+  if (created) {
+    _setClanQueueButtons(false);
+    _setClanQueueStatus('Match found. Clan war is live.', '#16a34a');
+    showToast('Clan war match found.', '#16a34a');
+  }
+}
+
+function _startClanWarQueueListener(){
+  if (clanWarQueueUnsub) { clanWarQueueUnsub(); clanWarQueueUnsub = null; }
+  if (!_clanSignedIn() || !myClanId) {
+    _setClanQueueButtons(false);
+    _setClanQueueStatus('Join a clan to use clan war queue.', '#64748b');
+    return;
+  }
+
+  const ref = _clanWarQueueRef();
+  if (!ref) return;
+  clanWarQueueUnsub = ref.onSnapshot(snap => {
+    if (!snap.exists) {
+      _setClanQueueButtons(false);
+      _setClanQueueStatus('Queue idle.', '#475569');
+      return;
+    }
+    const d = snap.data() || {};
+    const searching = d.status === 'searching';
+    _setClanQueueButtons(searching);
+    if (searching) {
+      _setClanQueueStatus(`Searching ${String(d.mode||'').toUpperCase()} ${Number(d.overs||0)}ov...`, '#0284c7');
+    } else {
+      _setClanQueueStatus('Queue idle.', '#475569');
+      _setClanQueueButtons(false);
+    }
+  }, () => {
+    _setClanQueueStatus('Queue listener error.', '#b91c1c');
+  });
+}
+
+function _startClanWarMatchTimer(){
+  if (clanWarMatchTimer) clearInterval(clanWarMatchTimer);
+  clanWarMatchTimer = setInterval(() => {
+    _attemptClanWarMatchmaking().catch(() => {});
+  }, 8000);
+}
+
+function _stopClanWarMatchTimer(){
+  if (clanWarMatchTimer) {
+    clearInterval(clanWarMatchTimer);
+    clanWarMatchTimer = null;
+  }
+}
+
+async function joinClanWarQueue(){
+  if (!_clanSignedIn() || !myClanId) {
+    await uiAlert('Join a clan first.', 'Clan War Queue');
+    return;
+  }
+  if (!_isClanAdminRole(myClanRole)) {
+    await uiAlert('Only clan leader/co-leader can queue clan war.', 'Clan War Queue');
+    return;
+  }
+
+  try {
+    const clanSnap = await _clanRef(myClanId).get();
+    if (!clanSnap.exists) {
+      await uiAlert('Clan not found.', 'Clan War Queue');
+      return;
+    }
+    const clan = clanSnap.data() || {};
+    const cfg = _getClanWarModeOvers();
+
+    await _clanWarQueueRef().set({
+      clanId: myClanId,
+      clanName: clan.name || myClanName || 'Clan',
+      leaderUid: currentUser.uid,
+      mode: cfg.mode,
+      overs: cfg.overs,
+      avgAura: Number(clan.avgAura || 0),
+      seasonPoints: Number(clan.seasonPoints || 0),
+      memberCount: Number(clan.memberCount || 0),
+      status: 'searching',
+      createdAtMs: Date.now(),
+      updatedAtMs: Date.now()
+    }, { merge: true });
+
+    _setClanQueueButtons(true);
+    _setClanQueueStatus(`Searching ${cfg.mode.toUpperCase()} ${cfg.overs}ov...`, '#0284c7');
+    _startClanWarMatchTimer();
+    await _attemptClanWarMatchmaking();
+  } catch(e){
+    console.error('join clan war queue error:', e);
+    await uiAlert('Could not join clan war queue.', 'Clan War Queue');
+  }
+}
+
+async function leaveClanWarQueue(silent){
+  if (!_clanSignedIn() || !myClanId) return;
+  try {
+    const ref = _clanWarQueueRef();
+    if (!ref) return;
+    await ref.delete().catch(()=>{});
+    _setClanQueueButtons(false);
+    _setClanQueueStatus('Queue idle.', '#475569');
+    _stopClanWarMatchTimer();
+    if (!silent) showToast('Left clan war queue.', '#64748b');
+  } catch(e){
+    console.error('leave clan war queue error:', e);
+  }
+}
+
+const _baseOpenClanModalWar = openClanModal;
+openClanModal = async function(){
+  await _baseOpenClanModalWar();
+  _startClanWarQueueListener();
+};
+
+const _baseCloseClanModalWar = closeClanModal;
+closeClanModal = function(){
+  if (clanWarQueueUnsub) { clanWarQueueUnsub(); clanWarQueueUnsub = null; }
+  _stopClanWarMatchTimer();
+  _baseCloseClanModalWar();
+};
+
+const _baseLeaveClanWarAware = leaveClan;
+leaveClan = async function(){
+  await leaveClanWarQueue(true);
+  await _baseLeaveClanWarAware();
+};
+
+const _baseSetClanButtonsStateWar = _setClanButtonsState;
+_setClanButtonsState = function(){
+  _baseSetClanButtonsStateWar();
+  const canQueue = _clanSignedIn() && !!myClanId && _isClanAdminRole(myClanRole);
+  const joinBtn = document.getElementById('clanQueueJoinBtn');
+  const leaveBtn = document.getElementById('clanQueueLeaveBtn');
+  if (joinBtn) joinBtn.disabled = !canQueue;
+  if (leaveBtn) leaveBtn.disabled = !canQueue;
+};
+
+window.joinClanWarQueue = joinClanWarQueue;
+window.leaveClanWarQueue = leaveClanWarQueue;
+
+
+window.leaveClan = leaveClan;
+
