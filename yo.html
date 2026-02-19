@@ -19,16 +19,28 @@
 <body>
 
 <!-- Fixed Global Buttons -->
-<button id="globalHomeBtn" onclick="returnToHome()">🏠 Home</button>
-<button id="musicToggleBtn" onclick="toggleMusic()" title="Toggle Background Music">
-  🎵 Music<span class="music-bars paused" id="musicBars"><span></span><span></span><span></span><span></span><span></span></span>
-</button>
-<button id="globalHistoryBtn" onclick="getMatchHistory()">📊 History</button>
+<button id="menuToggleBtn" onclick="toggleSideMenu()" title="Open Menu">? Menu</button>
+<button id="globalHomeBtn" onclick="returnToHome()">?? Home</button>
+<div id="ambientBgmBadge">BGM ON</div>
+
+<div id="sideMenuBackdrop" onclick="closeSideMenu()"></div>
+<aside id="sideMenuDrawer" aria-label="Main menu">
+  <div class="side-menu-header">
+    <strong>Game Menu</strong>
+    <button type="button" onclick="closeSideMenu()">?</button>
+  </div>
+  <button class="side-menu-item" onclick="openMenuHistory()">?? History</button>
+  <button class="side-menu-item" onclick="openMenuCareer()">?? Career Stats</button>
+  <button class="side-menu-item" onclick="openMenuLeaderboard()">?? Leaderboard</button>
+  <button class="side-menu-item" onclick="openMenuRanked()">? Ranked Multiplayer</button>
+  <button class="side-menu-item" onclick="openMenuClan()">?? Clan Hub</button>
+  <button class="side-menu-item" id="menuResumeBtn" onclick="openMenuResume()" style="display:none">? Resume Tournament</button>
+</aside>
 
 <!-- Toss Overlay -->
 <div id="tossOverlay">
   <div id="tossBox">
-    <span id="tossIcon">🪙</span>
+    <span id="tossIcon">ðŸª™</span>
     <div id="tossTitle">Toss Time!</div>
     <div id="tossMsg"></div>
     <div id="tossSubMsg"></div>
@@ -39,14 +51,14 @@
 <!-- History Modal -->
 <div class="hmodal-bg" id="historyModal">
   <div class="hmodal-box">
-    <button class="hmodal-close" onclick="closeHistoryModal()">✕ Close</button>
-    <h2 style="color:#667eea;margin-bottom:20px">📊 Match &amp; Tournament History</h2>
+    <button class="hmodal-close" onclick="closeHistoryModal()">âœ• Close</button>
+    <h2 style="color:#667eea;margin-bottom:20px">ðŸ“Š Match &amp; Tournament History</h2>
     <div style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:8px">
-      <button class="htab-btn active" id="htab-all" onclick="showHistoryTab('all')">🏏 All Matches</button>
-      <button class="htab-btn" id="htab-tournaments" onclick="showHistoryTab('tournaments')">🏆 Tournaments</button>
-      <button class="htab-btn" id="htab-stats" onclick="showHistoryTab('stats')">📈 Career Stats</button>
-      <button class="htab-btn" id="htab-leaderboard" onclick="showHistoryTab('leaderboard')">🥇 Leaderboard</button>
-      <button class="htab-btn" onclick="clearAllHistoryData()" style="background:#ef4444">🗑 Clear All</button>
+      <button class="htab-btn active" id="htab-all" onclick="showHistoryTab('all')">ðŸ All Matches</button>
+      <button class="htab-btn" id="htab-tournaments" onclick="showHistoryTab('tournaments')">ðŸ† Tournaments</button>
+      <button class="htab-btn" id="htab-stats" onclick="showHistoryTab('stats')">ðŸ“ˆ Career Stats</button>
+      <button class="htab-btn" id="htab-leaderboard" onclick="showHistoryTab('leaderboard')">ðŸ¥‡ Leaderboard</button>
+      <button class="htab-btn" onclick="clearAllHistoryData()" style="background:#ef4444">ðŸ—‘ Clear All</button>
     </div>
     <div id="historyTabContent"></div>
   </div>
@@ -55,7 +67,7 @@
 <!-- Resume Tournament Modal -->
 <div class="rmodal-bg" id="resumeModal">
   <div class="rmodal-box">
-    <h2 style="color:#667eea;margin-bottom:10px">▶️ Resume Tournament</h2>
+    <h2 style="color:#667eea;margin-bottom:10px">â–¶ï¸ Resume Tournament</h2>
     <p style="color:#718096;margin-bottom:20px">Select a saved tournament to continue:</p>
     <div id="resumeList"></div>
     <button onclick="closeResumeModal()" style="margin-top:20px;background:#718096">Cancel</button>
@@ -100,6 +112,58 @@
   </div>
 </div>
 
+<!-- Clan Modal -->
+<div class="rmodal-bg" id="clanModal">
+  <div class="rmodal-box" style="max-width:980px;width:min(96vw,980px)">
+    <h2 style="color:#16a34a;margin-bottom:8px">Clan Hub</h2>
+    <p id="clanStatus" style="color:#4a5568;margin-bottom:12px">Sign in to manage clans.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:left">
+        <h4 style="margin:0 0 8px 0;color:#2d3748">Create Clan</h4>
+        <input id="clanCreateName" placeholder="Clan name" maxlength="24" style="margin-bottom:8px" />
+        <input id="clanCreateTag" placeholder="Tag (2-6)" maxlength="6" style="margin-bottom:8px" />
+        <button id="clanCreateBtn" onclick="createClan()" style="width:auto;background:#16a34a">Create Clan</button>
+        <button id="clanLeaveBtn" onclick="leaveClan()" style="width:auto;background:#dc2626;margin-left:8px">Leave Clan</button>
+      </div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:left">
+        <h4 style="margin:0 0 8px 0;color:#2d3748">Interclan Clash</h4>
+        <select id="clanTargetSelect" style="margin-bottom:8px"><option value="">Select target clan</option></select>
+        <button id="clanChallengeBtn" onclick="createClanChallenge()" style="width:auto;background:#0ea5e9">Challenge Clan</button>
+        <div id="clanChallenges" style="margin-top:10px;max-height:120px;overflow:auto;font-size:13px;color:#475569"></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:left">
+        <h4 style="margin:0 0 8px 0;color:#2d3748">Your Clan</h4>
+        <div id="clanMembers" style="max-height:220px;overflow:auto;font-size:13px;color:#334155">No clan joined.</div>
+        <h4 style="margin:10px 0 8px 0;color:#2d3748">Clan Chat</h4>
+        <div id="clanChatList" style="max-height:160px;overflow:auto;border:1px solid #e2e8f0;background:white;border-radius:8px;padding:8px;font-size:12px"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input id="clanChatInput" placeholder="Type message" maxlength="180" />
+          <button onclick="sendClanMessage()" style="width:auto;background:#16a34a">Send</button>
+        </div>
+      </div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:left">
+        <h4 style="margin:0 0 8px 0;color:#2d3748">Join Clan</h4>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="clanInviteJoinInput" placeholder="Invite code" maxlength="12" />
+          <button id="clanJoinInviteBtn" onclick="joinClanByInvite()" style="width:auto;background:#0284c7">Join by Code</button>
+        </div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:8px">Your clan invite code: <strong id="clanInviteCodeValue">-</strong> <button id="clanRegenInviteBtn" onclick="regenerateClanInviteCode()" style="width:auto;background:#0f766e;padding:4px 8px;font-size:11px">Regenerate</button></div>
+        <div id="clanList" style="max-height:140px;overflow:auto;font-size:13px;color:#334155"></div>
+        <h4 style="margin:10px 0 8px 0;color:#2d3748">Clan Leaderboard (Avg Aura)</h4>
+        <div id="clanLeaderboard" style="max-height:150px;overflow:auto;font-size:13px;color:#334155"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:12px">
+      <button onclick="closeClanModal()" style="width:auto;background:#64748b">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- App Dialog Modal -->
 <div class="rmodal-bg" id="appDialogModal">
   <div class="rmodal-box app-dialog-box">
@@ -111,7 +175,7 @@
 <div class="container">
   <!-- Welcome Section -->
   <div class="section" id="welcome-section" style="text-align:center;max-width:900px;margin:0 auto">
-    <h1 style="font-size:3em;margin:30px 0;color:#667eea">🏏 Hand Cricket</h1>
+    <h1 style="font-size:3em;margin:30px 0;color:#667eea">ðŸ Hand Cricket</h1>
     <p style="font-size:1.3em;color:#666;margin-bottom:40px">The Ultimate Cricket Tournament Simulator</p>
     
     <div id="playerProfilePanel" style="display:none;background:white;padding:18px;border-radius:14px;margin:0 auto 24px auto;max-width:900px;box-shadow:0 6px 18px rgba(0,0,0,.1)">
@@ -138,13 +202,13 @@
     </div>
     
     <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:40px;border-radius:20px;margin:30px 0">
-      <h2 style="color:white;margin-bottom:20px">🎮 Welcome to Hand Cricket!</h2>
+      <h2 style="color:white;margin-bottom:20px">ðŸŽ® Welcome to Hand Cricket!</h2>
       <p style="font-size:1.1em;line-height:1.8">Experience the thrill of international cricket tournaments. Choose your team, compete in multiple formats, and lead your nation to glory!</p>
     </div>
     
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:30px 0;text-align:left">
       <div style="background:#f7fafc;padding:25px;border-radius:15px;border-left:5px solid #48bb78">
-        <h3 style="color:#48bb78;margin-bottom:15px">📋 How to Play</h3>
+        <h3 style="color:#48bb78;margin-bottom:15px">ðŸ“‹ How to Play</h3>
         <ul style="line-height:2;color:#4a5568">
           <li>Choose a number (0-6) to bat</li>
           <li>If you match AI's number = OUT!</li>
@@ -154,7 +218,7 @@
         </ul>
       </div>
       <div style="background:#f7fafc;padding:25px;border-radius:15px;border-left:5px solid #f59e0b">
-        <h3 style="color:#f59e0b;margin-bottom:15px">🏆 Tournament Formats</h3>
+        <h3 style="color:#f59e0b;margin-bottom:15px">ðŸ† Tournament Formats</h3>
         <ul style="line-height:2;color:#4a5568">
           <li><strong>ODI World Cup:</strong> 10 overs</li>
           <li><strong>T20 World Cup:</strong> 4 overs</li>
@@ -165,13 +229,13 @@
     </div>
     
     <div id="historySection" style="background:#edf2f7;padding:30px;border-radius:15px;margin:30px 0">
-      <h3 style="color:#2d3748;margin-bottom:20px">🏅 Your Tournament History</h3>
+      <h3 style="color:#2d3748;margin-bottom:20px">ðŸ… Your Tournament History</h3>
       <div id="historyContent"><p style="font-style:italic;color:#718096">No tournaments won yet. Start playing!</p></div>
     </div>
     
     <div id="authSection" style="background:white;padding:30px;border-radius:15px;margin:30px 0;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
       <div id="signedOutView">
-        <h3 style="color:#2d3748;margin-bottom:15px">☁️ Save Your Progress</h3>
+        <h3 style="color:#2d3748;margin-bottom:15px">â˜ï¸ Save Your Progress</h3>
         <p style="color:#718096;margin-bottom:20px">Sign in with Google to save tournament progress to the cloud and join the global leaderboard!</p>
         <button onclick="signInWithGoogle()" style="background:white;color:#444;padding:12px 30px;border:2px solid #ddd;border-radius:5px;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;gap:10px;box-shadow:0 2px 4px rgba(0,0,0,0.1);width:auto;text-transform:none">
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="G">Sign in with Google
@@ -187,7 +251,7 @@
             </div>
           </div>
           <div style="display:flex;gap:10px">
-            <button onclick="saveProgressToCloud()" style="padding:10px 20px;background:#48bb78;color:white;border:none;border-radius:5px;cursor:pointer;width:auto">💾 Save</button>
+            <button onclick="saveProgressToCloud()" style="padding:10px 20px;background:#48bb78;color:white;border:none;border-radius:5px;cursor:pointer;width:auto">ðŸ’¾ Save</button>
             <button onclick="signOutUser()" style="padding:10px 20px;background:#718096;color:white;border:none;border-radius:5px;cursor:pointer;width:auto">Sign Out</button>
           </div>
         </div>
@@ -195,20 +259,23 @@
       </div>
     </div>
     
-    <button onclick="startHandCricket()" style="padding:20px 60px;font-size:1.5em;border-radius:50px;margin:20px 0;box-shadow:0 10px 30px rgba(102,126,234,0.4)">🎮 Try Hand Cricket</button>
+    <button onclick="startHandCricket()" style="padding:20px 60px;font-size:1.5em;border-radius:50px;margin:20px 0;box-shadow:0 10px 30px rgba(102,126,234,0.4)">ðŸŽ® Try Hand Cricket</button>
     <br>
-    <button id="rankedModeBtn" onclick="openRankedModal()" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);padding:15px 40px;font-size:1.2em;border-radius:50px;margin:10px 0;box-shadow:0 6px 20px rgba(245,158,11,0.4)">Ranked Multiplayer</button>
-    <br>
-    <button id="resumeTournamentBtn" onclick="openResumeModal()" style="display:none;background:linear-gradient(135deg,#48bb78,#38a169);padding:15px 40px;font-size:1.2em;border-radius:50px;margin:10px 0 30px 0;box-shadow:0 6px 20px rgba(72,187,120,0.4)">▶️ Resume Tournament</button>
-    <p style="color:#a0aec0;margin-top:30px">Made with ❤️ for Cricket Fans | Version 3.5</p>
+    <button id="resumeTournamentBtn" onclick="openResumeModal()" style="display:none;background:linear-gradient(135deg,#48bb78,#38a169);padding:15px 40px;font-size:1.2em;border-radius:50px;margin:10px 0 30px 0;box-shadow:0 6px 20px rgba(72,187,120,0.4)">? Resume Tournament</button>
+    <p style="color:#a0aec0;margin-top:30px">Made with â¤ï¸ for Cricket Fans | Version 3.5</p>
   </div>
 
-  <h1 style="display:none" id="main-title">🏏 Hand Cricket - Tournament Edition</h1>
+  <h1 style="display:none" id="main-title">ðŸ Hand Cricket - Tournament Edition</h1>
   
   <!-- Celebration Overlays -->
   <div id="celebrationOverlay"><span id="celebrationText"></span></div>
+  <div id="flagWinBackdrop"></div>
+  <div id="matchOutcomeAnim"></div>
+  <div id="rankGainAnim"></div>
+  <div id="auraBurstAnim"></div>
+  <div id="coinBankAnim"></div>
   <div id="trophyAnimation" class="trophy-animation">
-    <div class="trophy">🏆</div>
+    <div class="trophy">ðŸ†</div>
     <h1 style="color:white;margin-top:20px" id="trophyText">CHAMPION!</h1>
     <button onclick="closeTrophy()" style="margin-top:30px;padding:15px 40px">Continue</button>
   </div>
@@ -216,8 +283,8 @@
   <!-- Setup Section -->
   <div class="section" id="setup-section" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-      <h2>⚙️ Setup Match</h2>
-      <button onclick="returnToHome()" style="width:auto;padding:8px 18px;background:#718096;font-size:13px">🏠 Home</button>
+      <h2>âš™ï¸ Setup Match</h2>
+      <button onclick="returnToHome()" style="width:auto;padding:8px 18px;background:#718096;font-size:13px">ðŸ  Home</button>
     </div>
     
     <h3>Select Mode</h3>
@@ -227,8 +294,7 @@
       <option value="odi">ODI (10 overs)</option>
       <option value="test">Test (25 overs/day, 5 days)</option>
       <option value="rct">RCT (15 overs)</option>
-      <option value="ipl">IPL (5 overs)</option>
-      <option value="tournament">🏆 Tournament Mode</option>
+<option value="tournament">ðŸ† Tournament Mode</option>
     </select>
     
     <div id="customMatchSetup">
@@ -236,6 +302,10 @@
       <select id="predefinedTeams" onchange="handleTeamSelection()">
         <option value="">--Select Team--</option>
       </select>
+      <div id="teamFlagPreviewRow" style="display:flex;gap:12px;justify-content:center;align-items:center;margin:10px 0;flex-wrap:wrap">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px">User Team: <span id="userTeamFlagPreview">-</span></div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px">Opp Team: <span id="oppTeamFlagPreview">-</span></div>
+      </div>
       <h3>Team Names</h3>
       <div class="team-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px">
         <input id="team1" placeholder="Your Team Name" maxlength="50"/>
@@ -246,11 +316,22 @@
       <h3>Players (comma-separated)</h3>
       <textarea id="team1Players" rows="3" placeholder="Your players" maxlength="2000"></textarea>
       <textarea id="team2Players" rows="3" placeholder="Computer players" maxlength="2000"></textarea>
-      <button onclick="startGame()">🎮 Start Match</button>
+      <button id="openPlayerDraftBtn" type="button" onclick="togglePlayerDraftPanel()" style="background:linear-gradient(135deg,#0ea5e9,#2563eb)">Select XI from 22 (User Team)</button>
+      <div id="playerDraftPanel" style="display:none;text-align:left;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin:10px 0">
+        <p style="font-size:13px;color:#475569;margin-bottom:8px">Pick exactly <strong>11</strong> players from squad of <strong>22</strong>.</p>
+        <div id="playerDraftCount" style="font-size:12px;color:#64748b;margin-bottom:8px">Selected: 0/11</div>
+        <div id="playerDraftList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;max-height:220px;overflow:auto"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" onclick="autoPickPlayingXI()" style="width:auto;background:#16a34a">Auto Pick XI</button>
+          <button type="button" onclick="applySelectedXI()" style="width:auto;background:#2563eb">Apply XI</button>
+        </div>
+      </div>
+
+      <button onclick="startGame()">ðŸŽ® Start Match</button>
     </div>
     
     <div id="tournamentSetup" style="display:none">
-      <h3>🏆 Select Tournament Format</h3>
+      <h3>ðŸ† Select Tournament Format</h3>
       <select id="tournamentFormat" onchange="handleTournamentFormatChange()" style="margin:15px 0">
         <option value="">--Select Format--</option>
         <option value="odiWorldCup">ODI World Cup (10 overs)</option>
@@ -262,7 +343,7 @@
         <p id="formatDescription" style="margin:15px 0;color:#666"></p>
         <h4>Your Team</h4>
         <select id="userTournamentTeam"><option value="">--Select Your Team--</option></select>
-        <button onclick="startTournament()">🚀 Start Tournament</button>
+        <button onclick="startTournament()">ðŸš€ Start Tournament</button>
       </div>
     </div>
   </div>
@@ -270,18 +351,18 @@
   <!-- Tournament Section -->
   <div class="section" id="tournament-section" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px">
-      <h2 id="tournamentTitle">🏆 ODI World Cup</h2>
-      <button onclick="returnToHome()" style="width:auto;padding:8px 18px;background:#718096;font-size:13px">🏠 Home</button>
+      <h2 id="tournamentTitle">ðŸ† ODI World Cup</h2>
+      <button onclick="returnToHome()" style="width:auto;padding:8px 18px;background:#718096;font-size:13px">ðŸ  Home</button>
     </div>
     <div class="tournament-nav" id="tournamentNav">
       <button onclick="showTournamentStage('challengeLeague')">Challenge League</button>
       <button onclick="showTournamentStage('super6')">Super 6</button>
       <button onclick="showTournamentStage('qualifier')">Qualifier</button>
       <button onclick="showTournamentStage('worldCup')">World Cup</button>
-      <button onclick="showStatsCorner()" style="background:#f59e0b">📊 Stats</button>
+      <button onclick="showStatsCorner()" style="background:#f59e0b">ðŸ“Š Stats</button>
     </div>
     <div id="statsCornerBtn" style="display:none;margin:10px 0">
-      <button onclick="showStatsCorner()" style="width:100%;padding:12px;background:#f59e0b">📊 Stats Corner</button>
+      <button onclick="showStatsCorner()" style="width:100%;padding:12px;background:#f59e0b">ðŸ“Š Stats Corner</button>
     </div>
     <div id="tournamentContent"></div>
   </div>
@@ -291,8 +372,8 @@
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
       <h2 id="matchTitle">Match</h2>
       <div style="display:flex;gap:8px">
-        <button id="pauseMatchBtn" style="display:none;background:#f59e0b;width:auto;padding:8px 16px;font-size:13px" onclick="pauseMatch()">⏸️ Pause</button>
-        <button onclick="returnToHome()" style="width:auto;padding:8px 16px;background:#718096;font-size:13px">🏠 Home</button>
+        <button id="pauseMatchBtn" style="display:none;background:#f59e0b;width:auto;padding:8px 16px;font-size:13px" onclick="pauseMatch()">â¸ï¸ Pause</button>
+        <button onclick="returnToHome()" style="width:auto;padding:8px 16px;background:#718096;font-size:13px">ðŸ  Home</button>
       </div>
     </div>
     
@@ -318,8 +399,8 @@
       <button onclick="playBall(6)">6</button>
     </div>
     
-    <button id="continueDayBtn" style="display:none" onclick="continueNextDay()">▶️ Continue Next Day</button>
-    <button id="declareBtn" style="display:none;background:linear-gradient(135deg,#e53e3e,#c53030);color:white;border:none;padding:10px 28px;border-radius:50px;font-weight:700;font-size:14px;cursor:pointer;margin:6px 4px;box-shadow:0 4px 12px rgba(229,62,62,.4)" onclick="declareBattingInnings()">🏳️ Declare</button>
+    <button id="continueDayBtn" style="display:none" onclick="continueNextDay()">â–¶ï¸ Continue Next Day</button>
+    <button id="declareBtn" style="display:none;background:linear-gradient(135deg,#e53e3e,#c53030);color:white;border:none;padding:10px 28px;border-radius:50px;font-weight:700;font-size:14px;cursor:pointer;margin:6px 4px;box-shadow:0 4px 12px rgba(229,62,62,.4)" onclick="declareBattingInnings()">ðŸ³ï¸ Declare</button>
     
     <div id="ballLog"></div>
     <div id="bowlerStats"></div>
@@ -332,9 +413,22 @@
 <script src="core engine.js"></script>
 <script src="Game-state.js"></script>
 <script src="tournament.js"></script>
+<script src="clan.js"></script>
 <script src="Debug.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
