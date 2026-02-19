@@ -276,7 +276,7 @@ function closeResumeModal() {
 function resumeTournamentSlot(slotId) {
   const slot = DataManager.loadTournamentSlot(slotId);
   if (!slot) {
-    alert('Tournament not found!');
+    uiAlert('Tournament not found!', 'Resume Tournament');
     return;
   }
   
@@ -324,7 +324,7 @@ function resumeTournamentSlot(slotId) {
 // ============================================================================
 function signInWithGoogle() {
   if (!firebaseInitialized || !auth) {
-    alert('Firebase not initialized. Using local storage only.');
+    uiAlert('Firebase not initialized. Using local storage only.', 'Cloud Sync');
     return;
   }
   
@@ -338,7 +338,7 @@ function signInWithGoogle() {
     })
     .catch(error => {
       console.error('Sign in error:', error);
-      alert('Sign in failed: ' + error.message);
+      uiAlert('Sign in failed: ' + error.message, 'Sign In Error');
     });
 }
 
@@ -381,7 +381,7 @@ function updateAuthUI() {
 
 function saveProgressToCloud() {
   if (!firebaseInitialized || !db || !currentUser) {
-    alert('Please sign in first!');
+    uiAlert('Please sign in first!', 'Sign In Required');
     return;
   }
   
@@ -406,7 +406,7 @@ function saveProgressToCloud() {
     })
     .catch(error => {
       console.error('Cloud save error:', error);
-      alert('Failed to save: ' + error.message);
+      uiAlert('Failed to save: ' + error.message, 'Save Error');
     });
 }
 
@@ -459,7 +459,7 @@ function loadProgressFromCloud() {
 // ============================================================================
 function downloadPDF() {
   if (typeof jspdf === 'undefined' || !jspdf.jsPDF) {
-    alert('PDF library not loaded!');
+    uiAlert('PDF library not loaded!', 'PDF Error');
     return;
   }
   
@@ -561,3 +561,4 @@ window.downloadPDF = downloadPDF;
 window.getMatchHistory = openHistoryModal;
 
 console.log('✅ Part 4 loaded: UI functions & Firebase integration complete');
+
