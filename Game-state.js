@@ -399,10 +399,19 @@ function updateUI(){
     bs+='No bowler selected.';
   }
   Utils.setText('bowlerStats',bs);
-  
-  const cb=GameState.totalMatchBalls;
-  const cd=Math.floor(cb/(GameState.dayOvers*GameState.ballsPerOver))+1;
-  Utils.setText('dayOversDisplay','Day '+cd+' | Over '+Math.floor(cb/GameState.ballsPerOver)+'.'+cb%GameState.ballsPerOver);
+
+  const dayEl=Utils.getElement('dayOversDisplay');
+  if(dayEl){
+    if(GameState.matchMode==='test'){
+      const cb=GameState.totalMatchBalls;
+      const cd=Math.floor(cb/(GameState.dayOvers*GameState.ballsPerOver))+1;
+      dayEl.style.display='block';
+      dayEl.textContent='Day '+cd+' | Over '+Math.floor(cb/GameState.ballsPerOver)+'.'+cb%GameState.ballsPerOver;
+    } else {
+      dayEl.style.display='none';
+      dayEl.textContent='Over '+oc+'.'+bi;
+    }
+  }
   
   const declBtn=Utils.getElement('declareBtn');
   if(declBtn){
@@ -716,3 +725,42 @@ function declareBattingInnings(){
 }
 
 console.log('✅ Part 2 FIXED loaded: Game logic initialized with bowling milestone counters');
+
+
+
+// LIVE_TOURNAMENT_AUTOSNAPSHOT_V1
+function _snapshotLiveTournamentMatch() {
+  if (!GameState.isTournament || !GameState.currentMatch) return;
+  try {
+    const gsSnapshot = JSON.parse(JSON.stringify(GameState));
+    gsSnapshot.currentMatch = null;
+    const pausedState = {
+      gameState: gsSnapshot,
+      logContent: document.getElementById('log')?.innerHTML || '',
+      ballLogContent: document.getElementById('ballLog')?.textContent || '',
+      bowlerStatsContent: document.getElementById('bowlerStats')?.textContent || ''
+    };
+    GameState.currentMatch.pausedState = pausedState;
+    if (typeof saveTournamentNow === 'function') saveTournamentNow();
+  } catch (e) {
+    console.error('live snapshot error:', e);
+  }
+}
+
+const _playBallOriginal = playBall;
+playBall = function(userRun) {
+  _playBallOriginal(userRun);
+  _snapshotLiveTournamentMatch();
+};
+
+const _continueNextDayOriginal = continueNextDay;
+continueNextDay = function() {
+  _continueNextDayOriginal();
+  _snapshotLiveTournamentMatch();
+};
+
+const _declareBattingInningsOriginal = declareBattingInnings;
+declareBattingInnings = function() {
+  _declareBattingInningsOriginal();
+  _snapshotLiveTournamentMatch();
+};
