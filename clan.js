@@ -141,7 +141,7 @@ function _renderClanMembers(clan, members){
         const color = muted ? '#0284c7' : '#b91c1c';
         controls = `<button onclick="toggleClanMute('${_clanEsc(uid)}')" style="width:auto;padding:4px 8px;background:${color};font-size:11px">${label}</button>`;
       }
-      return `<div style="padding:4px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;gap:6px"><span>${_clanEsc(m.name || 'Player')} (${role})${muted?' <em style="color:#b91c1c">[muted]</em>':''}</span><span style="display:flex;align-items:center;gap:6px"><span>Aura ${Number(m.aura||0)}</span>${controls}</span></div>`;
+      return `<div style="padding:4px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;gap:6px"><span><strong style="color:#7c3aed">[${_clanEsc(clan.tag || clan.name || 'CLAN')}]</strong> ${_clanEsc(m.name || 'Player')} (${role})${muted?' <em style="color:#b91c1c">[muted]</em>':''}</span><span style="display:flex;align-items:center;gap:6px"><span>Aura ${Number(m.aura||0)}</span>${controls}</span></div>`;
     }).join('');
   }
   box.innerHTML = html;
@@ -354,8 +354,8 @@ async function createClan(){
   const rawTag = Security.sanitizeInput((document.getElementById('clanCreateTag') || {}).value || '');
   const tag = String(rawTag).toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-  if (name.length < 3 || name.length > 24) {
-    await uiAlert('Clan name must be 3 to 24 characters.', 'Clan');
+  if (name.length < 3 || name.length > 8) {
+    await uiAlert('Clan name must be 3 to 8 characters.', 'Clan');
     return;
   }
   if (tag.length < 2 || tag.length > 6) {
@@ -367,7 +367,7 @@ async function createClan(){
     const userRef = _clanUserRef();
     const clanRef = db.collection('hc_clans').doc();
     const aura = _clanMyAura();
-    const userName = currentUser.displayName || 'Player';
+    const userName = (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player'));
     const inviteCode = _genInviteCode();
 
     await db.runTransaction(async tx => {
@@ -432,7 +432,7 @@ async function joinClanById(clanId){
   try {
     const userRef = _clanUserRef();
     const ref = _clanRef(clanId);
-    const userName = currentUser.displayName || 'Player';
+    const userName = (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player'));
     const aura = _clanMyAura();
 
     await db.runTransaction(async tx => {
@@ -589,7 +589,7 @@ async function sendClanMessage(){
   try {
     await _clanRef(myClanId).collection('chat').add({
       uid: currentUser.uid,
-      name: currentUser.displayName || 'Player',
+      name: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
       message,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       createdAtMs: Date.now()
@@ -623,7 +623,7 @@ async function reportClanMessage(messageId){
       clanId: myClanId,
       messageId,
       reporterUid: currentUser.uid,
-      reporterName: currentUser.displayName || 'Player',
+      reporterName: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       createdAtMs: Date.now()
     });
@@ -913,7 +913,7 @@ async function _submitJoinRequest(clanId, clanName){
     clanId,
     clanName: clanName || 'Clan',
     uid: currentUser.uid,
-    name: currentUser.displayName || 'Player',
+    name: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
     aura: _clanMyAura(),
     status: 'pending',
     createdAtMs: Date.now(),
@@ -1801,4 +1801,271 @@ window.leaveClanWarQueue = leaveClanWarQueue;
 
 
 window.leaveClan = leaveClan;
+
+
+
+
+// CLAN_WAR_ROSTER_V1
+let clanWarSquadSelectedUids = [];
+let clanWarMemberCache = [];
+
+function _renderClanSquadPicker(clan, members){
+  const box = document.getElementById('clanSquadPicker');
+  if (!box) return;
+  if (!clan || !Array.isArray(members) || !members.length) {
+    box.innerHTML = '<div style="font-size:12px;color:#64748b">Choose 5 players for clan clash after joining a clan.</div>';
+    return;
+  }
+  const valid = new Set(members.map(m => String(m.uid||'')));
+  clanWarSquadSelectedUids = clanWarSquadSelectedUids.filter(uid => valid.has(uid));
+  clanWarMemberCache = members.map(m => ({ uid:String(m.uid||''), name:String(m.name||'Player') }));
+
+  const canEdit = _isClanAdminRole(myClanRole);
+  const chips = members.map(m => {
+    const uid = String(m.uid||'');
+    const checked = clanWarSquadSelectedUids.includes(uid) ? 'checked' : '';
+    const disabled = canEdit ? '' : 'disabled';
+    return `<label style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:999px;font-size:12px"><input type="checkbox" ${checked} ${disabled} onchange="toggleClanSquadMember('${_clanEsc(uid)}', this.checked)" />${_clanEsc(m.name||'Player')}</label>`;
+  }).join('');
+
+  box.innerHTML = `<div style="font-size:12px;color:#334155;margin-bottom:6px">Select exactly <strong>5</strong> players for clan clash squad.</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div><div id="clanSquadCount" style="margin-top:6px;font-size:12px;color:#64748b">Selected: ${clanWarSquadSelectedUids.length}/5</div>`;
+}
+
+function toggleClanSquadMember(uid, checked){
+  uid = String(uid||'');
+  if (!uid) return;
+  if (checked) {
+    if (clanWarSquadSelectedUids.includes(uid)) return;
+    if (clanWarSquadSelectedUids.length >= 5) {
+      showToast('Select only 5 clan players.', '#e53e3e');
+      _renderClanSquadPicker({ tag: myClanName||'CLAN' }, clanWarMemberCache);
+      return;
+    }
+    clanWarSquadSelectedUids.push(uid);
+  } else {
+    clanWarSquadSelectedUids = clanWarSquadSelectedUids.filter(x => x !== uid);
+  }
+  const c = document.getElementById('clanSquadCount');
+  if (c) c.textContent = `Selected: ${clanWarSquadSelectedUids.length}/5`;
+}
+
+function _getSelectedClanWarSquad(){
+  const map = new Map(clanWarMemberCache.map(m => [String(m.uid), m]));
+  const out = clanWarSquadSelectedUids.map(uid => map.get(String(uid))).filter(Boolean).slice(0, 5);
+  return out;
+}
+
+const _baseRenderClanMembersRoster = _renderClanMembers;
+_renderClanMembers = function(clan, members){
+  _baseRenderClanMembersRoster(clan, members);
+  _renderClanSquadPicker(clan, members || []);
+};
+
+createClanChallenge = async function(){
+  if (!_clanSignedIn() || !myClanId) {
+    await uiAlert('Join a clan first.', 'Clan Clash');
+    return;
+  }
+  if (!_isClanAdminRole(myClanRole)) {
+    await uiAlert('Only clan leader/co-leader can start clan clashes.', 'Clan Clash');
+    return;
+  }
+
+  const squad = _getSelectedClanWarSquad();
+  if (squad.length !== 5) {
+    await uiAlert('Select exactly 5 clan players before creating clash.', 'Clan Clash');
+    return;
+  }
+
+  const target = document.getElementById('clanTargetSelect');
+  const toClanId = target ? target.value : '';
+  const modeEl = document.getElementById('clanClashMode');
+  const oversEl = document.getElementById('clanClashOvers');
+  const clashMode = String((modeEl && modeEl.value) || 't20i');
+  let clashOvers = Number((oversEl && oversEl.value) || _clashModeDefaults(clashMode));
+  if (!Number.isFinite(clashOvers) || clashOvers < 1) clashOvers = _clashModeDefaults(clashMode);
+
+  if (!toClanId || toClanId === myClanId) {
+    await uiAlert('Select a valid target clan.', 'Clan Clash');
+    return;
+  }
+
+  try {
+    const toSnap = await _clanRef(toClanId).get();
+    if (!toSnap.exists) {
+      await uiAlert('Target clan not found.', 'Clan Clash');
+      return;
+    }
+    const toClan = toSnap.data() || {};
+
+    await db.collection('hc_clanClashes').add({
+      fromClanId: myClanId,
+      fromClanName: myClanName || 'Clan',
+      toClanId,
+      toClanName: toClan.name || 'Clan',
+      participants: [myClanId, toClanId],
+      initiatorUid: currentUser.uid,
+      initiatorName: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
+      mode: clashMode,
+      overs: clashOvers,
+      fromSquad: squad,
+      fromStriker: squad[0] || null,
+      fromNonStriker: squad[1] || null,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAtMs: Date.now()
+    });
+
+    showToast(`Clan clash request sent (${clashMode.toUpperCase()} ${clashOvers}ov).`, '#0ea5e9');
+  } catch(e){
+    console.error('create clan clash error:', e);
+    await uiAlert('Could not create clan clash.', 'Clan Clash');
+  }
+};
+
+async function _ensureClanClashLiveRoom(clashId){
+  const ref = db.collection('hc_clanClashes').doc(clashId);
+  let roomId = null;
+  await db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const c = snap.data() || {};
+    if (c.roomId) { roomId = c.roomId; return; }
+    if (c.status !== 'accepted' && c.status !== 'live') return;
+
+    const fromSquad = Array.isArray(c.fromSquad) ? c.fromSquad : [];
+    const toSquad = Array.isArray(c.toSquad) ? c.toSquad : [];
+    if (fromSquad.length !== 5 || toSquad.length !== 5) return;
+
+    const roomRef = db.collection('hc_rankedRooms').doc();
+    const p1 = { uid: c.initiatorUid, name: c.initiatorName || c.fromClanName || 'Clan A', rankTier: 'Clan', rankPoints: 0 };
+    const p2 = { uid: c.respondedByUid, name: c.respondedByName || c.toClanName || 'Clan B', rankTier: 'Clan', rankPoints: 0 };
+
+    tx.set(roomRef, {
+      type: 'clan_clash',
+      sourceClashId: clashId,
+      status: 'waiting_start',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAtMs: Date.now(),
+      overs: Number(c.overs || 4),
+      mode: c.mode || 't20i',
+      readyMap: {},
+      playerUids: [p1.uid, p2.uid],
+      players: [p1, p2]
+    }, { merge: true });
+
+    roomId = roomRef.id;
+    tx.set(ref, {
+      status: 'live',
+      roomId,
+      autoResolveAtMs: Date.now() + 600000,
+      updatedAtMs: Date.now()
+    }, { merge: true });
+  });
+  return roomId;
+}
+
+const _baseRespondClanChallengeRoster = respondClanChallenge;
+respondClanChallenge = async function(clashId, status){
+  if (status === 'accepted') {
+    const squad = _getSelectedClanWarSquad();
+    if (squad.length !== 5) {
+      await uiAlert('Select exactly 5 clan players before accepting clash.', 'Clan Clash');
+      return;
+    }
+    await _baseRespondClanChallengeRoster(clashId, status);
+    await db.collection('hc_clanClashes').doc(clashId).set({
+      toSquad: squad,
+      toStriker: squad[0] || null,
+      toNonStriker: squad[1] || null,
+      respondedByName: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player'))
+    }, { merge: true });
+    await _ensureClanClashLiveRoom(clashId);
+    return;
+  }
+  await _baseRespondClanChallengeRoster(clashId, status);
+};
+
+async function joinClanClashRoom(clashId){
+  if (!_clanSignedIn() || !clashId) return;
+  const snap = await db.collection('hc_clanClashes').doc(clashId).get();
+  if (!snap.exists) return;
+  const c = snap.data() || {};
+  if (!c.roomId) {
+    await uiAlert('Live room not ready yet.', 'Clan Clash');
+    return;
+  }
+  if (typeof openLiveRoomById === 'function') openLiveRoomById(c.roomId, 'Clan Clash');
+}
+
+const _baseSettleClanClashRoster = _settleClanClash;
+_settleClanClash = async function(ref, c, winnerClanId, mode){
+  await _baseSettleClanClashRoster(ref, c, winnerClanId, mode);
+  try {
+    if (!currentUser || !currentUser.uid) return;
+    const myUid = currentUser.uid;
+    const inFrom = Array.isArray(c.fromSquad) && c.fromSquad.some(x => String(x.uid||'') === myUid);
+    const inTo = Array.isArray(c.toSquad) && c.toSquad.some(x => String(x.uid||'') === myUid);
+    if (!inFrom && !inTo) return;
+
+    const won = (winnerClanId === c.fromClanId && inFrom) || (winnerClanId === c.toClanId && inTo);
+    const p = DataManager.getPlayerProfile();
+    const deltaRp = won ? 26 : -12;
+    const deltaAura = won ? 14 : -4;
+    p.rankPoints = Math.max(0, Number(p.rankPoints||0) + deltaRp);
+    p.aura = Math.max(0, Number(p.aura||0) + deltaAura);
+    p.rankTier = (typeof DataManager._resolveRankTier==='function') ? DataManager._resolveRankTier(p.rankPoints) : p.rankTier;
+    p.lastUpdated = new Date().toISOString();
+    DataManager.savePlayerProfile(p);
+    if (typeof updatePlayerProfileUI === 'function') updatePlayerProfileUI();
+    if (firebaseInitialized && db && currentUser) {
+      db.collection('handCricketProgress').doc(currentUser.uid).set({
+        playerProfile: p,
+        rankPoints: p.rankPoints,
+        aura: p.aura,
+        rankTier: p.rankTier,
+        userName: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
+        displayName: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
+        googleEmail: (currentUser.email||'').toLowerCase(),
+        lastSync: new Date().toISOString(),
+        dataVersion: (typeof APP_VERSION!=='undefined'?APP_VERSION:'3.5')
+      }, { merge: true }).catch(()=>{});
+    }
+    showToast(`Clan clash result: ${deltaRp>=0?'+':''}${deltaRp} RP, ${deltaAura>=0?'+':''}${deltaAura} Aura`, won ? '#16a34a' : '#dc2626');
+  } catch(e){
+    console.error('clan roster settlement profile update error:', e);
+  }
+};
+
+window.toggleClanSquadMember = toggleClanSquadMember;
+window.joinClanClashRoom = joinClanClashRoom;
+
+const _baseRenderClashesRosterUi = _renderClashes;
+_renderClashes = function(items){
+  const activeBox = document.getElementById('clanChallenges');
+  if (!activeBox) { _baseRenderClashesRosterUi(items); return; }
+  const sorted = [...(items||[])].sort((a,b)=>Number(b.createdAtMs||0)-Number(a.createdAtMs||0));
+  const active = sorted.filter(c => ['pending','accepted','live'].includes(c.status));
+  if (!active.length) {
+    activeBox.innerHTML = '<p style="margin:0;color:#64748b">No active clan clashes.</p>';
+    return;
+  }
+  activeBox.innerHTML = active.map(c => {
+    const status = c.status || 'pending';
+    const mineAsTarget = c.toClanId === myClanId;
+    const mineAsSource = c.fromClanId === myClanId;
+    const modeText = `${String(c.mode || 't20i').toUpperCase()} ${Number(c.overs||0)}ov`;
+    const fromXI = Array.isArray(c.fromSquad) ? c.fromSquad.map(x=>_clanEsc(x.name||'P')).join(', ') : '-';
+    const toXI = Array.isArray(c.toSquad) ? c.toSquad.map(x=>_clanEsc(x.name||'P')).join(', ') : '-';
+    let actions = '';
+    if (status === 'pending' && mineAsTarget && _isClanAdminRole(myClanRole)) {
+      actions = `<button onclick="respondClanChallenge('${_clanEsc(c.id)}','accepted')" style="width:auto;padding:5px 9px;background:#16a34a">Accept</button> <button onclick="respondClanChallenge('${_clanEsc(c.id)}','rejected')" style="width:auto;padding:5px 9px;background:#dc2626">Reject</button>`;
+    } else if ((status === 'accepted' || status === 'live') && _isClanAdminRole(myClanRole) && (mineAsTarget || mineAsSource)) {
+      const otherId = mineAsTarget ? c.fromClanId : c.toClanId;
+      actions = `<button onclick="finishClanChallenge('${_clanEsc(c.id)}','${_clanEsc(myClanId)}')" style="width:auto;padding:5px 9px;background:#0ea5e9">Mark Win</button> <button onclick="finishClanChallenge('${_clanEsc(c.id)}','${_clanEsc(otherId)}')" style="width:auto;padding:5px 9px;background:#64748b">Mark Lose</button>`;
+      if (c.roomId) actions += ` <button onclick="joinClanClashRoom('${_clanEsc(c.id)}')" style="width:auto;padding:5px 9px;background:#16a34a">Play Clash</button>`;
+    }
+    return `<div style="padding:8px 0;border-bottom:1px solid #e2e8f0"><div><strong>${_clanEsc(c.fromClanName||'Clan')}</strong> vs <strong>${_clanEsc(c.toClanName||'Clan')}</strong> | <strong>${_clanEsc(status)}</strong> | ${_clanEsc(modeText)}</div><div style="font-size:11px;color:#475569;margin-top:4px">${_clanEsc(c.fromClanName||'A')} XI: ${fromXI}<br>${_clanEsc(c.toClanName||'B')} XI: ${toXI}</div><div style="margin-top:6px">${actions}</div></div>`;
+  }).join('');
+};
 
