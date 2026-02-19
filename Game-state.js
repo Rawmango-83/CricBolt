@@ -355,7 +355,7 @@ function handleBowlerSelection(){
   const idx=Security.validateNumber(v,0,10,null);
   if(idx===null)return;
   if(idx===GameState.lastBowler){
-    alert('Same bowler cannot bowl consecutive overs.');
+    uiAlert('Same bowler cannot bowl consecutive overs.', 'Invalid Bowler');
     Utils.getElement('bowlerSelect').value='';
     return;
   }
@@ -420,11 +420,11 @@ function updateUI(){
 // ============================================================================
 function playBall(userRun){
   if(GameState.currentBowler===null){
-    alert('Select a bowler first.');
+    uiAlert('Select a bowler first.', 'Bowler Required');
     return;
   }
   if(Utils.getElement('continueDayBtn').style.display!=='none'){
-    alert('Day ended. Click Continue Next Day.');
+    uiAlert('Day ended. Click Continue Next Day.', 'Day Ended');
     return;
   }
   
