@@ -301,23 +301,40 @@ function renderLeaderboard(container) {
 
   if (currentUser) publishLeaderboardProfileToCloud();
 
-  db.collection('handCricketProgress').limit(200).get()
+  db.collection('handCricketProgress').limit(300).get()
     .then(snap => {
-      const rows = snap.docs.map(d => {
+      const byIdentity = new Map();
+      snap.docs.forEach(d => {
         const data = d.data() || {};
         const profile = data.playerProfile || {};
-        return {
+        const row = {
           uid: d.id,
-          name: data.displayName || data.userName || 'Player',
+          email: _normalizedEmail(data.googleEmail || data.email || data.userEmail),
+          name: data.userName || data.displayName || 'Player',
           rankPoints: Number(data.rankPoints != null ? data.rankPoints : (profile.rankPoints || 0)),
           aura: Number(data.aura != null ? data.aura : (profile.aura || 0)),
           rankTier: data.rankTier || profile.rankTier || 'Bronze',
-          matches: Number(data.totalMatches != null ? data.totalMatches : (profile.rankedMatches || 0))
+          matches: Number(data.totalMatches != null ? data.totalMatches : (profile.rankedMatches || 0)),
+          lastSyncMs: Date.parse(data.lastSync || '') || Number(data.updatedAtMs || 0) || 0
         };
-      }).sort((a, b) => {
+        const key = row.email || row.uid;
+        const prev = byIdentity.get(key);
+        if (!prev) {
+          byIdentity.set(key, row);
+          return;
+        }
+        const better = (row.rankPoints > prev.rankPoints)
+          || (row.rankPoints === prev.rankPoints && row.aura > prev.aura)
+          || (row.rankPoints === prev.rankPoints && row.aura === prev.aura && row.matches > prev.matches)
+          || (row.rankPoints === prev.rankPoints && row.aura === prev.aura && row.matches === prev.matches && row.lastSyncMs > prev.lastSyncMs);
+        if (better) byIdentity.set(key, row);
+      });
+
+      const rows = Array.from(byIdentity.values()).sort((a, b) => {
         if (b.rankPoints !== a.rankPoints) return b.rankPoints - a.rankPoints;
         if (b.aura !== a.aura) return b.aura - a.aura;
-        return b.matches - a.matches;
+        if (b.matches !== a.matches) return b.matches - a.matches;
+        return b.lastSyncMs - a.lastSyncMs;
       }).slice(0, 100);
 
       if (!rows.length) {
@@ -332,7 +349,7 @@ function renderLeaderboard(container) {
       let html = '<div style="display:grid;gap:8px">';
       rows.forEach((r, idx) => {
         const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-        const mine = !!(currentUser && currentUser.uid === r.uid);
+        const mine = !!(currentUser && (currentUser.uid === r.uid || _normalizedEmail(currentUser.email || '') === _normalizedEmail(r.email || '')));
         html += `
           <div style="display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid ${mine ? '#60a5fa' : '#e2e8f0'};background:${mine ? '#eff6ff' : '#f8fafc'}">
             <div style="font-weight:800;color:${idx < 3 ? '#b45309' : '#475569'}">${medal}</div>
@@ -493,6 +510,83 @@ function signOutUser() {
     });
 }
 
+
+function _normalizedEmail(v){
+  return String(v || '').trim().toLowerCase();
+}
+
+function _usernameKey(name){
+  return String(name || '').trim().toLowerCase();
+}
+
+function getPublicUserName(){
+  const local = String(localStorage.getItem('hc_username') || '').trim();
+  if (local) return local;
+  if (currentUser && currentUser.displayName) return String(currentUser.displayName).trim();
+  return 'Player';
+}
+
+async function saveUsername(){
+  if (!(firebaseInitialized && db && currentUser)) {
+    await uiAlert('Sign in first to set username.', 'Username');
+    return;
+  }
+  const input = document.getElementById('usernameInput');
+  const raw = Security.sanitizeInput((input && input.value) || '').trim();
+  if (!/^[A-Za-z0-9_]{3,16}$/.test(raw)) {
+    await uiAlert('Username must be 3-16 chars: letters, numbers, underscore only.', 'Username');
+    return;
+  }
+
+  const nameKey = _usernameKey(raw);
+  const mapRef = db.collection('hc_usernames').doc(nameKey);
+  const meRef = db.collection('handCricketProgress').doc(currentUser.uid);
+
+  try {
+    await db.runTransaction(async tx => {
+      const [mapSnap, meSnap] = await Promise.all([tx.get(mapRef), tx.get(meRef)]);
+      const owner = mapSnap.exists ? (mapSnap.data() || {}) : null;
+      if (owner && owner.uid && owner.uid !== currentUser.uid) throw new Error('username-taken');
+
+      const mine = meSnap.exists ? (meSnap.data() || {}) : {};
+      const prev = _usernameKey(mine.userName || '');
+
+      tx.set(mapRef, {
+        uid: currentUser.uid,
+        userName: raw,
+        updatedAtMs: Date.now()
+      }, { merge: true });
+
+      if (prev && prev !== nameKey) {
+        const prevRef = db.collection('hc_usernames').doc(prev);
+        const prevSnap = await tx.get(prevRef);
+        const prevOwner = prevSnap.exists ? (prevSnap.data() || {}) : null;
+        if (prevOwner && prevOwner.uid === currentUser.uid) tx.delete(prevRef);
+      }
+
+      tx.set(meRef, {
+        userName: raw,
+        displayName: raw,
+        googleEmail: _normalizedEmail(currentUser.email || ''),
+        userId: currentUser.uid,
+        updatedAtMs: Date.now()
+      }, { merge: true });
+    });
+
+    localStorage.setItem('hc_username', raw);
+    const nameEl = document.getElementById('userName');
+    if (nameEl) nameEl.textContent = raw;
+    showToast('Username updated.', '#16a34a');
+    publishLeaderboardProfileToCloud();
+  } catch (e) {
+    if (String(e && e.message) === 'username-taken') {
+      await uiAlert('That username is already taken. Try another one.', 'Username');
+      return;
+    }
+    console.error('save username error:', e);
+    await uiAlert('Could not save username right now.', 'Username');
+  }
+}
 function updateAuthUI() {
   const signedIn = document.getElementById('signedInView');
   const signedOut = document.getElementById('signedOutView');
@@ -508,7 +602,10 @@ function updateAuthUI() {
     const emailEl = document.getElementById('userEmail');
 
     if (photoEl) photoEl.src = currentUser.photoURL || 'https://via.placeholder.com/50';
-    if (nameEl) nameEl.textContent = currentUser.displayName || 'User';
+    const chosenName = getPublicUserName();
+    if (nameEl) nameEl.textContent = chosenName || 'User';
+    const usernameInput = document.getElementById('usernameInput');
+    if (usernameInput) usernameInput.value = chosenName || ''; 
     if (emailEl) emailEl.textContent = currentUser.email || '';
 
     publishLeaderboardProfileToCloud();
@@ -525,6 +622,9 @@ function saveProgressToCloud() {
   
   const data = {
     userId: currentUser.uid,
+    userName: getPublicUserName(),
+    displayName: getPublicUserName(),
+    googleEmail: _normalizedEmail(currentUser.email || ''),
     tournaments: DataManager.getTournaments(),
     matchHistory: DataManager.getMatchHistory(),
     careerStats: DataManager.getCareerStats(),
@@ -564,6 +664,7 @@ function loadProgressFromCloud() {
       }
       
       const data = doc.data();
+      if (data.userName) localStorage.setItem('hc_username', String(data.userName));
       
       if (data.tournaments) {
         localStorage.setItem('hc_tournaments', JSON.stringify(data.tournaments));
@@ -697,6 +798,8 @@ window.resumeTournamentSlot = resumeTournamentSlot;
 window.signInWithGoogle = signInWithGoogle;
 window.signOutUser = signOutUser;
 window.updateAuthUI = updateAuthUI;
+window.getPublicUserName = getPublicUserName;
+window.saveUsername = saveUsername;
 window.saveProgressToCloud = saveProgressToCloud;
 window.loadProgressFromCloud = loadProgressFromCloud;
 window.downloadPDF = downloadPDF;
@@ -732,7 +835,9 @@ function publishLeaderboardProfileToCloud() {
   const career = DataManager.getCareerStats();
   db.collection('handCricketProgress').doc(currentUser.uid).set({
     userId: currentUser.uid,
-    displayName: currentUser.displayName || 'Player',
+    userName: getPublicUserName(),
+    displayName: getPublicUserName(),
+    googleEmail: _normalizedEmail(currentUser.email || ''),
     photoURL: currentUser.photoURL || '',
     rankPoints: Number(profile.rankPoints || 0),
     aura: Number(profile.aura || 0),
@@ -794,6 +899,20 @@ function renderHallOfFame(container){
   `;
   container.innerHTML = html;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
