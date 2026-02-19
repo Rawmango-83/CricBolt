@@ -1017,11 +1017,12 @@ async function _enforceRankedTurnTimeout(roomId){
 
 async function _resumeActiveRankedRoom(){
   if(!(firebaseInitialized&&db&&currentUser)) return false;
+  const isActiveStatus=(s)=>s==='waiting_start'||s==='live';
   if(rankedRoomId){
-    // Reattach listener on reopen and clear stale local state if room no longer exists.
     try{
       const existing=await db.collection('hc_rankedRooms').doc(rankedRoomId).get();
-      if(existing.exists){
+      const room=existing.exists?(existing.data()||{}):null;
+      if(room&&isActiveStatus(room.status)){
         _listenRankedRoom(rankedRoomId);
         return true;
       }
@@ -1029,6 +1030,7 @@ async function _resumeActiveRankedRoom(){
       console.error('resume existing ranked room error:',e);
     }
     rankedRoomId=null;
+    _cleanupRankedRoomListener();
   }
   try{
     const q=db.collection('hc_rankedQueue');
@@ -1036,9 +1038,17 @@ async function _resumeActiveRankedRoom(){
     for(const doc of mine.docs){
       const d=doc.data()||{};
       if(d.status==='matched'&&d.roomId){
-        rankedRoomId=d.roomId;
-        _listenRankedRoom(rankedRoomId);
-        return true;
+        const roomSnap=await db.collection('hc_rankedRooms').doc(d.roomId).get();
+        const room=roomSnap.exists?(roomSnap.data()||{}):null;
+        if(room&&isActiveStatus(room.status)){
+          rankedRoomId=d.roomId;
+          _listenRankedRoom(rankedRoomId);
+          return true;
+        }
+        await q.doc(doc.id).delete().catch(()=>{});
+      }
+      if(d.status==='searching'){
+        await q.doc(doc.id).delete().catch(()=>{});
       }
     }
     const rooms=await db.collection('hc_rankedRooms')
@@ -1231,10 +1241,6 @@ async function leaveRankedRoom(forfeitIfLive){
   const ref=db.collection('hc_rankedRooms').doc(rankedRoomId);
   try{
     if(forfeitIfLive){
-      const callable=await _callRankedFn('rankedForfeit',{ roomId:rankedRoomId });
-      if(callable&&callable.ok){
-        return;
-      }
       await db.runTransaction(async tx=>{
         const snap=await tx.get(ref);
         if(!snap.exists) return;
@@ -2600,6 +2606,8 @@ window.genE3=genE3;
 window.genFinal=genFinal;
 
 console.log('✅ Hand Cricket v3.5.0 - Ranked queue placeholder enabled.');
+
+
 
 
 
