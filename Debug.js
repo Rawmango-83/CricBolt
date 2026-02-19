@@ -62,11 +62,13 @@ function _setHistoryModalMode(mode) {
   const tourBtn = document.getElementById('htab-tournaments');
   const statsBtn = document.getElementById('htab-stats');
   const leadBtn = document.getElementById('htab-leaderboard');
+  const hofBtn = document.getElementById('htab-hof');
   const map = {
     history: ['all', 'tournaments'],
     career: ['stats'],
     leaderboard: ['leaderboard'],
-    all: ['all', 'tournaments', 'stats', 'leaderboard']
+    hof: ['hof'],
+    all: ['all', 'tournaments', 'stats', 'leaderboard', 'hof']
   };
   const visible = map[mode] || map.all;
   const setVisible = (btn, key) => { if (btn) btn.style.display = visible.includes(key) ? 'inline-block' : 'none'; };
@@ -74,6 +76,7 @@ function _setHistoryModalMode(mode) {
   setVisible(tourBtn, 'tournaments');
   setVisible(statsBtn, 'stats');
   setVisible(leadBtn, 'leaderboard');
+  setVisible(hofBtn, 'hof');
 }
 
 function openMenuHistory() {
@@ -110,6 +113,11 @@ function openMenuClan() {
 function openMenuResume() {
   closeSideMenu();
   if (typeof openResumeModal === 'function') openResumeModal();
+}
+
+function openMenuFriends() {
+  closeSideMenu();
+  if (typeof openFriendModal === 'function') openFriendModal();
 }
 
 function toggleSideMenu() {
@@ -152,6 +160,8 @@ function showHistoryTab(tab) {
     renderCareerStats(content);
   } else if (tab === 'leaderboard') {
     renderLeaderboard(content);
+  } else if (tab === 'hof') {
+    renderHallOfFame(content);
   }
 }
 
@@ -271,21 +281,77 @@ function renderCareerStats(container) {
 
 function renderLeaderboard(container) {
   container.innerHTML = `
-    <div style="text-align:center;padding:60px 20px;color:#a0aec0">
-      <div style="font-size:4em;margin-bottom:20px">🥇</div>
-      <h3 style="color:#718096;margin-bottom:10px">Global Leaderboard</h3>
-      <p style="max-width:400px;margin:0 auto;line-height:1.6">
-        Sign in with Google to save your progress to the cloud and compete on the global leaderboard!
+    <div style="text-align:center;padding:30px 20px;color:#64748b">
+      <div style="font-size:2.8em;margin-bottom:10px">🥇</div>
+      <h3 style="color:#334155;margin-bottom:6px">Global Leaderboard</h3>
+      <p style="max-width:520px;margin:0 auto;line-height:1.6">
+        Top players by Rank Points, then Aura. Loading latest standings...
       </p>
-      ${!currentUser ? `
-        <button onclick="signInWithGoogle()" style="margin-top:25px;padding:12px 30px;background:#667eea;color:white;border:none;border-radius:8px;cursor:pointer;font-size:16px">
-          Sign In to Compete
-        </button>
-      ` : '<p style="margin-top:20px;color:#48bb78">✓ You\'re signed in! Coming soon...</p>'}
     </div>
+    <div id="globalLeaderboardBody" style="padding:0 6px 12px 6px"></div>
   `;
-}
 
+  const body = document.getElementById('globalLeaderboardBody');
+  if (!body) return;
+
+  if (!(firebaseInitialized && db)) {
+    body.innerHTML = '<p style="text-align:center;color:#a0aec0;padding:20px">Cloud leaderboard unavailable in local mode.</p>';
+    return;
+  }
+
+  if (currentUser) publishLeaderboardProfileToCloud();
+
+  db.collection('handCricketProgress').limit(200).get()
+    .then(snap => {
+      const rows = snap.docs.map(d => {
+        const data = d.data() || {};
+        const profile = data.playerProfile || {};
+        return {
+          uid: d.id,
+          name: data.displayName || data.userName || 'Player',
+          rankPoints: Number(data.rankPoints != null ? data.rankPoints : (profile.rankPoints || 0)),
+          aura: Number(data.aura != null ? data.aura : (profile.aura || 0)),
+          rankTier: data.rankTier || profile.rankTier || 'Bronze',
+          matches: Number(data.totalMatches != null ? data.totalMatches : (profile.rankedMatches || 0))
+        };
+      }).sort((a, b) => {
+        if (b.rankPoints !== a.rankPoints) return b.rankPoints - a.rankPoints;
+        if (b.aura !== a.aura) return b.aura - a.aura;
+        return b.matches - a.matches;
+      }).slice(0, 100);
+
+      if (!rows.length) {
+        body.innerHTML = `
+          <div style="text-align:center;color:#94a3b8;padding:20px">
+            No players on leaderboard yet. ${currentUser ? 'Play a match or click Save to publish your profile.' : 'Sign in and save progress to join.'}
+          </div>
+        `;
+        return;
+      }
+
+      let html = '<div style="display:grid;gap:8px">';
+      rows.forEach((r, idx) => {
+        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+        const mine = !!(currentUser && currentUser.uid === r.uid);
+        html += `
+          <div style="display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid ${mine ? '#60a5fa' : '#e2e8f0'};background:${mine ? '#eff6ff' : '#f8fafc'}">
+            <div style="font-weight:800;color:${idx < 3 ? '#b45309' : '#475569'}">${medal}</div>
+            <div>
+              <div style="font-weight:700;color:#1f2937">${Security.escapeHtml(r.name)} ${mine ? '<span style="font-size:11px;color:#2563eb">(You)</span>' : ''}</div>
+              <div style="font-size:12px;color:#64748b">${Security.escapeHtml(r.rankTier)} • Aura ${r.aura} • Matches ${r.matches}</div>
+            </div>
+            <div style="font-size:18px;font-weight:800;color:#0f172a">${r.rankPoints} RP</div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      body.innerHTML = html;
+    })
+    .catch(err => {
+      console.error('leaderboard load error:', err);
+      body.innerHTML = '<p style="text-align:center;color:#ef4444;padding:18px">Could not load leaderboard right now.</p>';
+    });
+}
 function clearAllHistoryData() {
   DataManager.clearAll();
 }
@@ -430,26 +496,27 @@ function signOutUser() {
 function updateAuthUI() {
   const signedIn = document.getElementById('signedInView');
   const signedOut = document.getElementById('signedOutView');
-  
+
   if (!signedIn || !signedOut) return;
-  
+
   if (currentUser) {
     signedOut.style.display = 'none';
     signedIn.style.display = 'block';
-    
+
     const photoEl = document.getElementById('userPhoto');
     const nameEl = document.getElementById('userName');
     const emailEl = document.getElementById('userEmail');
-    
+
     if (photoEl) photoEl.src = currentUser.photoURL || 'https://via.placeholder.com/50';
     if (nameEl) nameEl.textContent = currentUser.displayName || 'User';
     if (emailEl) emailEl.textContent = currentUser.email || '';
+
+    publishLeaderboardProfileToCloud();
   } else {
     signedOut.style.display = 'block';
     signedIn.style.display = 'none';
   }
 }
-
 function saveProgressToCloud() {
   if (!firebaseInitialized || !db || !currentUser) {
     uiAlert('Please sign in first!', 'Sign In Required');
@@ -474,6 +541,7 @@ function saveProgressToCloud() {
         lastSyncEl.textContent = '✓ Last synced: ' + new Date().toLocaleString();
       }
       showToast('✅ Progress saved to cloud!', '#48bb78');
+      publishLeaderboardProfileToCloud();
     })
     .catch(error => {
       console.error('Cloud save error:', error);
@@ -640,6 +708,7 @@ window.openMenuLeaderboard = openMenuLeaderboard;
 window.openMenuRanked = openMenuRanked;
 window.openMenuClan = openMenuClan;
 window.openMenuResume = openMenuResume;
+window.openMenuFriends = openMenuFriends;
 
 // Fix the HTML onclick handler issue
 window.getMatchHistory = openMenuHistory;
@@ -649,6 +718,82 @@ console.log('✅ Part 4 loaded: UI functions & Firebase integration complete');
 
 
 
+
+
+
+
+
+
+
+
+function publishLeaderboardProfileToCloud() {
+  if (!(firebaseInitialized && db && currentUser)) return;
+  const profile = DataManager.getPlayerProfile();
+  const career = DataManager.getCareerStats();
+  db.collection('handCricketProgress').doc(currentUser.uid).set({
+    userId: currentUser.uid,
+    displayName: currentUser.displayName || 'Player',
+    photoURL: currentUser.photoURL || '',
+    rankPoints: Number(profile.rankPoints || 0),
+    aura: Number(profile.aura || 0),
+    rankTier: profile.rankTier || 'Bronze',
+    totalMatches: Number(career.totalMatches || 0),
+    playerProfile: profile,
+    careerStats: career,
+    lastSync: new Date().toISOString(),
+    dataVersion: APP_VERSION
+  }, { merge: true }).catch(err => {
+    console.error('publish leaderboard profile error:', err);
+  });
+}
+window.addEventListener('hc_profile_updated', () => { if (currentUser) publishLeaderboardProfileToCloud(); });
+
+
+
+function _getHallOfFameBadges(){
+  const profile = DataManager.getPlayerProfile();
+  const stats = DataManager.getCareerStats();
+  const wins = DataManager.getWinHistory();
+  const badges = [
+    { id:'first_match', name:'Debutant', icon:'🎬', cond: (stats.totalMatches||0) >= 1, desc:'Play your first match' },
+    { id:'first_win', name:'Winner', icon:'🏅', cond: (stats.won||0) >= 1, desc:'Win your first match' },
+    { id:'fifty_club', name:'Fifty Club', icon:'5️⃣0️⃣', cond: (stats.fifties||0) >= 1, desc:'Score a half-century' },
+    { id:'century_club', name:'Century King', icon:'💯', cond: (stats.centuries||0) >= 1, desc:'Score a century' },
+    { id:'hattrick', name:'Hat-trick Hero', icon:'🎩', cond: (stats.hattricks||0) >= 1, desc:'Take a hat-trick' },
+    { id:'five_wkt', name:'Bowling Beast', icon:'🔥🔥', cond: (stats.fiveWickets||0) >= 1, desc:'Take a 5-wicket haul' },
+    { id:'rank_silver', name:'Ranked Silver', icon:'🥈', cond: Number(profile.rankPoints||0) >= 200, desc:'Reach 200 RP' },
+    { id:'rank_gold', name:'Ranked Gold', icon:'🥇', cond: Number(profile.rankPoints||0) >= 500, desc:'Reach 500 RP' },
+    { id:'aura_divine', name:'Aura Divine', icon:'✨', cond: Number(profile.aura||0) >= 1000, desc:'Reach 1000 Aura' },
+    { id:'tour_champ', name:'Tournament Champ', icon:'🏆', cond: (wins||[]).length >= 1, desc:'Win any tournament' }
+  ];
+  return badges;
+}
+
+function renderHallOfFame(container){
+  const badges = _getHallOfFameBadges();
+  const unlocked = badges.filter(b => b.cond);
+  const lock = badges.filter(b => !b.cond);
+
+  let html = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px">
+      <div style="background:#16a34a;color:white;padding:14px;border-radius:12px"><div style="font-size:28px;font-weight:800">${unlocked.length}</div><div>Unlocked Badges</div></div>
+      <div style="background:#2563eb;color:white;padding:14px;border-radius:12px"><div style="font-size:28px;font-weight:800">${badges.length}</div><div>Total Badges</div></div>
+      <div style="background:#7c3aed;color:white;padding:14px;border-radius:12px"><div style="font-size:28px;font-weight:800">${Math.round((unlocked.length / badges.length) * 100)}%</div><div>Completion</div></div>
+    </div>
+    <h4 style="color:#334155;margin:8px 0">🌟 Hall of Fame</h4>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+      ${badges.map(b=>`
+        <div style="padding:12px;border-radius:10px;border:1px solid ${b.cond ? '#86efac' : '#e2e8f0'};background:${b.cond ? '#f0fdf4' : '#f8fafc'}">
+          <div style="font-size:24px">${b.icon}</div>
+          <div style="font-weight:700;color:#1f2937">${b.name}</div>
+          <div style="font-size:12px;color:#64748b">${b.desc}</div>
+          <div style="margin-top:6px;font-size:11px;color:${b.cond ? '#16a34a' : '#94a3b8'}">${b.cond ? 'Unlocked' : 'Locked'}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  container.innerHTML = html;
+}
 
 
 
