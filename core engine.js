@@ -13,11 +13,11 @@ const DataMigration = {
   run() {
     const stored = localStorage.getItem(DATA_VERSION_KEY) || '0.0.0';
     if (stored === APP_VERSION) return;
-    console.log(`🔄 Migrating data from v${stored} to v${APP_VERSION}`);
+    console.log(`ðŸ”„ Migrating data from v${stored} to v${APP_VERSION}`);
     try {
       this._applyMigrations(stored);
       localStorage.setItem(DATA_VERSION_KEY, APP_VERSION);
-      console.log('✅ Data migration complete');
+      console.log('âœ… Data migration complete');
     } catch(e) {
       console.error('Migration error:', e);
       // Keep previous version marker so migration can retry on next load.
@@ -25,7 +25,7 @@ const DataMigration = {
   },
 
   _applyMigrations(fromVersion) {
-    // ✅ FIX #2: Add bowling milestones to migration
+    // âœ… FIX #2: Add bowling milestones to migration
     const csKey = 'hc_careerStats';
     let cs = {};
     try { cs = JSON.parse(localStorage.getItem(csKey)) || {}; } catch(e) { cs = {}; }
@@ -33,9 +33,9 @@ const DataMigration = {
       totalMatches:0, won:0, lost:0, drawn:0,
       totalRuns:0, totalWickets:0, highestScore:0,
       hattricks:0, centuries:0, fifties:0,
-      threeWickets:0,   // ✅ ADDED
-      fiveWickets:0,    // ✅ ADDED
-      tenWickets:0      // ✅ ADDED
+      threeWickets:0,   // âœ… ADDED
+      fiveWickets:0,    // âœ… ADDED
+      tenWickets:0      // âœ… ADDED
     };
     let changed = false;
     Object.keys(defaults).forEach(k => {
@@ -72,7 +72,7 @@ const DataMigration = {
       if (pp[k] === undefined) { pp[k] = profileDefaults[k]; ppChanged = true; }
     });
     if (ppChanged) localStorage.setItem(ppKey, JSON.stringify(pp));
-    console.log(`✅ Migration applied.`);
+    console.log(`âœ… Migration applied.`);
   }
 };
 
@@ -90,6 +90,77 @@ const firebaseConfig = {
 };
 
 let app, auth, db, fns, currentUser = null, firebaseInitialized = false;
+
+const PROGRESS_IDENTITY_KEY = 'hc_active_identity_v1';
+const GUEST_PROGRESS_IDENTITY = 'guest';
+const PROGRESS_RANKED_SETTLEMENT_KEY = 'hc_ranked_settled_rooms';
+
+function _managedProgressKeys(){
+  const keys = [
+    'hc_matchHistory',
+    'hc_careerStats',
+    'hc_tournaments',
+    'handCricketHistory',
+    'hc_playerProfile',
+    'handCricket_tournament',
+    DATA_VERSION_KEY,
+    PROGRESS_RANKED_SETTLEMENT_KEY
+  ];
+  return keys;
+}
+
+function _identityBucketKey(identity, key){
+  return 'hc_id::' + identity + '::' + key;
+}
+
+function _getActiveProgressIdentity(){
+  try {
+    return localStorage.getItem(PROGRESS_IDENTITY_KEY) || GUEST_PROGRESS_IDENTITY;
+  } catch(e){
+    return GUEST_PROGRESS_IDENTITY;
+  }
+}
+
+function _setActiveProgressIdentity(identity){
+  try { localStorage.setItem(PROGRESS_IDENTITY_KEY, identity); } catch(e) {}
+}
+
+function _snapshotActiveProgressToIdentity(identity){
+  const keys = _managedProgressKeys();
+  keys.forEach(key => {
+    const bucketKey = _identityBucketKey(identity, key);
+    const value = localStorage.getItem(key);
+    if (value === null || value === undefined) localStorage.removeItem(bucketKey);
+    else localStorage.setItem(bucketKey, value);
+  });
+}
+
+function _loadIdentityProgressToActive(identity){
+  const keys = _managedProgressKeys();
+  keys.forEach(key => {
+    const bucketKey = _identityBucketKey(identity, key);
+    const value = localStorage.getItem(bucketKey);
+    if (value === null || value === undefined) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  });
+}
+
+function switchProgressIdentity(uid){
+  const nextIdentity = uid ? ('user:' + uid) : GUEST_PROGRESS_IDENTITY;
+  const prevIdentity = _getActiveProgressIdentity();
+  if (prevIdentity === nextIdentity) return false;
+
+  _snapshotActiveProgressToIdentity(prevIdentity);
+  _loadIdentityProgressToActive(nextIdentity);
+  _setActiveProgressIdentity(nextIdentity);
+
+  DataMigration.run();
+  return true;
+}
+
+function persistCurrentProgressIdentity(){
+  _snapshotActiveProgressToIdentity(_getActiveProgressIdentity());
+}
 
 // ============================================================================
 // SECURITY UTILITIES
@@ -199,7 +270,7 @@ const Music = {
   start() {
     if (this.isPlaying) return;
     this._initCtx();
-    if (!this.ctx) { showToast('🔇 Audio not supported', '#718096'); return; }
+    if (!this.ctx) { showToast('ðŸ”‡ Audio not supported', '#718096'); return; }
     if (this.ctx.state === 'suspended') this.ctx.resume();
 
     const tones = [
@@ -245,13 +316,19 @@ const Music = {
 
   _updateBtn() {
     const btn = document.getElementById('musicToggleBtn');
-    if (!btn) return;
-    if (this.isPlaying) {
-      btn.innerHTML = '🎵 Music<span class="music-bars" id="musicBars"><span></span><span></span><span></span><span></span><span></span></span>';
-      btn.style.background = 'linear-gradient(135deg,#48bb78,#38a169)';
-    } else {
-      btn.innerHTML = '🎵 Music<span class="music-bars paused" id="musicBars"><span></span><span></span><span></span><span></span><span></span></span>';
-      btn.style.background = 'linear-gradient(135deg,#718096,#4a5568)';
+    const badge = document.getElementById('ambientBgmBadge');
+    if (btn) {
+      if (this.isPlaying) {
+        btn.textContent = 'Music ON';
+        btn.style.background = 'linear-gradient(135deg,#48bb78,#38a169)';
+      } else {
+        btn.textContent = 'Music OFF';
+        btn.style.background = 'linear-gradient(135deg,#718096,#4a5568)';
+      }
+    }
+    if (badge) {
+      badge.textContent = this.isPlaying ? 'BGM ON' : 'BGM OFF';
+      badge.classList.toggle('active', !!this.isPlaying);
     }
   },
 
@@ -263,6 +340,7 @@ const Music = {
       four:   [[600, 0, 0.15], [800, 0.05, 0.1], [1000, 0.1, 0.1]],
       six:    [[800, 0, 0.1], [1000, 0.04, 0.1], [1200, 0.08, 0.1], [1500, 0.12, 0.12]],
       win:    [[523, 0, 0.3], [659, 0.15, 0.3], [784, 0.3, 0.4], [1047, 0.5, 0.5]],
+      click:  [[900, 0, 0.03], [1200, 0.035, 0.025]],
     };
     const seq = sfx[type];
     if (!seq) return;
@@ -312,7 +390,7 @@ const DataManager = {
     try { return JSON.parse(localStorage.getItem(this.KEYS.matchHistory)) || []; } catch(e) { return []; }
   },
 
-  // ✅ FIX #4: Track bowling milestones in career stats
+  // âœ… FIX #4: Track bowling milestones in career stats
   _updateCareerStats(d) {
     const s = this.getCareerStats();
     s.totalMatches++;
@@ -325,13 +403,13 @@ const DataManager = {
     s.hattricks  = (s.hattricks  || 0) + (d.hattricksInMatch  || 0);
     s.centuries  = (s.centuries  || 0) + (d.centuriesInMatch   || 0);
     s.fifties    = (s.fifties    || 0) + (d.fiftiesInMatch     || 0);
-    s.threeWickets = (s.threeWickets || 0) + (d.threeWicketsInMatch || 0);  // ✅ ADDED
-    s.fiveWickets = (s.fiveWickets || 0) + (d.fiveWicketsInMatch || 0);    // ✅ ADDED
-    s.tenWickets = (s.tenWickets || 0) + (d.tenWicketsInMatch || 0);        // ✅ ADDED
+    s.threeWickets = (s.threeWickets || 0) + (d.threeWicketsInMatch || 0);  // âœ… ADDED
+    s.fiveWickets = (s.fiveWickets || 0) + (d.fiveWicketsInMatch || 0);    // âœ… ADDED
+    s.tenWickets = (s.tenWickets || 0) + (d.tenWicketsInMatch || 0);        // âœ… ADDED
     localStorage.setItem(this.KEYS.careerStats, JSON.stringify(s));
   },
 
-  // ✅ FIX #3: Include bowling milestones in defaults
+  // âœ… FIX #3: Include bowling milestones in defaults
   getCareerStats() {
     try {
       const cs = JSON.parse(localStorage.getItem(this.KEYS.careerStats)) || {};
@@ -339,9 +417,9 @@ const DataManager = {
         totalMatches:0, won:0, lost:0, drawn:0, 
         totalRuns:0, totalWickets:0, highestScore:0, 
         hattricks:0, centuries:0, fifties:0,
-        threeWickets:0,   // ✅ ADDED
-        fiveWickets:0,    // ✅ ADDED
-        tenWickets:0      // ✅ ADDED
+        threeWickets:0,   // âœ… ADDED
+        fiveWickets:0,    // âœ… ADDED
+        tenWickets:0      // âœ… ADDED
       };
       return { ...defaults, ...cs };
     } catch(e) {
@@ -349,7 +427,7 @@ const DataManager = {
         totalMatches:0, won:0, lost:0, drawn:0, 
         totalRuns:0, totalWickets:0, highestScore:0, 
         hattricks:0, centuries:0, fifties:0,
-        threeWickets:0, fiveWickets:0, tenWickets:0  // ✅ ADDED
+        threeWickets:0, fiveWickets:0, tenWickets:0  // âœ… ADDED
       };
     }
   },
@@ -463,6 +541,12 @@ const DataManager = {
 
   _applyProgressRewards(d) {
     const profile = this.getPlayerProfile();
+    const prev = {
+      aura: profile.aura || 0,
+      rankPoints: profile.rankPoints || 0,
+      rankTier: profile.rankTier || 'Bronze',
+      matchTokens: profile.matchTokens || 0
+    };
     const rewardByResult = {
       won:  { rp: 28, aura: 14, tokens: 3 },
       lost: { rp: -10, aura: -4, tokens: 1 },
@@ -485,6 +569,9 @@ const DataManager = {
 
     this.savePlayerProfile(profile);
     updatePlayerProfileUI();
+    showAuraBurstAnimation((profile.aura || 0) - prev.aura);
+    showCoinBankAnimation((profile.matchTokens || 0) - prev.matchTokens);
+    showRankGainAnimation((profile.rankPoints || 0) - prev.rankPoints, profile.rankTier, prev.rankTier);
   },
 
   addWin(format, teamKey, teamName) {
@@ -518,9 +605,12 @@ function updatePlayerProfileUI() {
   tierEl.textContent = p.rankTier || 'Bronze';
   tokenEl.textContent = String(p.matchTokens || 0);
   panel.style.display = 'block';
+  try { window.dispatchEvent(new CustomEvent('hc_profile_updated', { detail: p })); } catch(e) {}
 }
 
 window.updatePlayerProfileUI = updatePlayerProfileUI;
+window.switchProgressIdentity = switchProgressIdentity;
+window.persistCurrentProgressIdentity = persistCurrentProgressIdentity;
 
 // Run storage migrations before any gameplay/state logic consumes persisted data.
 DataMigration.run();
@@ -533,7 +623,7 @@ function saveTournamentNow() {
   Security.debouncedSave('tournament', () => {
     const id = DataManager.saveTournamentSlot(TournamentState);
     TournamentState._slotId = id;
-    console.log('💾 Tournament auto-saved, slot:', id);
+    console.log('ðŸ’¾ Tournament auto-saved, slot:', id);
   }, 500);
 }
 
@@ -542,21 +632,22 @@ setInterval(() => {
 }, 60000);
 
 function _onPageLeave() {
-  console.log('📤 Page leave detected - saving state...');
+  console.log('ðŸ“¤ Page leave detected - saving state...');
   if (typeof isMatchLive !== 'undefined' && isMatchLive() && GameState.isTournament && GameState.currentMatch) {
-    console.log('🔄 Auto-pausing live match...');
+    console.log('ðŸ”„ Auto-pausing live match...');
     if (typeof autoPauseIfLive !== 'undefined') autoPauseIfLive();
   }
   if (TournamentState.format) {
-    console.log('💾 Saving tournament state...');
+    console.log('ðŸ’¾ Saving tournament state...');
     DataManager.saveTournamentSlot(TournamentState);
   }
+  try { if (typeof persistCurrentProgressIdentity === 'function') persistCurrentProgressIdentity(); } catch(e) {}
 }
 
-// ✅ FIX #6: Add all three event listeners for maximum reliability
+// âœ… FIX #6: Add all three event listeners for maximum reliability
 window.addEventListener('beforeunload', _onPageLeave);
 window.addEventListener('pagehide', _onPageLeave);
-window.addEventListener('unload', _onPageLeave);  // ✅ ADDED
+window.addEventListener('unload', _onPageLeave);  // âœ… ADDED
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     _onPageLeave();
@@ -584,7 +675,7 @@ const Utils = {
     return s.split(',')
       .map(p => Security.sanitizeInput(p))
       .filter(Boolean)
-      .slice(0, 11);
+      .slice(0, 22);
   },
   
   log(msg) {
@@ -717,6 +808,84 @@ Object.keys(CRICKET_TEAMS).forEach(k => {
   PREDEFINED_TEAMS[k] = CRICKET_TEAMS[k].players; 
 });
 
-console.log('✅ Part 1 FIXED loaded: Core systems initialized with all bowling milestones');
+console.log('âœ… Part 1 FIXED loaded: Core systems initialized with all bowling milestones');
 
 
+
+
+
+
+
+
+function _animateFlashElement(id, text, ttlMs, extraClass) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text || '';
+  el.classList.remove('show', 'gain', 'loss');
+  if (extraClass) el.classList.add(extraClass);
+  void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ttlMs || 1600);
+}
+
+function showAuraBurstAnimation(deltaAura) {
+  if (!deltaAura) return;
+  _animateFlashElement('auraBurstAnim', `${deltaAura > 0 ? '+' : ''}${deltaAura} Aura`, 1700);
+}
+
+function showCoinBankAnimation(deltaCoins) {
+  if (!deltaCoins) return;
+  _animateFlashElement('coinBankAnim', `${deltaCoins > 0 ? '+' : ''}${deltaCoins} Token${Math.abs(deltaCoins) === 1 ? '' : 's'}`, 1500);
+}
+
+function showRankGainAnimation(deltaRp, nextTier, prevTier) {
+  if (!deltaRp && nextTier === prevTier) return;
+  const text = `${deltaRp > 0 ? '+' : ''}${deltaRp || 0} RP${nextTier !== prevTier ? ` • ${nextTier}` : ''}`;
+  _animateFlashElement('rankGainAnim', text, 1800);
+}
+
+function showMatchOutcomeAnimation(isWin, label) {
+  const text = isWin ? `VICTORY • ${label || ''}` : `DEFEAT • ${label || ''}`;
+  _animateFlashElement('matchOutcomeAnim', text.trim(), 1700, isWin ? 'gain' : 'loss');
+}
+
+function showWinFlagBackdrop(flagGlyph) {
+  const el = document.getElementById('flagWinBackdrop');
+  if (!el) return;
+  const glyph = (flagGlyph && String(flagGlyph).trim()) || '??';
+  el.innerHTML = `<span>${Security.escapeHtml(glyph)}</span><span>${Security.escapeHtml(glyph)}</span><span>${Security.escapeHtml(glyph)}</span><span>${Security.escapeHtml(glyph)}</span>`;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1900);
+}
+
+window.showAuraBurstAnimation = showAuraBurstAnimation;
+window.showCoinBankAnimation = showCoinBankAnimation;
+window.showRankGainAnimation = showRankGainAnimation;
+window.showMatchOutcomeAnimation = showMatchOutcomeAnimation;
+window.showWinFlagBackdrop = showWinFlagBackdrop;
+
+
+
+
+
+function _wireAudioUX() {
+  const unlock = () => {
+    if (!Music.isPlaying) Music.start();
+    window.removeEventListener('pointerdown', unlock, true);
+    window.removeEventListener('keydown', unlock, true);
+    window.removeEventListener('touchstart', unlock, true);
+  };
+  window.addEventListener('pointerdown', unlock, true);
+  window.addEventListener('keydown', unlock, true);
+  window.addEventListener('touchstart', unlock, true);
+  document.addEventListener('click', e => {
+    const target = e.target;
+    if (!target || !target.closest) return;
+    if (target.closest('button')) Music.playSFX('click');
+  }, true);
+  Music._updateBtn();
+}
+
+if (typeof window !== 'undefined') _wireAudioUX();
