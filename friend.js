@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 let friendModalOpen = false;
 let friendSelectedUid = null;
@@ -26,6 +26,14 @@ function _friendEsc(v){
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
+function _normEmail(v){
+  return String(v || '').trim().toLowerCase();
+}
+
+function _friendIdentityKey(obj){
+  const email = _normEmail(obj && (obj.googleEmail || obj.email || obj.userEmail));
+  return email || String((obj && (obj.uid || obj.id)) || '');
+}
 function _cleanupFriendListeners(){
   if (friendChatUnsub) { friendChatUnsub(); friendChatUnsub = null; }
   if (friendReqUnsub) { friendReqUnsub(); friendReqUnsub = null; }
@@ -83,44 +91,118 @@ async function refreshFriendDiscover(){
   try {
     const [friends, players] = await Promise.all([
       _getMyFriends(),
-      db.collection('handCricketProgress').orderBy('rankPoints', 'desc').limit(60).get()
+      db.collection('handCricketProgress').limit(120).get()
     ]);
-    const rows = players.docs.map(d => {
+    const byIdentity = new Map();
+    players.docs.forEach(d => {
       const data = d.data() || {};
       const profile = data.playerProfile || {};
-      return {
+      const row = {
         uid: d.id,
         name: data.displayName || data.userName || 'Player',
-        rankPoints: Number(data.rankPoints != null ? data.rankPoints : (profile.rankPoints || 0))
+        rankPoints: Number(data.rankPoints != null ? data.rankPoints : (profile.rankPoints || 0)),
+        aura: Number(data.aura != null ? data.aura : (profile.aura || 0)),
+        googleEmail: _normEmail(data.googleEmail || data.email || data.userEmail)
       };
+      const key = _friendIdentityKey(row) || row.uid;
+      const prev = byIdentity.get(key);
+      if (!prev) {
+        byIdentity.set(key, row);
+        return;
+      }
+      const better = (row.rankPoints > prev.rankPoints)
+        || (row.rankPoints === prev.rankPoints && row.aura > prev.aura);
+      if (better) byIdentity.set(key, row);
     });
+    const rows = Array.from(byIdentity.values())
+      .sort((a,b) => Number(b.rankPoints||0) - Number(a.rankPoints||0))
+      .slice(0, 80);
     _renderFriendList(friends);
     _renderDiscoverPlayers(rows, friends);
   } catch(e){
     console.error('refresh friend discover error:', e);
   }
 }
-
 async function sendFriendRequest(toUid, toName){
   if (!_friendSignedIn() || !toUid || toUid === currentUser.uid) return;
-  const id = `${currentUser.uid}_${toUid}`;
+  const outgoingId = `${currentUser.uid}_${toUid}`;
+  const incomingId = `${toUid}_${currentUser.uid}`;
+  const myAura = Number((DataManager.getPlayerProfile()||{}).aura || 0);
   try {
-    await db.collection('hc_friendRequests').doc(id).set({
-      id,
-      fromUid: currentUser.uid,
-      fromName: currentUser.displayName || 'Player',
-      toUid,
-      toName: toName || 'Player',
-      status: 'pending',
-      createdAtMs: Date.now(),
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-    showToast('Friend request sent.', '#2563eb');
+    const reqCol = db.collection('hc_friendRequests');
+    const outRef = reqCol.doc(outgoingId);
+    const inRef = reqCol.doc(incomingId);
+    const myFriendRef = db.collection('hc_userFriends').doc(currentUser.uid).collection('list').doc(toUid);
+    const oppFriendRef = db.collection('hc_userFriends').doc(toUid).collection('list').doc(currentUser.uid);
+
+    let action = 'sent';
+    await db.runTransaction(async tx => {
+      const [outSnap, inSnap, friendSnap] = await Promise.all([
+        tx.get(outRef),
+        tx.get(inRef),
+        tx.get(myFriendRef)
+      ]);
+
+      if (friendSnap.exists) throw new Error('already-friends');
+
+      const out = outSnap.exists ? (outSnap.data() || {}) : null;
+      const inc = inSnap.exists ? (inSnap.data() || {}) : null;
+
+      if (out && (out.status === 'pending' || out.status === 'accepted')) throw new Error('already-sent');
+
+      if (inc && inc.status === 'pending') {
+        action = 'auto-accepted';
+        tx.set(myFriendRef, {
+          uid: toUid,
+          name: inc.fromName || toName || 'Friend',
+          aura: Number(inc.fromAura || 0),
+          sinceMs: Date.now()
+        }, { merge: true });
+        tx.set(oppFriendRef, {
+          uid: currentUser.uid,
+          name: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
+          aura: myAura,
+          sinceMs: Date.now()
+        }, { merge: true });
+        tx.set(inRef, {
+          status: 'accepted',
+          resolvedAtMs: Date.now(),
+          resolvedByUid: currentUser.uid
+        }, { merge: true });
+        return;
+      }
+
+      tx.set(outRef, {
+        id: outgoingId,
+        fromUid: currentUser.uid,
+        fromName: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
+        fromAura: myAura,
+        toUid,
+        toName: toName || 'Player',
+        status: 'pending',
+        createdAtMs: Date.now(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    });
+
+    if (action === 'auto-accepted') {
+      showToast('You are now friends.', '#16a34a');
+    } else {
+      showToast('Friend request sent.', '#2563eb');
+    }
+    refreshFriendDiscover();
   } catch(e){
+    if (String(e && e.message) === 'already-friends') {
+      showToast('Already in friends list.', '#64748b');
+      return;
+    }
+    if (String(e && e.message) === 'already-sent') {
+      showToast('Friend request already pending.', '#64748b');
+      return;
+    }
     console.error('send friend request error:', e);
   }
 }
-
 function _listenFriendRequests(){
   if (!_friendSignedIn()) return;
   if (friendReqUnsub) friendReqUnsub();
@@ -153,7 +235,7 @@ async function respondFriendRequest(requestId, accept){
         }, { merge: true });
         tx.set(db.collection('hc_userFriends').doc(r.fromUid).collection('list').doc(currentUser.uid), {
           uid: currentUser.uid,
-          name: currentUser.displayName || 'Player',
+          name: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
           aura: myAura,
           sinceMs: Date.now()
         }, { merge: true });
@@ -213,7 +295,7 @@ async function sendFriendMessage(){
   try {
     await db.collection('hc_friendChats').doc(chatId).collection('messages').add({
       uid: currentUser.uid,
-      name: currentUser.displayName || 'Player',
+      name: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
       message: txt,
       createdAtMs: Date.now(),
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -240,7 +322,7 @@ async function sendFriendlyChallenge(){
   try {
     await db.collection('hc_friendChallenges').add({
       fromUid: currentUser.uid,
-      fromName: currentUser.displayName || 'Player',
+      fromName: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
       toUid: friendSelectedUid,
       toName: friendSelectedName || 'Friend',
       mode,
@@ -260,7 +342,7 @@ function _listenFriendlyChallenges(){
   if (friendChallengeUnsub) friendChallengeUnsub();
   friendChallengeUnsub = db.collection('hc_friendChallenges')
     .where('toUid','==',currentUser.uid)
-    .where('status','in',['pending','accepted'])
+    .where('status','in',['pending','accepted','live'])
     .onSnapshot(snap => {
       const box = document.getElementById('friendlyIncomingList');
       if (!box) return;
@@ -295,34 +377,64 @@ async function respondFriendlyChallenge(challengeId, accept){
 async function launchFriendlyGameFromChallenge(challengeId){
   if (!_friendSignedIn() || !challengeId) return;
   try {
-    const snap = await db.collection('hc_friendChallenges').doc(challengeId).get();
-    if (!snap.exists) return;
-    const c = snap.data() || {};
-    if (c.toUid !== currentUser.uid && c.fromUid !== currentUser.uid) return;
-    if (c.status !== 'accepted') {
-      await uiAlert('Challenge is not accepted yet.', 'Friendly Game');
+    const ref = db.collection('hc_friendChallenges').doc(challengeId);
+    let liveRoomId = null;
+    await db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw new Error('challenge-missing');
+      const c = snap.data() || {};
+      if (c.toUid !== currentUser.uid && c.fromUid !== currentUser.uid) throw new Error('not-participant');
+      if (c.status !== 'accepted' && c.status !== 'live') throw new Error('not-accepted');
+
+      if (c.liveRoomId) {
+        liveRoomId = c.liveRoomId;
+        tx.set(ref, { status: 'live', updatedAtMs: Date.now() }, { merge: true });
+        return;
+      }
+
+      const roomRef = db.collection('hc_rankedRooms').doc();
+      const p1 = { uid: c.fromUid, name: c.fromName || 'Friend A', rankTier: 'Friendly', rankPoints: 0 };
+      const p2 = { uid: c.toUid, name: c.toName || 'Friend B', rankTier: 'Friendly', rankPoints: 0 };
+      tx.set(roomRef, {
+        type: 'friendly',
+        sourceChallengeId: challengeId,
+        status: 'waiting_start',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAtMs: Date.now(),
+        overs: Number(c.overs || _friendlyDefaultsByMode(c.mode || 't20i')),
+        mode: c.mode || 't20i',
+        readyMap: {},
+        playerUids: [p1.uid, p2.uid],
+        players: [p1, p2]
+      }, { merge: true });
+      liveRoomId = roomRef.id;
+      tx.set(ref, {
+        status: 'live',
+        liveRoomId,
+        updatedAtMs: Date.now()
+      }, { merge: true });
+    });
+
+    if (!liveRoomId) {
+      await uiAlert('Could not create friendly live room.', 'Friendly Game');
       return;
     }
 
-    const oppName = c.fromUid === currentUser.uid ? (c.toName || 'Friend') : (c.fromName || 'Friend');
-    showSection('setup');
-    const modeEl = document.getElementById('matchMode');
-    const oversEl = document.getElementById('overs');
-    const t2El = document.getElementById('team2');
-    if (modeEl) modeEl.value = c.mode || 't20i';
-    if (typeof handleModeChange === 'function') handleModeChange();
-    if (oversEl) {
-      oversEl.disabled = false;
-      oversEl.value = Number(c.overs || _friendlyDefaultsByMode(c.mode || 't20i'));
-    }
-    if (t2El) t2El.value = oppName + ' (Friendly)';
     closeFriendModal();
-    showToast('Friendly setup loaded. Start your match.', '#2563eb');
+    if (typeof openLiveRoomById === 'function') {
+      openLiveRoomById(liveRoomId, 'Friendly Match');
+      showToast('Friendly live room opened.', '#2563eb');
+    } else {
+      showToast('Friendly room ready. Open Ranked Multiplayer to continue.', '#2563eb');
+    }
   } catch(e){
+    if (String(e && e.message) === 'not-accepted') {
+      await uiAlert('Challenge is not accepted yet.', 'Friendly Game');
+      return;
+    }
     console.error('launch friendly game error:', e);
   }
 }
-
 async function openFriendModal(){
   const modal = document.getElementById('friendModal');
   if (!modal) return;
@@ -388,3 +500,9 @@ window.addEventListener('DOMContentLoaded', () => {
     modeSel.dispatchEvent(new Event('change'));
   }
 });
+
+
+
+
+
+
