@@ -66,7 +66,17 @@
 <div class="rmodal-bg" id="rankedModal">
   <div class="rmodal-box">
     <h2 style="color:#667eea;margin-bottom:10px">Ranked Multiplayer</h2>
-    <p style="color:#718096;margin-bottom:12px">Entry cost: <strong>1 Match Token</strong></p>
+        <p style="color:#718096;margin-bottom:12px">Entry cost: <strong>1 Match Token</strong></p>
+    <div style="margin-bottom:12px;text-align:left">
+      <label for="rankedOversSelect" style="display:block;color:#4a5568;font-size:13px;margin-bottom:6px">Select Overs</label>
+      <select id="rankedOversSelect" style="max-width:220px">
+        <option value="2">2 Overs</option>
+        <option value="4" selected>4 Overs</option>
+        <option value="6">6 Overs</option>
+        <option value="8">8 Overs</option>
+        <option value="10">10 Overs</option>
+      </select>
+    </div>
     <p id="rankedStatus" style="color:#4a5568;margin-bottom:20px">Press "Find Match" to start matchmaking.</p>
     <button id="rankedReadyBtn" onclick="rankedMarkReady()" style="width:auto;background:#48bb78;display:none;margin-bottom:12px">Ready</button>
     <div id="rankedLivePanel" style="display:none;margin-bottom:14px;padding:12px;border-radius:10px;background:#f7fafc;text-align:left">
@@ -90,6 +100,14 @@
   </div>
 </div>
 
+<!-- App Dialog Modal -->
+<div class="rmodal-bg" id="appDialogModal">
+  <div class="rmodal-box app-dialog-box">
+    <h3 id="appDialogTitle" style="color:#2d3748;margin-bottom:10px">Notice</h3>
+    <p id="appDialogMessage" style="color:#4a5568;margin-bottom:18px;line-height:1.6"></p>
+    <div id="appDialogButtons" style="display:flex;gap:10px;justify-content:flex-end"></div>
+  </div>
+</div>
 <div class="container">
   <!-- Welcome Section -->
   <div class="section" id="welcome-section" style="text-align:center;max-width:900px;margin:0 auto">
@@ -317,3 +335,6 @@
 <script src="Debug.js"></script>
 </body>
 </html>
+
+
+
