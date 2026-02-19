@@ -13,11 +13,11 @@ const DataMigration = {
   run() {
     const stored = localStorage.getItem(DATA_VERSION_KEY) || '0.0.0';
     if (stored === APP_VERSION) return;
-    console.log(`ðŸ”„ Migrating data from v${stored} to v${APP_VERSION}`);
+    console.log(`🔄 Migrating data from v${stored} to v${APP_VERSION}`);
     try {
       this._applyMigrations(stored);
       localStorage.setItem(DATA_VERSION_KEY, APP_VERSION);
-      console.log('âœ… Data migration complete');
+      console.log('✅ Data migration complete');
     } catch(e) {
       console.error('Migration error:', e);
       // Keep previous version marker so migration can retry on next load.
@@ -25,7 +25,7 @@ const DataMigration = {
   },
 
   _applyMigrations(fromVersion) {
-    // âœ… FIX #2: Add bowling milestones to migration
+    // ✅ FIX #2: Add bowling milestones to migration
     const csKey = 'hc_careerStats';
     let cs = {};
     try { cs = JSON.parse(localStorage.getItem(csKey)) || {}; } catch(e) { cs = {}; }
@@ -33,9 +33,9 @@ const DataMigration = {
       totalMatches:0, won:0, lost:0, drawn:0,
       totalRuns:0, totalWickets:0, highestScore:0,
       hattricks:0, centuries:0, fifties:0,
-      threeWickets:0,   // âœ… ADDED
-      fiveWickets:0,    // âœ… ADDED
-      tenWickets:0      // âœ… ADDED
+      threeWickets:0,   // ✅ ADDED
+      fiveWickets:0,    // ✅ ADDED
+      tenWickets:0      // ✅ ADDED
     };
     let changed = false;
     Object.keys(defaults).forEach(k => {
@@ -72,7 +72,7 @@ const DataMigration = {
       if (pp[k] === undefined) { pp[k] = profileDefaults[k]; ppChanged = true; }
     });
     if (ppChanged) localStorage.setItem(ppKey, JSON.stringify(pp));
-    console.log(`âœ… Migration applied.`);
+    console.log(`✅ Migration applied.`);
   }
 };
 
@@ -270,7 +270,7 @@ const Music = {
   start() {
     if (this.isPlaying) return;
     this._initCtx();
-    if (!this.ctx) { showToast('ðŸ”‡ Audio not supported', '#718096'); return; }
+    if (!this.ctx) { showToast('🔇 Audio not supported', '#718096'); return; }
     if (this.ctx.state === 'suspended') this.ctx.resume();
 
     const tones = [
@@ -390,7 +390,7 @@ const DataManager = {
     try { return JSON.parse(localStorage.getItem(this.KEYS.matchHistory)) || []; } catch(e) { return []; }
   },
 
-  // âœ… FIX #4: Track bowling milestones in career stats
+  // ✅ FIX #4: Track bowling milestones in career stats
   _updateCareerStats(d) {
     const s = this.getCareerStats();
     s.totalMatches++;
@@ -403,13 +403,13 @@ const DataManager = {
     s.hattricks  = (s.hattricks  || 0) + (d.hattricksInMatch  || 0);
     s.centuries  = (s.centuries  || 0) + (d.centuriesInMatch   || 0);
     s.fifties    = (s.fifties    || 0) + (d.fiftiesInMatch     || 0);
-    s.threeWickets = (s.threeWickets || 0) + (d.threeWicketsInMatch || 0);  // âœ… ADDED
-    s.fiveWickets = (s.fiveWickets || 0) + (d.fiveWicketsInMatch || 0);    // âœ… ADDED
-    s.tenWickets = (s.tenWickets || 0) + (d.tenWicketsInMatch || 0);        // âœ… ADDED
+    s.threeWickets = (s.threeWickets || 0) + (d.threeWicketsInMatch || 0);  // ✅ ADDED
+    s.fiveWickets = (s.fiveWickets || 0) + (d.fiveWicketsInMatch || 0);    // ✅ ADDED
+    s.tenWickets = (s.tenWickets || 0) + (d.tenWicketsInMatch || 0);        // ✅ ADDED
     localStorage.setItem(this.KEYS.careerStats, JSON.stringify(s));
   },
 
-  // âœ… FIX #3: Include bowling milestones in defaults
+  // ✅ FIX #3: Include bowling milestones in defaults
   getCareerStats() {
     try {
       const cs = JSON.parse(localStorage.getItem(this.KEYS.careerStats)) || {};
@@ -417,9 +417,9 @@ const DataManager = {
         totalMatches:0, won:0, lost:0, drawn:0, 
         totalRuns:0, totalWickets:0, highestScore:0, 
         hattricks:0, centuries:0, fifties:0,
-        threeWickets:0,   // âœ… ADDED
-        fiveWickets:0,    // âœ… ADDED
-        tenWickets:0      // âœ… ADDED
+        threeWickets:0,   // ✅ ADDED
+        fiveWickets:0,    // ✅ ADDED
+        tenWickets:0      // ✅ ADDED
       };
       return { ...defaults, ...cs };
     } catch(e) {
@@ -427,7 +427,7 @@ const DataManager = {
         totalMatches:0, won:0, lost:0, drawn:0, 
         totalRuns:0, totalWickets:0, highestScore:0, 
         hattricks:0, centuries:0, fifties:0,
-        threeWickets:0, fiveWickets:0, tenWickets:0  // âœ… ADDED
+        threeWickets:0, fiveWickets:0, tenWickets:0  // ✅ ADDED
       };
     }
   },
@@ -623,7 +623,7 @@ function saveTournamentNow() {
   Security.debouncedSave('tournament', () => {
     const id = DataManager.saveTournamentSlot(TournamentState);
     TournamentState._slotId = id;
-    console.log('ðŸ’¾ Tournament auto-saved, slot:', id);
+    console.log('💾 Tournament auto-saved, slot:', id);
   }, 500);
 }
 
@@ -632,22 +632,22 @@ setInterval(() => {
 }, 60000);
 
 function _onPageLeave() {
-  console.log('ðŸ“¤ Page leave detected - saving state...');
+  console.log('📤 Page leave detected - saving state...');
   if (typeof isMatchLive !== 'undefined' && isMatchLive() && GameState.isTournament && GameState.currentMatch) {
-    console.log('ðŸ”„ Auto-pausing live match...');
+    console.log('🔄 Auto-pausing live match...');
     if (typeof autoPauseIfLive !== 'undefined') autoPauseIfLive();
   }
   if (TournamentState.format) {
-    console.log('ðŸ’¾ Saving tournament state...');
+    console.log('💾 Saving tournament state...');
     DataManager.saveTournamentSlot(TournamentState);
   }
   try { if (typeof persistCurrentProgressIdentity === 'function') persistCurrentProgressIdentity(); } catch(e) {}
 }
 
-// âœ… FIX #6: Add all three event listeners for maximum reliability
+// ✅ FIX #6: Add all three event listeners for maximum reliability
 window.addEventListener('beforeunload', _onPageLeave);
 window.addEventListener('pagehide', _onPageLeave);
-window.addEventListener('unload', _onPageLeave);  // âœ… ADDED
+window.addEventListener('unload', _onPageLeave);  // ✅ ADDED
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     _onPageLeave();
@@ -808,7 +808,7 @@ Object.keys(CRICKET_TEAMS).forEach(k => {
   PREDEFINED_TEAMS[k] = CRICKET_TEAMS[k].players; 
 });
 
-console.log('âœ… Part 1 FIXED loaded: Core systems initialized with all bowling milestones');
+console.log('✅ Part 1 FIXED loaded: Core systems initialized with all bowling milestones');
 
 
 
@@ -840,12 +840,12 @@ function showCoinBankAnimation(deltaCoins) {
 
 function showRankGainAnimation(deltaRp, nextTier, prevTier) {
   if (!deltaRp && nextTier === prevTier) return;
-  const text = `${deltaRp > 0 ? '+' : ''}${deltaRp || 0} RP${nextTier !== prevTier ? ` • ${nextTier}` : ''}`;
+  const text = `${deltaRp > 0 ? '+' : ''}${deltaRp || 0} RP${nextTier !== prevTier ? ` � ${nextTier}` : ''}`;
   _animateFlashElement('rankGainAnim', text, 1800);
 }
 
 function showMatchOutcomeAnimation(isWin, label) {
-  const text = isWin ? `VICTORY • ${label || ''}` : `DEFEAT • ${label || ''}`;
+  const text = isWin ? `VICTORY � ${label || ''}` : `DEFEAT � ${label || ''}`;
   _animateFlashElement('matchOutcomeAnim', text.trim(), 1700, isWin ? 'gain' : 'loss');
 }
 
@@ -889,3 +889,4 @@ function _wireAudioUX() {
 }
 
 if (typeof window !== 'undefined') _wireAudioUX();
+
