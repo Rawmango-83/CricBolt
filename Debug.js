@@ -57,6 +57,82 @@ function closeHistoryModal() {
   if (modal) modal.style.display = 'none';
 }
 
+function _setHistoryModalMode(mode) {
+  const allBtn = document.getElementById('htab-all');
+  const tourBtn = document.getElementById('htab-tournaments');
+  const statsBtn = document.getElementById('htab-stats');
+  const leadBtn = document.getElementById('htab-leaderboard');
+  const map = {
+    history: ['all', 'tournaments'],
+    career: ['stats'],
+    leaderboard: ['leaderboard'],
+    all: ['all', 'tournaments', 'stats', 'leaderboard']
+  };
+  const visible = map[mode] || map.all;
+  const setVisible = (btn, key) => { if (btn) btn.style.display = visible.includes(key) ? 'inline-block' : 'none'; };
+  setVisible(allBtn, 'all');
+  setVisible(tourBtn, 'tournaments');
+  setVisible(statsBtn, 'stats');
+  setVisible(leadBtn, 'leaderboard');
+}
+
+function openMenuHistory() {
+  _setHistoryModalMode('history');
+  openHistoryModal();
+  showHistoryTab('all');
+  closeSideMenu();
+}
+
+function openMenuCareer() {
+  _setHistoryModalMode('career');
+  openHistoryModal();
+  showHistoryTab('stats');
+  closeSideMenu();
+}
+
+function openMenuLeaderboard() {
+  _setHistoryModalMode('leaderboard');
+  openHistoryModal();
+  showHistoryTab('leaderboard');
+  closeSideMenu();
+}
+
+function openMenuRanked() {
+  closeSideMenu();
+  if (typeof openRankedModal === 'function') openRankedModal();
+}
+
+function openMenuClan() {
+  closeSideMenu();
+  if (typeof openClanModal === 'function') openClanModal();
+}
+
+function openMenuResume() {
+  closeSideMenu();
+  if (typeof openResumeModal === 'function') openResumeModal();
+}
+
+function toggleSideMenu() {
+  const drawer = document.getElementById('sideMenuDrawer');
+  const backdrop = document.getElementById('sideMenuBackdrop');
+  if (!drawer || !backdrop) return;
+  const open = drawer.classList.contains('open');
+  if (open) {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('show');
+  } else {
+    drawer.classList.add('open');
+    backdrop.classList.add('show');
+  }
+}
+
+function closeSideMenu() {
+  const drawer = document.getElementById('sideMenuDrawer');
+  const backdrop = document.getElementById('sideMenuBackdrop');
+  if (drawer) drawer.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('show');
+}
+
 function showHistoryTab(tab) {
   // Update active tab button
   document.querySelectorAll('.htab-btn').forEach(btn => {
@@ -330,10 +406,7 @@ function signInWithGoogle() {
   
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
-    .then(result => {
-      currentUser = result.user;
-      updateAuthUI();
-      loadProgressFromCloud();
+    .then(() => {
       showToast('✅ Signed in successfully!', '#48bb78');
     })
     .catch(error => {
@@ -347,8 +420,6 @@ function signOutUser() {
   
   auth.signOut()
     .then(() => {
-      currentUser = null;
-      updateAuthUI();
       showToast('Signed out successfully', '#718096');
     })
     .catch(error => {
@@ -417,6 +488,10 @@ function loadProgressFromCloud() {
     .then(doc => {
       if (!doc.exists) {
         console.log('No cloud data found');
+        if (typeof persistCurrentProgressIdentity === 'function') persistCurrentProgressIdentity();
+        TournamentHistory.displayHistory();
+        checkResumeBtnVisibility();
+        updatePlayerProfileUI();
         return;
       }
       
@@ -447,6 +522,7 @@ function loadProgressFromCloud() {
       checkResumeBtnVisibility();
       updatePlayerProfileUI();
       
+      if (typeof persistCurrentProgressIdentity === 'function') persistCurrentProgressIdentity();
       showToast('✅ Progress loaded from cloud!', '#48bb78');
     })
     .catch(error => {
@@ -556,9 +632,26 @@ window.updateAuthUI = updateAuthUI;
 window.saveProgressToCloud = saveProgressToCloud;
 window.loadProgressFromCloud = loadProgressFromCloud;
 window.downloadPDF = downloadPDF;
+window.toggleSideMenu = toggleSideMenu;
+window.closeSideMenu = closeSideMenu;
+window.openMenuHistory = openMenuHistory;
+window.openMenuCareer = openMenuCareer;
+window.openMenuLeaderboard = openMenuLeaderboard;
+window.openMenuRanked = openMenuRanked;
+window.openMenuClan = openMenuClan;
+window.openMenuResume = openMenuResume;
 
 // Fix the HTML onclick handler issue
-window.getMatchHistory = openHistoryModal;
+window.getMatchHistory = openMenuHistory;
 
 console.log('✅ Part 4 loaded: UI functions & Firebase integration complete');
+
+
+
+
+
+
+
+
+
 
