@@ -17,6 +17,8 @@ const RANKED_SETTLEMENT_KEY = 'hc_ranked_settled_rooms';
 const RANKED_TURN_TIMEOUT_MS = 90000;
 let rankedTurnTimeoutTimer = null;
 let rankedTossShownForRoom = null;
+let rankedCallableDisabled = false;
+let rankedCallableDisableReason = '';
 
 // ============================================================================
 // TOURNAMENT FUNCTIONS
@@ -146,6 +148,7 @@ const Tournament = {
     if(match.team1===TournamentState.userTeam || match.team2===TournamentState.userTeam){
       GameState.isTournament=true;
       GameState.currentMatch=match;
+      GameState.matchMode='custom';
       const u=match.team1===TournamentState.userTeam?match.team1:match.team2;
       const o=match.team1===TournamentState.userTeam?match.team2:match.team1;
       GameState.teamNames[0]=CRICKET_TEAMS[u].name;
@@ -158,7 +161,7 @@ const Tournament = {
       GameState.reset();
       initializeStats();
       const fmt=TournamentState.format==='t20WorldCup'?'T20 World Cup':'ODI World Cup';
-      await TossAnim.show('🏆',fmt+' Match!',
+      await TossAnim.show('ðŸ†',fmt+' Match!',
         CRICKET_TEAMS[u].name+' vs '+CRICKET_TEAMS[o].name,
         TournamentState.matchOvers+' overs per side'
       );
@@ -327,7 +330,7 @@ function handleLimitedEnd(bti){
     const s1=GameState.scores[1];
     
     if(s1===s0){
-      finishMatch('Match TIED 🤝','tie');
+      finishMatch('Match TIED ðŸ¤','tie');
       return;
     }
     
@@ -411,7 +414,7 @@ function handleTestEnd(bti){
     const t1=GameState.scores[0]+GameState.scores[2];
     const t2=GameState.scores[1]+GameState.scores[3];
     let res;
-    if(t2===t1) res='Match TIED 🤝';
+    if(t2===t1) res='Match TIED ðŸ¤';
     else if(t2>t1) res=GameState.teamNames[GameState.compTeamIndex]+' WIN by '+(t2-t1)+' runs';
     else res=GameState.teamNames[GameState.userTeamIndex]+' WIN by '+(t1-t2)+' runs';
     handleMatchComplete(res,t1,t2);
@@ -460,7 +463,7 @@ function handleMatchComplete(resultText,t1Score,t2Score){
 }
 
 function finishMatch(resultText,resultType){
-  Utils.log('🏆 '+resultText);
+  Utils.log('ðŸ† '+resultText);
   showScorecard();
   
   if(GameState.isTournament){
@@ -515,14 +518,14 @@ function finishMatch(resultText,resultType){
     rb.innerHTML='';
     const bd=document.createElement('div');
     const pb=document.createElement('button');
-    pb.textContent='📄 Download Scorecard (PDF)';
+    pb.textContent='ðŸ“„ Download Scorecard (PDF)';
     pb.onclick=downloadPDF;
     pb.style.cssText='margin:5px;width:auto';
     bd.appendChild(pb);
     
     if(GameState.isTournament){
       const bb=document.createElement('button');
-      bb.textContent='← Back to Tournament';
+      bb.textContent='â† Back to Tournament';
       bb.style.cssText='margin:5px;width:auto';
       bb.onclick=()=>{
         showSection('tournament');
@@ -541,7 +544,7 @@ function finishMatch(resultText,resultType){
 function showScorecard(){
   const el=Utils.getElement('log');
   if(!el) return;
-  let h='<hr><h3>📊 Scorecard</h3>';
+  let h='<hr><h3>ðŸ“Š Scorecard</h3>';
   
   for(let i=0;i<4;i++){
     const ti=Utils.getBattingTeamIndex(i);
@@ -570,7 +573,7 @@ function showScorecard(){
 
 function showGrandTrophy(teamName,title){
   const t=Utils.getElement('trophyAnimation');
-  Utils.setText('trophyText',`🏆 ${title} 🏆\n${teamName}`);
+  Utils.setText('trophyText',`ðŸ† ${title} ðŸ†\n${teamName}`);
   t.classList.add('active');
   
   for(let i=0;i<80;i++){
@@ -596,15 +599,18 @@ function closeTrophy(){
 // ============================================================================
 function showSection(name){
   ['welcome','setup','tournament','game'].forEach(s=>{
-    document.getElementById(s+'-section').style.display='none';
+    const el=document.getElementById(s+'-section');
+    if(el) el.style.display='none';
   });
-  document.getElementById(name+'-section').style.display='block';
+  const target=document.getElementById(name+'-section');
+  if(target) target.style.display='block';
+  if(typeof closeSideMenu==='function') closeSideMenu();
   
   const homeBtn=document.getElementById('globalHomeBtn');
-  homeBtn.style.display=(name==='welcome')?'none':'block';
+  if(homeBtn) homeBtn.style.display=(name==='welcome')?'none':'block';
   
   const titleEl=document.getElementById('main-title');
-  titleEl.style.display=(name==='welcome')?'none':'block';
+  if(titleEl) titleEl.style.display=(name==='welcome')?'none':'block';
 }
 
 function isMatchLive(){
@@ -634,7 +640,7 @@ function autoPauseIfLive(){
     _stampPausedState(pausedState,GameState.currentMatch,
                       TournamentState.currentStage,TournamentState.currentPhase);
     DataManager.saveTournamentSlot(TournamentState);
-    console.log('✅ Match auto-paused successfully');
+    console.log('âœ… Match auto-paused successfully');
     return true;
   } catch(e){
     console.error('autoPauseIfLive error:',e);
@@ -675,7 +681,7 @@ async function returnToHome(){
       if(TournamentState.format) DataManager.saveTournamentSlot(TournamentState);
       showSection('welcome');
       checkResumeBtnVisibility();
-      showToast('⏸️ Match paused & saved! Tap "Resume Tournament" to continue.','#f59e0b');
+      showToast('â¸ï¸ Match paused & saved! Tap "Resume Tournament" to continue.','#f59e0b');
       return;
     } else {
       if(!(await uiConfirm('A match is in progress. Leave and abandon it?', 'Leave Match'))) return;
@@ -688,8 +694,11 @@ async function returnToHome(){
 }
 
 function checkResumeBtnVisibility(){
+  const hasPending=DataManager.getPendingTournaments().length>0;
   const btn=document.getElementById('resumeTournamentBtn');
-  btn.style.display=DataManager.getPendingTournaments().length>0?'inline-block':'none';
+  if(btn) btn.style.display='none';
+  const menuBtn=document.getElementById('menuResumeBtn');
+  if(menuBtn) menuBtn.style.display=hasPending?'block':'none';
 }
 
 function pauseMatch(){
@@ -701,7 +710,7 @@ function pauseMatch(){
   if(stage==='wtc') showWTCStage();
   else if(stage==='ipl') showIPLStage();
   else showTournamentStage(stage);
-  showToast('⏸️ Match paused successfully','#f59e0b');
+  showToast('â¸ï¸ Match paused successfully','#f59e0b');
 }
 
 async function openRankedModal(){
@@ -745,6 +754,9 @@ function _refundOneToken(){
   p.lastUpdated=new Date().toISOString();
   DataManager.savePlayerProfile(p);
   updatePlayerProfileUI();
+  if (typeof showAuraBurstAnimation === 'function') showAuraBurstAnimation(delta.aura || 0);
+  if (typeof showCoinBankAnimation === 'function') showCoinBankAnimation(delta.tokens || 0);
+  if (typeof showRankGainAnimation === 'function') showRankGainAnimation(delta.rp || 0, p.rankTier, null);
 }
 
 function _clearRankedQueueExpiryTimer(){
@@ -763,12 +775,23 @@ function _clearRankedTurnTimeoutTimer(){
 
 async function _callRankedFn(name,payload){
   if(!(firebaseInitialized&&fns&&currentUser)) return null;
+  if(rankedCallableDisabled) return null;
   try{
     const fn=fns.httpsCallable(name);
     const res=await fn(payload||{});
     return res?.data||null;
   } catch(e){
-    console.warn(`Callable ${name} failed; fallback path may run.`,e);
+    const msg=String(e?.message||'');
+    const code=String(e?.code||'');
+    const hardFailure=msg.includes('404')||msg.includes('CORS')||code.includes('internal')||code.includes('not-found');
+    if(hardFailure){
+      rankedCallableDisabled=true;
+      rankedCallableDisableReason=code||msg||'unknown';
+      console.warn('Ranked callable endpoints unavailable; using client fallback for this session.',e);
+      if(typeof showToast==='function') showToast('Realtime cloud endpoint unavailable. Running safe fallback mode.','#f59e0b');
+      return null;
+    }
+    console.warn('Callable '+name+' failed; fallback path may run.',e);
     return null;
   }
 }
@@ -847,6 +870,9 @@ function _applyRankedSettlementForCurrentUser(roomId,room){
   p.lastUpdated=new Date().toISOString();
   DataManager.savePlayerProfile(p);
   updatePlayerProfileUI();
+  if (typeof showAuraBurstAnimation === 'function') showAuraBurstAnimation(delta.aura || 0);
+  if (typeof showCoinBankAnimation === 'function') showCoinBankAnimation(delta.tokens || 0);
+  if (typeof showRankGainAnimation === 'function') showRankGainAnimation(delta.rp || 0, p.rankTier, null);
   if(firebaseInitialized&&db&&currentUser){
     db.collection('handCricketProgress').doc(currentUser.uid)
       .set({ playerProfile:p, lastSync:new Date().toISOString(), dataVersion:APP_VERSION },{ merge:true })
@@ -1085,8 +1111,13 @@ function _listenRankedRoom(roomId){
       _ensureRankedSettlement(roomId);
       _applyRankedSettlementForCurrentUser(roomId,room);
     } else if(room.status==='live'){
-      if(!rankedTurnTimeoutTimer){
-        rankedTurnTimeoutTimer=setInterval(()=>{ _enforceRankedTurnTimeout(roomId); },4000);
+      const shouldEnforceTimeout=room?.game?.battingUid===currentUser?.uid;
+      if(shouldEnforceTimeout){
+        if(!rankedTurnTimeoutTimer){
+          rankedTurnTimeoutTimer=setInterval(()=>{ _enforceRankedTurnTimeout(roomId); },4000);
+        }
+      } else {
+        _clearRankedTurnTimeoutTimer();
       }
     }
   },err=>{
@@ -1517,7 +1548,7 @@ async function handleTournamentFormatChange(){
   
   d.style.display='block';
   const info={
-    odiWorldCup:{desc:'Challenge League → Super 6 → Qualifier → World Cup. 10 overs.',teams:CRICKET_TEAMS,overs:10},
+    odiWorldCup:{desc:'Challenge League â†’ Super 6 â†’ Qualifier â†’ World Cup. 10 overs.',teams:CRICKET_TEAMS,overs:10},
     t20WorldCup:{desc:'Same structure, 4 overs for fast action!',teams:CRICKET_TEAMS,overs:4},
     wtc:{desc:'3 TEST matches vs each of 9 teams. Win=4pts, Draw=2pts. Top 2 play Final.',teams:CRICKET_TEAMS,overs:25},
     ipl:{desc:'Round-robin with 8 IPL teams, then Eliminators + Final. 5 overs.',teams:IPL_TEAMS,overs:5}
@@ -1574,29 +1605,29 @@ async function startTournament(){
   TournamentState._slotId=null;
   
   const fmtNames={
-    odiWorldCup:'ODI World Cup 🏆',
-    t20WorldCup:'T20 World Cup 🏆',
-    wtc:'World Test Championship 🏆',
-    ipl:'Indian Premier League 🏆'
+    odiWorldCup:'ODI World Cup ðŸ†',
+    t20WorldCup:'T20 World Cup ðŸ†',
+    wtc:'World Test Championship ðŸ†',
+    ipl:'Indian Premier League ðŸ†'
   };
   
   const tTeams={ipl:IPL_TEAMS,odiWorldCup:CRICKET_TEAMS,t20WorldCup:CRICKET_TEAMS,wtc:CRICKET_TEAMS};
   const teamObj=tTeams[TournamentState.format]||CRICKET_TEAMS;
   const tName=(teamObj[u]||{}).name||u;
   
-  await TossAnim.show('🏆',fmtNames[TournamentState.format]||'Tournament Begins!',
+  await TossAnim.show('ðŸ†',fmtNames[TournamentState.format]||'Tournament Begins!',
     'Your team: '+tName,
     'Good luck! Let the tournament begin!'
   );
   
   showSection('tournament');
   const titles={
-    odiWorldCup:'🏆 ODI World Cup',
-    t20WorldCup:'🏆 T20 World Cup',
-    wtc:'🏆 World Test Championship',
-    ipl:'🏆 Indian Premier League'
+    odiWorldCup:'ðŸ† ODI World Cup',
+    t20WorldCup:'ðŸ† T20 World Cup',
+    wtc:'ðŸ† World Test Championship',
+    ipl:'ðŸ† Indian Premier League'
   };
-  Utils.setText('tournamentTitle',titles[TournamentState.format]||'🏆 Tournament');
+  Utils.setText('tournamentTitle',titles[TournamentState.format]||'ðŸ† Tournament');
   
   const nav=Utils.getElement('tournamentNav');
   const sb=Utils.getElement('statsCornerBtn');
@@ -1626,6 +1657,7 @@ async function startTournament(){
 async function startGame(){
   GameState.isTournament=false;
   GameState.currentMatch=null;
+  GameState.matchMode='custom';
   GameState.teamNames[0]=Security.sanitizeInput(Utils.getValue('team1'))||'User Team';
   GameState.teamNames[1]=Security.sanitizeInput(Utils.getValue('team2'))||'Computer';
   const ov=Security.validateNumber(Utils.getValue('overs'),1,50,2);
@@ -1643,7 +1675,7 @@ async function startGame(){
   initializeStats();
   showSection('game');
   
-  await TossAnim.show('🏏','Match About to Begin!',
+  await TossAnim.show('ðŸ','Match About to Begin!',
     GameState.teamNames[0]+' vs '+GameState.teamNames[1],
     GameState.overs+' overs per side'
   );
@@ -1713,18 +1745,18 @@ function showWTCStage(){
   );
   
   let h=`<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px">
-    <h3>🏆 World Test Championship</h3>
-    <button onclick="returnToHome()" style="width:auto;padding:8px 16px;background:#718096;font-size:13px">🏠 Home</button>
+    <h3>ðŸ† World Test Championship</h3>
+    <button onclick="returnToHome()" style="width:auto;padding:8px 16px;background:#718096;font-size:13px">ðŸ  Home</button>
   </div>
   <p>Win=4pts, Draw=2pts, Loss=1pt. Top 2 play Final.</p>
   <table class="points-table"><tr><th>Rank</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>D</th><th>Pts</th><th>Win%</th></tr>`;
   
   sorted.forEach((t,i)=>h+=`<tr class="${i<2?'qualified':''}">`+
-    `<td>${i+1}</td><td>${Security.escapeHtml(CRICKET_TEAMS[t].name)}${t===TournamentState.userTeam?' 🎮':''}</td>`+
+    `<td>${i+1}</td><td>${Security.escapeHtml(CRICKET_TEAMS[t].name)}${t===TournamentState.userTeam?' ðŸŽ®':''}</td>`+
     `<td>${st[t].played}</td><td>${st[t].won}</td><td>${st[t].lost}</td><td>${st[t].drawn}</td>`+
     `<td><strong>${st[t].points}</strong></td><td>${st[t].winPercentage.toFixed(1)}%</td></tr>`);
   
-  h+='</table><h4 style="margin-top:20px">📅 Series</h4>';
+  h+='</table><h4 style="margin-top:20px">ðŸ“… Series</h4>';
   
   Object.entries(sp).forEach(([k,s])=>{
     const isU=s.team1===TournamentState.userTeam||s.team2===TournamentState.userTeam;
@@ -1736,7 +1768,7 @@ function showWTCStage(){
       if(m.completed){
         h+=`<div style="font-size:13px;color:#666;padding:3px 0">Match ${m.matchNumber}: ${Security.escapeHtml(CRICKET_TEAMS[m.team1].name)} ${m.result.team1Score}/${m.result.team1Wickets} vs ${Security.escapeHtml(CRICKET_TEAMS[m.team2].name)} ${m.result.team2Score}/${m.result.team2Wickets} - <strong>${m.result.winner==='tie'?'DRAW':Security.escapeHtml(CRICKET_TEAMS[m.result.winner].name)}</strong></div>`;
       } else {
-        h+=`<div style="padding:4px 0"><button onclick="playWTCMatch('${Security.escapeHtml(k)}',${i})" style="font-size:13px;padding:7px 14px;background:${m.pausedState?'#f59e0b':'#667eea'};color:white;border:none;border-radius:4px;cursor:pointer;width:auto">${m.pausedState?'⏸️ Continue':'▶️ Match '+m.matchNumber}</button></div>`;
+        h+=`<div style="padding:4px 0"><button onclick="playWTCMatch('${Security.escapeHtml(k)}',${i})" style="font-size:13px;padding:7px 14px;background:${m.pausedState?'#f59e0b':'#667eea'};color:white;border:none;border-radius:4px;cursor:pointer;width:auto">${m.pausedState?'â¸ï¸ Continue':'â–¶ï¸ Match '+m.matchNumber}</button></div>`;
       }
     });
     
@@ -1750,16 +1782,16 @@ function showWTCStage(){
   
   const allDone=TournamentState.wtc.allMatches.every(m=>m.completed);
   if(allDone&&!TournamentState.wtc.final){
-    h+=`<button onclick="generateWTCFinal()" style="margin-top:20px">Generate WTC Final →</button>`;
+    h+=`<button onclick="generateWTCFinal()" style="margin-top:20px">Generate WTC Final â†’</button>`;
   }
   
   if(TournamentState.wtc.final){
     const f=TournamentState.wtc.final;
-    h+=`<h4 style="margin-top:20px">🏆 WTC FINAL</h4>`;
+    h+=`<h4 style="margin-top:20px">ðŸ† WTC FINAL</h4>`;
     if(f.completed){
-      h+=`<div class="match-card completed"><strong>${Security.escapeHtml(CRICKET_TEAMS[f.team1].name)}</strong> ${f.result.team1Score}/${f.result.team1Wickets} vs <strong>${Security.escapeHtml(CRICKET_TEAMS[f.team2].name)}</strong> ${f.result.team2Score}/${f.result.team2Wickets}<br><span style="color:#38a169">🏆 Champion: ${f.result.winner==='tie'?'DRAW':Security.escapeHtml(CRICKET_TEAMS[f.result.winner].name)}</span></div>`;
+      h+=`<div class="match-card completed"><strong>${Security.escapeHtml(CRICKET_TEAMS[f.team1].name)}</strong> ${f.result.team1Score}/${f.result.team1Wickets} vs <strong>${Security.escapeHtml(CRICKET_TEAMS[f.team2].name)}</strong> ${f.result.team2Score}/${f.result.team2Wickets}<br><span style="color:#38a169">ðŸ† Champion: ${f.result.winner==='tie'?'DRAW':Security.escapeHtml(CRICKET_TEAMS[f.result.winner].name)}</span></div>`;
     } else {
-      h+=`<div class="match-card" onclick="playWTCFinal()"><strong>${Security.escapeHtml(CRICKET_TEAMS[f.team1].name)}</strong> vs <strong>${Security.escapeHtml(CRICKET_TEAMS[f.team2].name)}</strong><br><span style="color:${f.pausedState?'#f59e0b':'#667eea'}">${f.pausedState?'⏸️ Continue':'▶️ Play Final'}</span></div>`;
+      h+=`<div class="match-card" onclick="playWTCFinal()"><strong>${Security.escapeHtml(CRICKET_TEAMS[f.team1].name)}</strong> vs <strong>${Security.escapeHtml(CRICKET_TEAMS[f.team2].name)}</strong><br><span style="color:${f.pausedState?'#f59e0b':'#667eea'}">${f.pausedState?'â¸ï¸ Continue':'â–¶ï¸ Play Final'}</span></div>`;
     }
   }
   
@@ -1807,13 +1839,13 @@ async function playWTCMatchNew(match){
     GameState.reset();
     initializeStats();
     
-    await TossAnim.show('🏏','WTC Test Match!',
+    await TossAnim.show('ðŸ','WTC Test Match!',
       CRICKET_TEAMS[match.team1].name+' vs '+CRICKET_TEAMS[match.team2].name,
-      'Test Match '+match.matchNumber+' • 25 overs/day • 5 days'
+      'Test Match '+match.matchNumber+' â€¢ 25 overs/day â€¢ 5 days'
     );
     
     await performToss();
-    Utils.log('🏏 TEST MATCH: '+GameState.teamNames[Utils.getBattingTeamIndex(0)]+' batting first!');
+    Utils.log('ðŸ TEST MATCH: '+GameState.teamNames[Utils.getBattingTeamIndex(0)]+' batting first!');
     updateBowlerOptions();
     updateUI();
     Utils.getElement('pauseMatchBtn').style.display='block';
@@ -1973,23 +2005,23 @@ function showIPLRR(){
   );
   
   let h=`<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px">
-    <h3>🏏 IPL Round Robin</h3>
-    <button onclick="returnToHome()" style="width:auto;padding:8px 16px;background:#718096;font-size:13px">🏠 Home</button>
+    <h3>ðŸ IPL Round Robin</h3>
+    <button onclick="returnToHome()" style="width:auto;padding:8px 16px;background:#718096;font-size:13px">ðŸ  Home</button>
   </div>
   <table class="points-table"><tr><th>Pos</th><th>Team</th><th>P</th><th>W</th><th>L</th><th>Pts</th><th>NRR</th></tr>`;
   
   sorted.forEach((t,i)=>h+=`<tr class="${i<4?'qualified':''}">`+
-    `<td>${i+1}</td><td>${Security.escapeHtml(IPL_TEAMS[t].name)}${t===TournamentState.userTeam?' 🎮':''}</td>`+
+    `<td>${i+1}</td><td>${Security.escapeHtml(IPL_TEAMS[t].name)}${t===TournamentState.userTeam?' ðŸŽ®':''}</td>`+
     `<td>${st[t].played}</td><td>${st[t].won}</td><td>${st[t].lost}</td>`+
     `<td><strong>${st[t].points}</strong></td><td>${st[t].nrr.toFixed(2)}</td></tr>`);
   
-  h+='</table><h4 style="margin-top:20px">📅 Fixtures</h4>';
+  h+='</table><h4 style="margin-top:20px">ðŸ“… Fixtures</h4>';
   
   const uM=m.filter(x=>x.team1===TournamentState.userTeam||x.team2===TournamentState.userTeam);
   const oM=m.filter(x=>x.team1!==TournamentState.userTeam&&x.team2!==TournamentState.userTeam);
   
   if(uM.some(x=>!x.completed)){
-    h+='<h5 style="color:#48bb78;margin:12px 0">⚡ Your Matches</h5>';
+    h+='<h5 style="color:#48bb78;margin:12px 0">âš¡ Your Matches</h5>';
     uM.forEach((match)=>{
       const gi=m.indexOf(match);
       h+=renderIPLMatchCard(match,gi);
@@ -2002,7 +2034,7 @@ function showIPLRR(){
   }
   
   if(m.every(x=>x.completed)){
-    h+=`<button onclick="generateIPLPlayoffs()" style="margin-top:20px">Generate Playoffs →</button>`;
+    h+=`<button onclick="generateIPLPlayoffs()" style="margin-top:20px">Generate Playoffs â†’</button>`;
   }
   
   c.innerHTML=h;
@@ -2014,7 +2046,7 @@ function renderIPLMatchCard(match,idx){
     return`<div style="padding:10px;background:#f7fafc;border-radius:5px;margin:5px 0;font-size:14px"><strong>${Security.escapeHtml(IPL_TEAMS[match.team1].name)}</strong> ${match.result.team1Score}/${match.result.team1Wickets} vs <strong>${Security.escapeHtml(IPL_TEAMS[match.team2].name)}</strong> ${match.result.team2Score}/${match.result.team2Wickets} - <strong style="color:#48bb78">${w}</strong></div>`;
   }
   
-  return`<div style="padding:5px 0"><button onclick="playIPLMatch(${Number(idx)})" style="width:100%;padding:10px;background:${match.pausedState?'#f59e0b':'#667eea'};color:white;border:none;border-radius:5px;cursor:pointer">${match.pausedState?'⏸️ Continue: ':'▶️ '}${Security.escapeHtml(IPL_TEAMS[match.team1].name)} vs ${Security.escapeHtml(IPL_TEAMS[match.team2].name)}</button></div>`;
+  return`<div style="padding:5px 0"><button onclick="playIPLMatch(${Number(idx)})" style="width:100%;padding:10px;background:${match.pausedState?'#f59e0b':'#667eea'};color:white;border:none;border-radius:5px;cursor:pointer">${match.pausedState?'â¸ï¸ Continue: ':'â–¶ï¸ '}${Security.escapeHtml(IPL_TEAMS[match.team1].name)} vs ${Security.escapeHtml(IPL_TEAMS[match.team2].name)}</button></div>`;
 }
 
 function playIPLMatch(idx){
@@ -2036,6 +2068,7 @@ async function playIPLMatchNew(match){
   if(isU){
     GameState.isTournament=true;
     GameState.currentMatch=match;
+    GameState.matchMode='custom';
     const u=match.team1===TournamentState.userTeam?match.team1:match.team2;
     const o=match.team1===TournamentState.userTeam?match.team2:match.team1;
     GameState.teamNames[0]=IPL_TEAMS[u].name;
@@ -2050,7 +2083,7 @@ async function playIPLMatchNew(match){
     GameState.reset();
     initializeStats();
     
-    await TossAnim.show('🏏','IPL Match!',
+    await TossAnim.show('ðŸ','IPL Match!',
       IPL_TEAMS[match.team1].name+' vs '+IPL_TEAMS[match.team2].name,
       TournamentState.matchOvers+' overs per side'
     );
@@ -2140,8 +2173,8 @@ function showIPLPlayoffs(){
   const c=Utils.getElement('tournamentContent');
   
   let h=`<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px">
-    <h3>🏏 IPL Playoffs</h3>
-    <button onclick="returnToHome()" style="width:auto;padding:8px 16px;background:#718096;font-size:13px">🏠 Home</button>
+    <h3>ðŸ IPL Playoffs</h3>
+    <button onclick="returnToHome()" style="width:auto;padding:8px 16px;background:#718096;font-size:13px">ðŸ  Home</button>
   </div>`;
   
   const pm=(match,fn)=>{
@@ -2152,25 +2185,25 @@ function showIPLPlayoffs(){
       return`<div style="background:#f7fafc;padding:18px;border-radius:10px;margin:12px 0;border-left:4px solid #48bb78"><h5>${Security.escapeHtml(match.name||'')}</h5><p>${Security.escapeHtml(IPL_TEAMS[match.team1].name)} ${match.result.team1Score}/${match.result.team1Wickets}</p><p>${Security.escapeHtml(IPL_TEAMS[match.team2].name)} ${match.result.team2Score}/${match.result.team2Wickets}</p><strong style="color:#48bb78">Winner: ${w}</strong></div>`;
     }
     
-    return`<div style="background:white;padding:18px;border-radius:10px;margin:12px 0;border:2px solid #667eea"><h5>${Security.escapeHtml(match.name||'')}</h5><button onclick="${fn}()" style="width:100%;padding:14px;background:${match.pausedState?'#f59e0b':'#667eea'};color:white;border:none;border-radius:5px;cursor:pointer">${match.pausedState?'⏸️ Continue: ':'▶️ '}${Security.escapeHtml(IPL_TEAMS[match.team1].name)} vs ${Security.escapeHtml(IPL_TEAMS[match.team2].name)}</button></div>`;
+    return`<div style="background:white;padding:18px;border-radius:10px;margin:12px 0;border:2px solid #667eea"><h5>${Security.escapeHtml(match.name||'')}</h5><button onclick="${fn}()" style="width:100%;padding:14px;background:${match.pausedState?'#f59e0b':'#667eea'};color:white;border:none;border-radius:5px;cursor:pointer">${match.pausedState?'â¸ï¸ Continue: ':'â–¶ï¸ '}${Security.escapeHtml(IPL_TEAMS[match.team1].name)} vs ${Security.escapeHtml(IPL_TEAMS[match.team2].name)}</button></div>`;
   };
   
   h+=pm(TournamentState.ipl.eliminator1,'playE1');
   h+=pm(TournamentState.ipl.eliminator2,'playE2');
   
   if(TournamentState.ipl.eliminator1?.completed&&TournamentState.ipl.eliminator2?.completed&&!TournamentState.ipl.eliminator3){
-    h+=`<button onclick="genE3()" style="margin:15px 0">Generate Eliminator 3 →</button>`;
+    h+=`<button onclick="genE3()" style="margin:15px 0">Generate Eliminator 3 â†’</button>`;
   }
   
   if(TournamentState.ipl.eliminator3){
     h+=pm(TournamentState.ipl.eliminator3,'playE3');
     if(TournamentState.ipl.eliminator3.completed&&!TournamentState.ipl.final){
-      h+=`<button onclick="genFinal()" style="margin:15px 0">Generate Final →</button>`;
+      h+=`<button onclick="genFinal()" style="margin:15px 0">Generate Final â†’</button>`;
     }
   }
   
   if(TournamentState.ipl.final){
-    h+='<h4 style="margin-top:30px;color:#667eea">🏆 IPL FINAL</h4>';
+    h+='<h4 style="margin-top:30px;color:#667eea">ðŸ† IPL FINAL</h4>';
     h+=pm(TournamentState.ipl.final,'playIPLFinalMatch');
   }
   
@@ -2250,61 +2283,61 @@ function showTournamentStage(stage){
       }
       
       const ip=m.pausedState;
-      return`<div class="match-card${ip?' match-card-paused':''}" onclick="playTMatch('${stg}','${ph}',${i})" style="${ip?'border-color:#f59e0b;background:#fffbeb':''}"><strong>${Security.escapeHtml(CRICKET_TEAMS[m.team1].name)}</strong> vs <strong>${Security.escapeHtml(CRICKET_TEAMS[m.team2].name)}</strong>${ip?'<br><span style="color:#f59e0b;font-weight:bold">⏸️ PAUSED</span>':''}<br><span style="color:${ip?'#f59e0b':'#667eea'};font-size:14px">${ip?'▶️ Continue Match':'Click to play →'}</span></div>`;
+      return`<div class="match-card${ip?' match-card-paused':''}" onclick="playTMatch('${stg}','${ph}',${i})" style="${ip?'border-color:#f59e0b;background:#fffbeb':''}"><strong>${Security.escapeHtml(CRICKET_TEAMS[m.team1].name)}</strong> vs <strong>${Security.escapeHtml(CRICKET_TEAMS[m.team2].name)}</strong>${ip?'<br><span style="color:#f59e0b;font-weight:bold">â¸ï¸ PAUSED</span>':''}<br><span style="color:${ip?'#f59e0b':'#667eea'};font-size:14px">${ip?'â–¶ï¸ Continue Match':'Click to play â†’'}</span></div>`;
     }).join('')+'</div>';
   };
   
   const done=arr=>arr.every(m=>m.completed);
   
   let h=`<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px">
-    <span></span><button onclick="returnToHome()" style="width:auto;padding:8px 16px;background:#718096;font-size:13px">🏠 Home</button>
+    <span></span><button onclick="returnToHome()" style="width:auto;padding:8px 16px;background:#718096;font-size:13px">ðŸ  Home</button>
   </div>`;
   
   if(stage==='challengeLeague'){
-    h+=`<h3>🏆 Challenge League</h3><p>Top 3 from each group → Super 6</p>
+    h+=`<h3>ðŸ† Challenge League</h3><p>Top 3 from each group â†’ Super 6</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <div><h4>Group A</h4>${renderTable(TournamentState.challengeLeague.standingsA,TournamentState.challengeLeague.groupA)}${renderM(TournamentState.challengeLeague.matchesA,'challengeLeague','groupA')}</div>
       <div><h4>Group B</h4>${renderTable(TournamentState.challengeLeague.standingsB,TournamentState.challengeLeague.groupB)}${renderM(TournamentState.challengeLeague.matchesB,'challengeLeague','groupB')}</div>
     </div>
-    ${done(TournamentState.challengeLeague.matchesA)&&done(TournamentState.challengeLeague.matchesB)?`<button onclick="Tournament.advanceToSuper6();showTournamentStage('super6')" style="margin-top:15px">Advance to Super 6 →</button>`:''}`;
+    ${done(TournamentState.challengeLeague.matchesA)&&done(TournamentState.challengeLeague.matchesB)?`<button onclick="Tournament.advanceToSuper6();showTournamentStage('super6')" style="margin-top:15px">Advance to Super 6 â†’</button>`:''}`;
   } else if(stage==='super6'){
     if(!TournamentState.super6.teams.length){
       c.innerHTML='<p>Complete Challenge League first!</p>';
       return;
     }
-    h+=`<h3>🏆 Super 6</h3><p>Top 4 advance to Qualifier</p>${renderTable(TournamentState.super6.standings,TournamentState.super6.teams,4)}${renderM(TournamentState.super6.matches,'super6','main')}
-    ${done(TournamentState.super6.matches)?`<button onclick="Tournament.advanceToQualifier();showTournamentStage('qualifier')" style="margin-top:15px">Advance to Qualifier →</button>`:''}`;
+    h+=`<h3>ðŸ† Super 6</h3><p>Top 4 advance to Qualifier</p>${renderTable(TournamentState.super6.standings,TournamentState.super6.teams,4)}${renderM(TournamentState.super6.matches,'super6','main')}
+    ${done(TournamentState.super6.matches)?`<button onclick="Tournament.advanceToQualifier();showTournamentStage('qualifier')" style="margin-top:15px">Advance to Qualifier â†’</button>`:''}`;
   } else if(stage==='qualifier'){
     if(!TournamentState.qualifier.groupA.length){
       c.innerHTML='<p>Complete Super 6 first!</p>';
       return;
     }
-    h+=`<h3>🏆 Qualifier</h3><p>Top 3 from each group → World Cup</p>
+    h+=`<h3>ðŸ† Qualifier</h3><p>Top 3 from each group â†’ World Cup</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <div><h4>Group A</h4>${renderTable(TournamentState.qualifier.standingsA,TournamentState.qualifier.groupA)}${renderM(TournamentState.qualifier.matchesA,'qualifier','groupA')}</div>
       <div><h4>Group B</h4>${renderTable(TournamentState.qualifier.standingsB,TournamentState.qualifier.groupB)}${renderM(TournamentState.qualifier.matchesB,'qualifier','groupB')}</div>
     </div>
-    ${done(TournamentState.qualifier.matchesA)&&done(TournamentState.qualifier.matchesB)?`<button onclick="Tournament.advanceToWorldCup();showTournamentStage('worldCup')" style="margin-top:15px">Advance to World Cup →</button>`:''}`;
+    ${done(TournamentState.qualifier.matchesA)&&done(TournamentState.qualifier.matchesB)?`<button onclick="Tournament.advanceToWorldCup();showTournamentStage('worldCup')" style="margin-top:15px">Advance to World Cup â†’</button>`:''}`;
   } else if(stage==='worldCup'){
     if(!TournamentState.worldCup.teams.length){
       c.innerHTML='<p>Complete Qualifier first!</p>';
       return;
     }
-    h+=`<h3>🏆 World Cup</h3><p>Top 4 → Semi-Finals</p>${renderTable(TournamentState.worldCup.standings,TournamentState.worldCup.teams,4)}${renderM(TournamentState.worldCup.matches,'worldCup','main')}`;
+    h+=`<h3>ðŸ† World Cup</h3><p>Top 4 â†’ Semi-Finals</p>${renderTable(TournamentState.worldCup.standings,TournamentState.worldCup.teams,4)}${renderM(TournamentState.worldCup.matches,'worldCup','main')}`;
     
     if(done(TournamentState.worldCup.matches)&&!TournamentState.worldCup.semiFinals.length){
-      h+=`<button onclick="Tournament.generateSemiFinals();showTournamentStage('worldCup')">Generate Semi-Finals →</button>`;
+      h+=`<button onclick="Tournament.generateSemiFinals();showTournamentStage('worldCup')">Generate Semi-Finals â†’</button>`;
     }
     
     if(TournamentState.worldCup.semiFinals.length){
-      h+=`<h3 style="margin-top:20px">🎯 Semi-Finals</h3>${renderM(TournamentState.worldCup.semiFinals,'worldCup','semis')}`;
+      h+=`<h3 style="margin-top:20px">ðŸŽ¯ Semi-Finals</h3>${renderM(TournamentState.worldCup.semiFinals,'worldCup','semis')}`;
       if(done(TournamentState.worldCup.semiFinals)&&!TournamentState.worldCup.final){
-        h+=`<button onclick="Tournament.generateFinal();showTournamentStage('worldCup')">Generate Final →</button>`;
+        h+=`<button onclick="Tournament.generateFinal();showTournamentStage('worldCup')">Generate Final â†’</button>`;
       }
     }
     
     if(TournamentState.worldCup.final){
-      h+=`<h3 style="margin-top:20px">🏆 FINAL</h3>${renderM([TournamentState.worldCup.final],'worldCup','final')}`;
+      h+=`<h3 style="margin-top:20px">ðŸ† FINAL</h3>${renderM([TournamentState.worldCup.final],'worldCup','final')}`;
     }
   }
   
@@ -2360,7 +2393,7 @@ function showStatsCorner(){
       return`<table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead><tr style="background:#edf2f7"><th style="padding:8px 10px;text-align:left">#</th><th style="padding:8px 10px;text-align:left">Player</th><th style="padding:8px 10px;text-align:center">Runs</th><th style="padding:8px 10px;text-align:center">Balls</th><th style="padding:8px 10px;text-align:center">Avg</th></tr></thead>
       <tbody>${rows.map((p,i)=>`<tr style="background:${i%2?'#f7fafc':'white'}">
-        <td style="padding:8px 10px;font-weight:600;color:#667eea">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+        <td style="padding:8px 10px;font-weight:600;color:#667eea">${i===0?'ðŸ¥‡':i===1?'ðŸ¥ˆ':i===2?'ðŸ¥‰':i+1}</td>
         <td style="padding:8px 10px">${Security.escapeHtml(p.name)}</td>
         <td style="padding:8px 10px;text-align:center;font-weight:700;color:#2d3748">${p.runs||0}</td>
         <td style="padding:8px 10px;text-align:center;color:#718096">${p.balls||0}</td>
@@ -2371,7 +2404,7 @@ function showStatsCorner(){
     return`<table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead><tr style="background:#edf2f7"><th style="padding:8px 10px;text-align:left">#</th><th style="padding:8px 10px;text-align:left">Player</th><th style="padding:8px 10px;text-align:center">Wkts</th><th style="padding:8px 10px;text-align:center">Runs</th><th style="padding:8px 10px;text-align:center">Avg</th></tr></thead>
       <tbody>${rows.map((p,i)=>`<tr style="background:${i%2?'#f7fafc':'white'}">
-        <td style="padding:8px 10px;font-weight:600;color:#f5576c">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+        <td style="padding:8px 10px;font-weight:600;color:#f5576c">${i===0?'ðŸ¥‡':i===1?'ðŸ¥ˆ':i===2?'ðŸ¥‰':i+1}</td>
         <td style="padding:8px 10px">${Security.escapeHtml(p.name)}</td>
         <td style="padding:8px 10px;text-align:center;font-weight:700;color:#2d3748">${p.wickets||0}</td>
         <td style="padding:8px 10px;text-align:center;color:#718096">${p.runsConceded||0}</td>
@@ -2389,12 +2422,12 @@ function showStatsCorner(){
   const badgeRow=`
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:20px">
       ${[
-        ['💯','Centuries',cenCnt,'#667eea'],
-        ['5️⃣0️⃣','Half-Tons',fifCnt,'#f59e0b'],
-        ['🎩','Hat-Tricks',hatCnt,'#ef4444'],
-        ['🔥','3-Wkt Hauls',threeWkt,'#48bb78'],
-        ['🔥🔥','5-Wkt Hauls',fiveWkt,'#764ba2'],
-        ['💥','10-Wkt Hauls',tenWkt,'#e53e3e']
+        ['ðŸ’¯','Centuries',cenCnt,'#667eea'],
+        ['5ï¸âƒ£0ï¸âƒ£','Half-Tons',fifCnt,'#f59e0b'],
+        ['ðŸŽ©','Hat-Tricks',hatCnt,'#ef4444'],
+        ['ðŸ”¥','3-Wkt Hauls',threeWkt,'#48bb78'],
+        ['ðŸ”¥ðŸ”¥','5-Wkt Hauls',fiveWkt,'#764ba2'],
+        ['ðŸ’¥','10-Wkt Hauls',tenWkt,'#e53e3e']
       ].map(([icon,label,count,color])=>`
         <div style="background:${color};color:white;border-radius:12px;padding:14px 10px;text-align:center">
           <div style="font-size:1.6em">${icon}</div>
@@ -2410,21 +2443,21 @@ function showStatsCorner(){
       </div>`:'';
   
   const milestonesHtml=
-    mlRow(s.centuries,'💯','Centuries','#667eea',c=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(c.player)}</span><span><strong>${c.runs}</strong> (${c.balls}b) — ${Security.escapeHtml((c.match||'').substring(0,30))}</span></div>`)+
-    mlRow(s.fifties,'5️⃣0️⃣','Half-Centuries','#f59e0b',f=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(f.player)}</span><span><strong>${f.runs}</strong> (${f.balls}b) — ${Security.escapeHtml((f.match||'').substring(0,30))}</span></div>`)+
-    mlRow(s.hatTricks,'🎩','Hat-Tricks','#ef4444',h=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(h.player)}</span><span style="color:#718096">${Security.escapeHtml((h.match||'').substring(0,35))}</span></div>`)+
-    mlRow(s.threeWickets,'🔥','3-Wicket Hauls','#48bb78',w=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(w.player)}</span><span><strong>${w.wickets}/${w.runs}</strong> — ${Security.escapeHtml((w.match||'').substring(0,25))}</span></div>`)+
-    mlRow(s.fiveWickets,'🔥🔥','5-Wicket Hauls','#764ba2',w=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(w.player)}</span><span><strong>${w.wickets}/${w.runs}</strong> — ${Security.escapeHtml((w.match||'').substring(0,25))}</span></div>`)+
-    mlRow(s.tenWickets,'💥','10-Wicket Hauls','#e53e3e',w=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(w.player)}</span><span><strong>${w.wickets}/${w.runs}</strong> — ${Security.escapeHtml((w.match||'').substring(0,25))}</span></div>`);
+    mlRow(s.centuries,'ðŸ’¯','Centuries','#667eea',c=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(c.player)}</span><span><strong>${c.runs}</strong> (${c.balls}b) â€” ${Security.escapeHtml((c.match||'').substring(0,30))}</span></div>`)+
+    mlRow(s.fifties,'5ï¸âƒ£0ï¸âƒ£','Half-Centuries','#f59e0b',f=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(f.player)}</span><span><strong>${f.runs}</strong> (${f.balls}b) â€” ${Security.escapeHtml((f.match||'').substring(0,30))}</span></div>`)+
+    mlRow(s.hatTricks,'ðŸŽ©','Hat-Tricks','#ef4444',h=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(h.player)}</span><span style="color:#718096">${Security.escapeHtml((h.match||'').substring(0,35))}</span></div>`)+
+    mlRow(s.threeWickets,'ðŸ”¥','3-Wicket Hauls','#48bb78',w=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(w.player)}</span><span><strong>${w.wickets}/${w.runs}</strong> â€” ${Security.escapeHtml((w.match||'').substring(0,25))}</span></div>`)+
+    mlRow(s.fiveWickets,'ðŸ”¥ðŸ”¥','5-Wicket Hauls','#764ba2',w=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(w.player)}</span><span><strong>${w.wickets}/${w.runs}</strong> â€” ${Security.escapeHtml((w.match||'').substring(0,25))}</span></div>`)+
+    mlRow(s.tenWickets,'ðŸ’¥','10-Wicket Hauls','#e53e3e',w=>`<div style="font-size:13px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between"><span>${Security.escapeHtml(w.player)}</span><span><strong>${w.wickets}/${w.runs}</strong> â€” ${Security.escapeHtml((w.match||'').substring(0,25))}</span></div>`);
   
   const backFn=TournamentState.currentStage==='wtc'?'showWTCStage':TournamentState.currentStage==='ipl'?'showIPLStage':`showTournamentStage('${TournamentState.currentStage}')`;
   
   c.innerHTML=`
     <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
-      <button onclick="${backFn}()" style="width:auto;padding:10px 20px;background:#718096;color:white;border:none;border-radius:5px;cursor:pointer">← Back</button>
-      <button onclick="returnToHome()" style="width:auto;padding:10px 20px;background:#718096;color:white;border:none;border-radius:5px;cursor:pointer">🏠 Home</button>
+      <button onclick="${backFn}()" style="width:auto;padding:10px 20px;background:#718096;color:white;border:none;border-radius:5px;cursor:pointer">â† Back</button>
+      <button onclick="returnToHome()" style="width:auto;padding:10px 20px;background:#718096;color:white;border:none;border-radius:5px;cursor:pointer">ðŸ  Home</button>
     </div>
-    <h3 style="text-align:center;margin-bottom:4px">📊 Stats Corner</h3>
+    <h3 style="text-align:center;margin-bottom:4px">ðŸ“Š Stats Corner</h3>
     <p style="text-align:center;color:#718096;margin-bottom:20px;font-size:14px">${Security.escapeHtml(tName)}</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px">
       <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:18px;border-radius:12px;color:white;text-align:center">
@@ -2436,11 +2469,11 @@ function showStatsCorner(){
     </div>
     ${badgeRow}
     <div style="background:white;border-radius:10px;padding:20px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.07)">
-      <h4 style="color:#667eea;margin-bottom:12px">🏏 Most Runs</h4>
+      <h4 style="color:#667eea;margin-bottom:12px">ðŸ Most Runs</h4>
       ${tbl(topBat,'bat')}
     </div>
     <div style="background:white;border-radius:10px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.07)">
-      <h4 style="color:#f5576c;margin-bottom:12px">⚡ Most Wickets Taken</h4>
+      <h4 style="color:#f5576c;margin-bottom:12px">âš¡ Most Wickets Taken</h4>
       ${tbl(topBow,'bow')}
     </div>
     ${milestonesHtml||'<p style="text-align:center;color:#a0aec0;padding:20px">Play tournament matches to unlock milestones!</p>'}`;
@@ -2515,16 +2548,23 @@ window.addEventListener('DOMContentLoaded',()=>{
       fns=(typeof firebase.functions==='function')?firebase.functions():null;
       firebaseInitialized=true;
       auth.onAuthStateChanged(u=>{
+        const nextUid=u&&u.uid?u.uid:null;
+        if(typeof switchProgressIdentity==='function'){
+          try { switchProgressIdentity(nextUid); } catch(e){ console.error('Identity switch error:',e); }
+        }
         currentUser=u;
         updateAuthUI();
+        TournamentHistory.displayHistory();
+        checkResumeBtnVisibility();
+        updatePlayerProfileUI();
         if(u){
           loadProgressFromCloud();
           _resumeActiveRankedRoom();
         }
       });
-      console.log('✅ Firebase initialized');
+      console.log('âœ… Firebase initialized');
     } else {
-      console.log('ℹ️ Firebase not loaded - local mode active');
+      console.log('â„¹ï¸ Firebase not loaded - local mode active');
     }
   } catch(e){
     console.error('Firebase init error:',e);
@@ -2567,8 +2607,8 @@ window.addEventListener('DOMContentLoaded',()=>{
       }
     });
   }  
-  console.log('🏏 Hand Cricket v'+APP_VERSION+' loaded!');
-  console.log('💾 Saved tournaments:',DataManager.getPendingTournaments().length,'| Match history:',DataManager.getMatchHistory().length);
+  console.log('ðŸ Hand Cricket v'+APP_VERSION+' loaded!');
+  console.log('ðŸ’¾ Saved tournaments:',DataManager.getPendingTournaments().length,'| Match history:',DataManager.getMatchHistory().length);
 });
 
 // Make functions global
@@ -2605,7 +2645,7 @@ window.playIPLFinalMatch=playIPLFinalMatch;
 window.genE3=genE3;
 window.genFinal=genFinal;
 
-console.log('✅ Hand Cricket v3.5.0 - Ranked queue placeholder enabled.');
+console.log('âœ… Hand Cricket v3.5.0 - Ranked queue placeholder enabled.');
 
 
 
@@ -2626,5 +2666,257 @@ console.log('✅ Hand Cricket v3.5.0 - Ranked queue placeholder enabled.');
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ENHANCED_SETUP_UX_V2
+const TEAM_BADGES = {
+  india:'ðŸ‡®ðŸ‡³', australia:'ðŸ‡¦ðŸ‡º', england:'ðŸ´', pakistan:'ðŸ‡µðŸ‡°', southafrica:'ðŸ‡¿ðŸ‡¦', newzealand:'ðŸ‡³ðŸ‡¿',
+  westindies:'ðŸï¸', srilanka:'ðŸ‡±ðŸ‡°', bangladesh:'ðŸ‡§ðŸ‡©', afghanistan:'ðŸ‡¦ðŸ‡«', ireland:'ðŸ‡®ðŸ‡ª', netherlands:'ðŸ‡³ðŸ‡±',
+  csk:'ðŸ¦', mi:'ðŸ”µ', rcb:'ðŸ”¥', kkr:'ðŸŸ£', srh:'ðŸ§¡', rr:'ðŸ’—', dc:'ðŸ¦…', pbks:'ðŸ›¡ï¸'
+};
+
+let draftPoolPlayers = [];
+let draftSelectedPlayers = new Set();
+
+function _csvPlayers(text, maxCount = 22) {
+  return String(text || '')
+    .split(',')
+    .map(p => Security.sanitizeInput(p))
+    .filter(Boolean)
+    .slice(0, maxCount);
+}
+
+function _teamBadgeFor(keyOrName) {
+  const key = String(keyOrName || '').trim().toLowerCase();
+  if (!key) return 'ðŸ';
+  if (TEAM_BADGES[key]) return TEAM_BADGES[key];
+  const byName = Object.keys(CRICKET_TEAMS).find(k => (CRICKET_TEAMS[k].name || '').toLowerCase() === key)
+    || Object.keys(IPL_TEAMS).find(k => (IPL_TEAMS[k].name || '').toLowerCase() === key);
+  if (byName && TEAM_BADGES[byName]) return TEAM_BADGES[byName];
+  return 'ðŸ';
+}
+
+function renderTeamFlagPreview() {
+  const userEl = document.getElementById('userTeamFlagPreview');
+  const oppEl = document.getElementById('oppTeamFlagPreview');
+  if (!userEl || !oppEl) return;
+
+  const userName = Utils.getValue('team1') || 'Your Team';
+  const oppKey = Utils.getValue('predefinedTeams');
+  const oppName = oppKey && CRICKET_TEAMS[oppKey] ? CRICKET_TEAMS[oppKey].name : (Utils.getValue('team2') || 'Computer');
+
+  userEl.textContent = `${_teamBadgeFor(userName)} ${userName}`;
+  oppEl.textContent = `${_teamBadgeFor(oppKey || oppName)} ${oppName}`;
+}
+
+function _buildDraftPool() {
+  const direct = _csvPlayers(Utils.getValue('team1Players'), 80);
+  const pool = [];
+  direct.forEach(p => { if (!pool.includes(p)) pool.push(p); });
+  while (pool.length < 22) pool.push(`Reserve Player ${pool.length + 1}`);
+  draftPoolPlayers = pool.slice(0, 22);
+  if (!draftSelectedPlayers || !(draftSelectedPlayers instanceof Set)) draftSelectedPlayers = new Set();
+  draftSelectedPlayers = new Set(Array.from(draftSelectedPlayers).filter(n => draftPoolPlayers.includes(n)).slice(0, 11));
+}
+
+function _renderDraftPanel() {
+  const list = document.getElementById('playerDraftList');
+  const count = document.getElementById('playerDraftCount');
+  if (!list || !count) return;
+  list.innerHTML = '';
+  draftPoolPlayers.forEach(name => {
+    const id = `draft_${name.replace(/[^a-z0-9]/gi, '_')}`;
+    const wrap = document.createElement('label');
+    wrap.style.cssText = 'display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px;cursor:pointer';
+    const checked = draftSelectedPlayers.has(name) ? 'checked' : '';
+    wrap.innerHTML = `<input id="${id}" type="checkbox" ${checked} style="width:auto;margin:0" /> <span>${Security.escapeHtml(name)}</span>`;
+    const cb = wrap.querySelector('input');
+    cb.addEventListener('change', () => {
+      if (cb.checked) {
+        if (draftSelectedPlayers.size >= 11) {
+          cb.checked = false;
+          uiAlert('You can select only 11 players.', 'Playing XI');
+          return;
+        }
+        draftSelectedPlayers.add(name);
+      } else {
+        draftSelectedPlayers.delete(name);
+      }
+      count.textContent = `Selected: ${draftSelectedPlayers.size}/11`;
+    });
+    list.appendChild(wrap);
+  });
+  count.textContent = `Selected: ${draftSelectedPlayers.size}/11`;
+}
+
+function togglePlayerDraftPanel() {
+  const panel = document.getElementById('playerDraftPanel');
+  if (!panel) return;
+  const open = panel.style.display !== 'none';
+  if (open) {
+    panel.style.display = 'none';
+    return;
+  }
+  _buildDraftPool();
+  _renderDraftPanel();
+  panel.style.display = 'block';
+}
+
+function autoPickPlayingXI() {
+  if (!draftPoolPlayers.length) _buildDraftPool();
+  draftSelectedPlayers = new Set();
+  const shuffled = [...draftPoolPlayers].sort(() => Math.random() - 0.5).slice(0, 11);
+  shuffled.forEach(p => draftSelectedPlayers.add(p));
+  _renderDraftPanel();
+}
+
+async function applySelectedXI() {
+  if (draftSelectedPlayers.size !== 11) {
+    await uiAlert('Please select exactly 11 players.', 'Playing XI');
+    return;
+  }
+  const selected = Array.from(draftSelectedPlayers);
+  const t1 = document.getElementById('team1Players');
+  if (t1) t1.value = selected.join(', ');
+  const panel = document.getElementById('playerDraftPanel');
+  if (panel) panel.style.display = 'none';
+  showToast('Playing XI applied.', '#48bb78');
+}
+
+function updatePredefinedTeams(obj) {
+  const s = Utils.getElement('predefinedTeams');
+  if (!s) return;
+  s.innerHTML = '<option value="">--Select Team--</option>';
+  Object.keys(obj).forEach(k => {
+    const o = document.createElement('option');
+    const teamName = (CRICKET_TEAMS[k] && CRICKET_TEAMS[k].name) ? CRICKET_TEAMS[k].name : k.toUpperCase();
+    o.value = k;
+    o.textContent = `${_teamBadgeFor(k)} ${teamName}`;
+    s.appendChild(o);
+  });
+}
+
+function handleTeamSelection() {
+  const k = Utils.getValue('predefinedTeams');
+  if (!k) { renderTeamFlagPreview(); return; }
+  const p = PREDEFINED_TEAMS[k];
+  if (p) Utils.getElement('team2Players').value = p.join(', ');
+  if (CRICKET_TEAMS[k] && Utils.getElement('team2')) Utils.getElement('team2').value = CRICKET_TEAMS[k].name;
+  renderTeamFlagPreview();
+}
+
+function handleModeChange() {
+  const m = Utils.getValue('matchMode');
+  GameState.matchMode = m;
+
+  if (m === 'tournament') {
+    Utils.getElement('customMatchSetup').style.display = 'none';
+    Utils.getElement('tournamentSetup').style.display = 'block';
+  } else {
+    Utils.getElement('customMatchSetup').style.display = 'block';
+    Utils.getElement('tournamentSetup').style.display = 'none';
+    const o = Utils.getElement('overs');
+    const ov = { t20i: 4, odi: 10, test: 25, rct: 15 };
+    if (ov[m]) {
+      o.value = ov[m];
+      o.disabled = true;
+    } else {
+      o.disabled = false;
+    }
+    updatePredefinedTeams(PREDEFINED_TEAMS);
+    renderTeamFlagPreview();
+  }
+}
+
+async function startGame() {
+  GameState.isTournament = false;
+  GameState.currentMatch = null;
+  GameState.matchMode = 'custom';
+  GameState.teamNames[0] = Security.sanitizeInput(Utils.getValue('team1')) || 'User Team';
+  GameState.teamNames[1] = Security.sanitizeInput(Utils.getValue('team2')) || 'Computer';
+  const ov = Security.validateNumber(Utils.getValue('overs'), 1, 50, 2);
+  GameState.overs = ov;
+  GameState.totalBallsPerInnings = ov * GameState.ballsPerOver;
+
+  const userPlayers = _csvPlayers(Utils.getValue('team1Players'), 22);
+  const oppPlayers = _csvPlayers(Utils.getValue('team2Players'), 22);
+
+  if (userPlayers.length !== 11) {
+    await uiAlert('User team must have exactly 11 players. Use "Select XI from 22".', 'Invalid Playing XI');
+    return;
+  }
+  if (oppPlayers.length < 2) {
+    await uiAlert('At least 2 players required for opponent team.', 'Invalid Team Setup');
+    return;
+  }
+
+  GameState.teamPlayers[0] = userPlayers.slice(0, 11);
+  GameState.teamPlayers[1] = oppPlayers.slice(0, 11);
+
+  GameState.reset();
+  initializeStats();
+  showSection('game');
+
+  await TossAnim.show('ðŸ', 'Match About to Begin!',
+    `${GameState.teamNames[0]} vs ${GameState.teamNames[1]}`,
+    `${GameState.overs} overs per side`
+  );
+
+  await performToss();
+  Utils.getElement('resultBox').style.display = 'none';
+  Utils.log(GameState.teamNames[Utils.getBattingTeamIndex(0)] + ' batting first!');
+  updateBowlerOptions();
+  updateUI();
+}
+
+function _resolveUserFlagGlyph() {
+  if (GameState.isTournament && TournamentState.userTeam) return _teamBadgeFor(TournamentState.userTeam);
+  const userName = GameState.teamNames[GameState.userTeamIndex] || Utils.getValue('team1');
+  return _teamBadgeFor(userName);
+}
+
+const _finishMatchOriginal = finishMatch;
+finishMatch = function(resultText, resultType) {
+  let outcome = 'draw';
+  if (resultType === 'win') {
+    outcome = String(resultText || '').includes(GameState.teamNames[GameState.userTeamIndex]) ? 'won' : 'lost';
+  }
+  _finishMatchOriginal(resultText, resultType);
+  const isWin = outcome === 'won';
+  if (typeof showMatchOutcomeAnimation === 'function') showMatchOutcomeAnimation(isWin, resultText || '');
+  if (isWin && typeof showWinFlagBackdrop === 'function') showWinFlagBackdrop(_resolveUserFlagGlyph());
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  ['team1', 'team2', 'predefinedTeams'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', renderTeamFlagPreview);
+    if (el && id === 'predefinedTeams') el.addEventListener('change', renderTeamFlagPreview);
+  });
+  const t1p = document.getElementById('team1Players');
+  if (t1p) t1p.addEventListener('change', () => {
+    draftPoolPlayers = [];
+    draftSelectedPlayers = new Set();
+  });
+  renderTeamFlagPreview();
+});
+
+window.togglePlayerDraftPanel = togglePlayerDraftPanel;
+window.autoPickPlayingXI = autoPickPlayingXI;
+window.applySelectedXI = applySelectedXI;
+window.handleModeChange = handleModeChange;
+window.handleTeamSelection = handleTeamSelection;
+window.startGame = startGame;
 
 
