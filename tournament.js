@@ -737,13 +737,51 @@ async function openRankedModal(){
   }
 }
 
+
+async function openLiveRoomById(roomId, sourceLabel){
+  if(!roomId) return;
+  const modal=document.getElementById('rankedModal');
+  const statusEl=document.getElementById('rankedStatus');
+  const cancelBtn=document.getElementById('rankedCancelBtn');
+  const findBtn=document.getElementById('rankedFindBtn');
+  const readyBtn=document.getElementById('rankedReadyBtn');
+  const livePanel=document.getElementById('rankedLivePanel');
+  const numberRow=document.getElementById('rankedNumberRow');
+  if(!modal||!statusEl||!cancelBtn||!findBtn||!readyBtn||!livePanel||!numberRow) return;
+  rankedRoomId=roomId;
+  statusEl.textContent=(sourceLabel||'Live Match')+': connecting...';
+  cancelBtn.style.display='none';
+  findBtn.disabled=true;
+  findBtn.textContent='In Match';
+  readyBtn.style.display='none';
+  livePanel.style.display='block';
+  numberRow.style.display='none';
+  modal.style.display='flex';
+  _listenRankedRoom(roomId);
+}
 async function closeRankedModal(){
   if(rankedRoomId){
-    const ok=await uiConfirm('Leave ranked room? If match is live, this counts as forfeit.', 'Leave Ranked Room');
-    if(!ok) return;
     await leaveRankedRoom(true);
   }
   cancelRankedQueue();
+  _clearRankedTurnTimeoutTimer();
+  if(rankedRoomUnsub){ rankedRoomUnsub(); rankedRoomUnsub=null; }
+  rankedRoomId=null;
+  rankedTossShownForRoom=null;
+
+  const statusEl=document.getElementById('rankedStatus');
+  const cancelBtn=document.getElementById('rankedCancelBtn');
+  const findBtn=document.getElementById('rankedFindBtn');
+  const readyBtn=document.getElementById('rankedReadyBtn');
+  const livePanel=document.getElementById('rankedLivePanel');
+  const numberRow=document.getElementById('rankedNumberRow');
+  if(statusEl) statusEl.textContent='Press "Find Match" to start matchmaking.';
+  if(cancelBtn) cancelBtn.style.display='none';
+  if(findBtn){ findBtn.disabled=false; findBtn.textContent='Find Match'; }
+  if(readyBtn) readyBtn.style.display='none';
+  if(livePanel) livePanel.style.display='none';
+  if(numberRow) numberRow.style.display='none';
+
   const modal=document.getElementById('rankedModal');
   if(modal) modal.style.display='none';
 }
@@ -754,9 +792,6 @@ function _refundOneToken(){
   p.lastUpdated=new Date().toISOString();
   DataManager.savePlayerProfile(p);
   updatePlayerProfileUI();
-  if (typeof showAuraBurstAnimation === 'function') showAuraBurstAnimation(delta.aura || 0);
-  if (typeof showCoinBankAnimation === 'function') showCoinBankAnimation(delta.tokens || 0);
-  if (typeof showRankGainAnimation === 'function') showRankGainAnimation(delta.rp || 0, p.rankTier, null);
 }
 
 function _clearRankedQueueExpiryTimer(){
@@ -818,17 +853,17 @@ function _hasAppliedRankedSettlement(roomId){
 function _computeRankedSettlement(room){
   const [p1,p2]=_getRankedPlayers(room);
   const winner=room.winnerUid||null;
+  const roomType=String(room.type||'ranked');
   const deltas={};
-  const isDraw=!winner;
   [p1,p2].forEach(p=>{
     if(!p.uid) return;
     let rp=0,aura=0,tokens=1;
-    if(isDraw){
-      rp=8; aura=3;
-    } else if(p.uid===winner){
-      rp=30; aura=15; tokens=2;
+    if(roomType==='ranked'){
+      // RP/Aura progression is clan-clash driven now.
+      rp=0; aura=0; tokens=(p.uid===winner)?2:1;
+      if(!winner) tokens=1;
     } else {
-      rp=-14; aura=-5; tokens=1;
+      rp=0; aura=0; tokens=1;
     }
     deltas[p.uid]={ rp,aura,tokens };
   });
@@ -863,25 +898,22 @@ function _applyRankedSettlementForCurrentUser(roomId,room){
   const delta=room.settlement[currentUser.uid];
   if(!delta) return;
   const p=DataManager.getPlayerProfile();
-  p.rankPoints=Math.max(0,(p.rankPoints||0)+(delta.rp||0));
-  p.aura=Math.max(0,(p.aura||0)+(delta.aura||0));
+  p.rankPoints=Math.max(0,(p.rankPoints||0));
+  p.aura=Math.max(0,(p.aura||0));
   p.matchTokens=Math.max(0,(p.matchTokens||0)+(delta.tokens||0));
   p.rankTier=(typeof DataManager._resolveRankTier==='function') ? DataManager._resolveRankTier(p.rankPoints) : p.rankTier;
   p.lastUpdated=new Date().toISOString();
   DataManager.savePlayerProfile(p);
   updatePlayerProfileUI();
-  if (typeof showAuraBurstAnimation === 'function') showAuraBurstAnimation(delta.aura || 0);
   if (typeof showCoinBankAnimation === 'function') showCoinBankAnimation(delta.tokens || 0);
-  if (typeof showRankGainAnimation === 'function') showRankGainAnimation(delta.rp || 0, p.rankTier, null);
   if(firebaseInitialized&&db&&currentUser){
     db.collection('handCricketProgress').doc(currentUser.uid)
       .set({ playerProfile:p, lastSync:new Date().toISOString(), dataVersion:APP_VERSION },{ merge:true })
       .catch(err=>console.error('ranked settlement cloud sync error:',err));
   }
   _markRankedSettlementApplied(roomId);
-  showToast(`Ranked settled: ${delta.rp>=0?'+':''}${delta.rp} RP, ${delta.aura>=0?'+':''}${delta.aura} Aura, +${delta.tokens} Token(s).`,'#48bb78');
+  showToast(`Match settled: +${delta.tokens||0} Token(s).`,'#48bb78');
 }
-
 function _getRankedPlayers(room){
   const p1=room?.players?.[0]||{};
   const p2=room?.players?.[1]||{};
@@ -892,7 +924,15 @@ function _buildInitialRankedGame(room, battingUidOverride, bowlingUidOverride){
   const [p1,p2]=_getRankedPlayers(room);
   const battingUid=battingUidOverride||p1.uid;
   const bowlingUid=bowlingUidOverride||p2.uid;
-  const overs=Security.validateNumber(room?.overs,2,10,4);
+  const overs=Security.validateNumber(room?.overs,2,25,4);
+  const teamLineups = room?.teamLineups || {};
+  const batLineup = Array.isArray(teamLineups[battingUid]) ? teamLineups[battingUid] : [];
+  const bowlLineup = Array.isArray(teamLineups[bowlingUid]) ? teamLineups[bowlingUid] : [];
+  const makeIdx = (line)=> ({ striker: 0, nonStriker: line.length>1?1:0, maxWkts: Math.max(1, line.length ? line.length-1 : 10) });
+  const idxMap = {
+    [battingUid]: makeIdx(batLineup),
+    [bowlingUid]: makeIdx(bowlLineup)
+  };
   return {
     innings:1,
     maxBalls:overs*6,
@@ -902,12 +942,14 @@ function _buildInitialRankedGame(room, battingUidOverride, bowlingUidOverride){
     target:null,
     battingUid,
     bowlingUid,
+    teamLineups,
+    batterIndexMap: idxMap,
     submissions:{},
     turn:1,
-    turnStartedAtMs:Date.now(),    lastEvent:'Match started ('+overs+' overs)'
+    turnStartedAtMs:Date.now(),
+    lastEvent:'Match started ('+overs+' overs)'
   };
 }
-
 function _rankedText(room){
   const [p1,p2]=_getRankedPlayers(room);
   return {
@@ -916,6 +958,17 @@ function _rankedText(room){
   };
 }
 
+
+function _getLiveBatterNames(room, game){
+  const g = game || {};
+  const batUid = g.battingUid;
+  const lineups = g.teamLineups || room?.teamLineups || {};
+  const lineup = Array.isArray(lineups[batUid]) ? lineups[batUid] : [];
+  const idx = (g.batterIndexMap && g.batterIndexMap[batUid]) || { striker:0, nonStriker:1 };
+  const striker = lineup[idx.striker] || (batUid===room?.players?.[0]?.uid ? room?.players?.[0]?.name : room?.players?.[1]?.name) || 'Striker';
+  const nonStriker = lineup[idx.nonStriker] || striker;
+  return { striker, nonStriker };
+}
 function _setRankedNumberButtonsEnabled(enabled){
   document.querySelectorAll('#rankedNumberRow button').forEach(b=>{ b.disabled=!enabled; });
 }
@@ -958,11 +1011,12 @@ function _updateRankedRoomUI(room){
     const mySubmitted=g.submissions&&g.submissions[meUid]!==undefined;
     const myRole=meUid===batUid?'Batting':'Bowling';
 
-    statusEl.textContent=`Live Room ${rankedRoomId} | ${myRole}`;
+    const roomLabel = room.type==='friendly' ? 'Friendly' : room.type==='clan_clash' ? 'Clan Clash' : 'Ranked';
+    statusEl.textContent=`${roomLabel} Room ${rankedRoomId} | ${myRole}`;
     if(room.tossWinnerUid&&room.tossChoice&&rankedTossShownForRoom!==rankedRoomId){
       rankedTossShownForRoom=rankedRoomId;
       const tossWinnerName=room.tossWinnerUid===p1.uid?(p1.name||'P1'):(p2.name||'P2');
-      TossAnim.show('TOSS','Ranked Toss',`${tossWinnerName} won toss and chose to ${room.tossChoice} first.`,`${room.overs||4} overs each`).catch(()=>{});
+      TossAnim.show('TOSS', roomLabel + ' Toss',`${tossWinnerName} won toss and chose to ${room.tossChoice} first.`,`${room.overs||4} overs each`).catch(()=>{});
     }
     readyBtn.style.display='none';
     livePanel.style.display='block';
@@ -970,13 +1024,13 @@ function _updateRankedRoomUI(room){
     cancelBtn.style.display='none';
     findBtn.disabled=true;
     findBtn.textContent='In Match';
+    const batters = _getLiveBatterNames(room, g);
     scoreEl.textContent=`Innings ${g.innings}: ${batName} ${g.scores?.[batUid]||0}/${g.wickets?.[batUid]||0} in ${g.balls||0}/${g.maxBalls||RANKED_MAX_BALLS} balls | ${bowlName} ${g.scores?.[bowlUid]||0}/${g.wickets?.[bowlUid]||0}${g.target?` | Target ${g.target}`:''}`;
-    turnEl.textContent=mySubmitted?'Number submitted. Waiting for opponent...':(g.lastEvent||'Play your number (0-6).');
+    turnEl.textContent=(mySubmitted?'Number submitted. Waiting for opponent...':(g.lastEvent||'Play your number (0-6).'))+` | Striker: ${batters.striker} | Non-striker: ${batters.nonStriker}`;
     _setRankedNumberButtonsEnabled(!mySubmitted);
     return;
   }
-
-  if(room.status==='finished'){
+if(room.status==='finished'){
     const winnerUid=room.winnerUid||null;
     const winnerName=winnerUid===p1.uid?(p1.name||'P1'):winnerUid===p2.uid?(p2.name||'P2'):'No one';
     statusEl.textContent=`Match finished: ${winnerName}${winnerUid?' won':' (Draw)'}`;
@@ -1168,7 +1222,6 @@ function _resolveRankedTurn(game, room){
   const batNum=Number(g.submissions?.[batUid]);
   const bowlNum=Number(g.submissions?.[bowlUid]);
   const [p1,p2]=_getRankedPlayers(room);
-  const batName=batUid===p1.uid?(p1.name||'P1'):(p2.name||'P2');
 
   g.scores=g.scores||{};
   g.wickets=g.wickets||{};
@@ -1176,24 +1229,43 @@ function _resolveRankedTurn(game, room){
   g.wickets[batUid]=g.wickets[batUid]||0;
   g.scores[bowlUid]=g.scores[bowlUid]||0;
   g.wickets[bowlUid]=g.wickets[bowlUid]||0;
+  g.teamLineups = g.teamLineups || room?.teamLineups || {};
+  g.batterIndexMap = g.batterIndexMap || {};
+
+  const lineup = Array.isArray(g.teamLineups[batUid]) ? g.teamLineups[batUid] : [];
+  if (!g.batterIndexMap[batUid]) {
+    g.batterIndexMap[batUid] = { striker:0, nonStriker: lineup.length>1?1:0, maxWkts: Math.max(1, lineup.length?lineup.length-1:10) };
+  }
+  const idx = g.batterIndexMap[batUid];
+  const strikerName = lineup[idx.striker] || (batUid===p1.uid?(p1.name||'P1'):(p2.name||'P2'));
 
   if(batNum===bowlNum){
     g.wickets[batUid]+=1;
-    g.lastEvent=`Wicket! ${batName} is out on ${batNum}.`;
+    g.lastEvent=`Wicket! ${strikerName} is out on ${batNum}.`;
+    if (g.wickets[batUid] <= idx.maxWkts) {
+      const nextIn = Math.min(idx.maxWkts, Math.max(idx.striker, idx.nonStriker) + 1);
+      idx.striker = nextIn;
+      if (idx.nonStriker === idx.striker) idx.nonStriker = Math.max(0, idx.striker - 1);
+    }
   } else {
     g.scores[batUid]+=batNum;
-    g.lastEvent=`${batName} scores ${batNum}.`;
+    g.lastEvent=`${strikerName} scores ${batNum}.`;
+    if ((batNum % 2) === 1) {
+      const t = idx.striker; idx.striker = idx.nonStriker; idx.nonStriker = t;
+    }
   }
   g.balls=(g.balls||0)+1;
   g.turn=(g.turn||1)+1;
 
-  const inningsOver=g.wickets[batUid]>=10||g.balls>=(g.maxBalls||RANKED_MAX_BALLS);
+  const inningsOver=g.wickets[batUid]>=idx.maxWkts||g.balls>=(g.maxBalls||RANKED_MAX_BALLS);
   if(g.innings===1 && inningsOver){
     g.target=g.scores[batUid]+1;
     g.innings=2;
     g.balls=0;
     g.battingUid=bowlUid;
     g.bowlingUid=batUid;
+    const lineup2 = Array.isArray(g.teamLineups[g.battingUid]) ? g.teamLineups[g.battingUid] : [];
+    g.batterIndexMap[g.battingUid] = { striker:0, nonStriker: lineup2.length>1?1:0, maxWkts: Math.max(1, lineup2.length?lineup2.length-1:10) };
     g.submissions={};
     g.turnStartedAtMs=Date.now();
     g.lastEvent=`Innings break. Target is ${g.target}.`;
@@ -1204,7 +1276,8 @@ function _resolveRankedTurn(game, room){
     if((g.scores[g.battingUid]||0)>=g.target){
       return { game:g, status:'finished', winnerUid:g.battingUid, finishReason:'Target chased' };
     }
-    const secondOver=g.wickets[g.battingUid]>=10||g.balls>=(g.maxBalls||RANKED_MAX_BALLS);
+    const idx2 = g.batterIndexMap[g.battingUid] || { maxWkts:10 };
+    const secondOver=g.wickets[g.battingUid]>=idx2.maxWkts||g.balls>=(g.maxBalls||RANKED_MAX_BALLS);
     if(secondOver){
       const ch=g.scores[g.battingUid]||0;
       const def=g.scores[g.bowlingUid]||0;
@@ -1218,7 +1291,6 @@ function _resolveRankedTurn(game, room){
   g.turnStartedAtMs=Date.now();
   return { game:g, status:'live', winnerUid:null, finishReason:'' };
 }
-
 async function rankedPlayNumber(n){
   if(!(firebaseInitialized&&db&&currentUser&&rankedRoomId)) return;
   const val=Number(n);
@@ -1276,7 +1348,7 @@ async function leaveRankedRoom(forfeitIfLive){
         const snap=await tx.get(ref);
         if(!snap.exists) return;
         const room=snap.data()||{};
-        if(room.status!=='live') return;
+        if(room.status!=='live'&&room.status!=='waiting_start') return;
         const [p1,p2]=_getRankedPlayers(room);
         const oppUid=currentUser.uid===p1.uid?p2.uid:p1.uid;
         tx.update(ref,{
@@ -1371,7 +1443,7 @@ async function startRankedQueue(){
 
     const myRef=await queueCol.add({
       uid:currentUser.uid,
-      name:currentUser.displayName||'Player',
+      name:(typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
       rankTier:profile.rankTier,
       rankPoints:profile.rankPoints||0,
       rankedOvers,
@@ -2625,6 +2697,7 @@ window.showStatsCorner=showStatsCorner;
 window.pauseMatch=pauseMatch;
 window.openRankedModal=openRankedModal;
 window.closeRankedModal=closeRankedModal;
+window.openLiveRoomById=openLiveRoomById;
 window.startRankedQueue=startRankedQueue;
 window.cancelRankedQueue=cancelRankedQueue;
 window.rankedMarkReady=rankedMarkReady;
@@ -2918,6 +2991,17 @@ window.applySelectedXI = applySelectedXI;
 window.handleModeChange = handleModeChange;
 window.handleTeamSelection = handleTeamSelection;
 window.startGame = startGame;
+
+
+
+
+
+
+
+
+
+
+
 
 
 
