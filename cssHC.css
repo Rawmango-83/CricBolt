@@ -737,3 +737,301 @@ button:disabled {
     padding: 12px;
   }
 }
+/* Visual dialog + ranked polish */
+.app-dialog-box {
+  max-width: 520px;
+  animation: dialogPop 0.25s ease-out;
+}
+
+@keyframes dialogPop {
+  from { transform: translateY(12px) scale(0.96); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+#rankedModal .rmodal-box {
+  border: 2px solid #cbd5ff;
+  box-shadow: 0 18px 44px rgba(31, 45, 91, 0.25);
+}
+
+#rankedLivePanel {
+  border: 1px solid #dbe4ff;
+  background: linear-gradient(135deg, #f8f9ff, #f3f7ff);
+}
+
+#rankedNumberRow button {
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+
+#rankedNumberRow button:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 10px 18px rgba(102,126,234,.32);
+}
+
+#rankedReadyBtn {
+  animation: pulseReady 1.4s infinite;
+}
+
+@keyframes pulseReady {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(72,187,120,.45); }
+  60% { box-shadow: 0 0 0 10px rgba(72,187,120,0); }
+}
+
+/* Side menu navigation + ranked visual refresh */
+#menuToggleBtn {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 5200;
+  width: auto;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  box-shadow: 0 8px 18px rgba(30,64,175,.35);
+}
+
+#globalHomeBtn {
+  left: 118px;
+  z-index: 5150;
+}
+
+#sideMenuBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,.52);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+  z-index: 5100;
+}
+
+#sideMenuBackdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#sideMenuDrawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: min(86vw, 330px);
+  height: 100vh;
+  padding: 18px 14px;
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  border-right: 1px solid rgba(148,163,184,.28);
+  box-shadow: 18px 0 36px rgba(2,6,23,.45);
+  transform: translateX(-102%);
+  transition: transform .24s ease;
+  z-index: 5155;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#sideMenuDrawer.open {
+  transform: translateX(0);
+}
+
+.side-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #e2e8f0;
+  margin-bottom: 6px;
+}
+
+.side-menu-header button {
+  width: auto;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: #334155;
+  color: #f8fafc;
+  text-transform: none;
+  font-size: 13px;
+}
+
+.side-menu-item {
+  width: 100%;
+  text-align: left;
+  padding: 12px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  letter-spacing: .01em;
+  text-transform: none;
+  background: linear-gradient(135deg, #1e293b, #334155);
+  color: #f8fafc;
+  border: 1px solid rgba(148,163,184,.24);
+}
+
+.side-menu-item:hover:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 6px 12px rgba(15,23,42,.35);
+  border-color: rgba(96,165,250,.55);
+}
+
+#rankedModal .rmodal-box {
+  max-width: 720px;
+  width: min(94vw, 720px);
+  border: 1px solid rgba(129,140,248,.45);
+  border-radius: 18px;
+  background:
+    radial-gradient(800px 220px at 10% -20%, rgba(59,130,246,.12), transparent 60%),
+    radial-gradient(700px 200px at 110% 120%, rgba(16,185,129,.14), transparent 55%),
+    #ffffff;
+}
+
+#rankedStatus {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+#rankedLivePanel {
+  border: 1px solid #dbeafe;
+  background: linear-gradient(135deg, #f8fbff, #eef7ff);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+#rankedScoreboard {
+  font-size: 16px;
+  letter-spacing: .02em;
+}
+
+#rankedTurnInfo {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px dashed #c7d2fe;
+}
+
+@media (max-width: 768px) {
+  #menuToggleBtn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  #globalHomeBtn {
+    left: 104px;
+  }
+}
+
+/* ENHANCED_VISUAL_FX_V2 */
+#ambientBgmBadge {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 5200;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg,#0f766e,#0d9488);
+  box-shadow: 0 8px 18px rgba(13,148,136,.35);
+}
+
+#ambientBgmBadge.active {
+  animation: bgmPulse 1.6s infinite;
+}
+
+@keyframes bgmPulse {
+  0%,100% { box-shadow: 0 8px 18px rgba(13,148,136,.35); }
+  50% { box-shadow: 0 8px 24px rgba(16,185,129,.6); }
+}
+
+#bowlerSelect {
+  border: 2px solid #c7d2fe;
+  background: linear-gradient(180deg,#ffffff,#f8faff);
+  font-weight: 700;
+  color: #334155;
+}
+
+#bowlerStats {
+  border-color: #c7d2fe;
+  background: linear-gradient(180deg,#f8fbff,#eef2ff);
+}
+
+#teamFlagPreviewRow span {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+#playerDraftPanel {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 8px 18px rgba(15,23,42,.06);
+}
+
+#flagWinBackdrop,
+#matchOutcomeAnim,
+#rankGainAnim,
+#auraBurstAnim,
+#coinBankAnim {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9800;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#flagWinBackdrop {
+  inset: 0;
+  transform: none;
+  left: 0;
+  display: none;
+  align-items: center;
+  justify-content: space-evenly;
+  background: radial-gradient(circle at center, rgba(15,23,42,.05), rgba(15,23,42,.45));
+  font-size: clamp(36px, 9vw, 100px);
+}
+
+#flagWinBackdrop.show {
+  display: flex;
+  animation: fadeFlag 1.9s ease-out;
+}
+
+@keyframes fadeFlag {
+  0% { opacity: 0; }
+  22% { opacity: .9; }
+  100% { opacity: 0; }
+}
+
+#matchOutcomeAnim,
+#rankGainAnim,
+#auraBurstAnim,
+#coinBankAnim {
+  top: 18%;
+  padding: 12px 20px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: .04em;
+  background: linear-gradient(135deg,#2563eb,#1d4ed8);
+  box-shadow: 0 12px 24px rgba(30,64,175,.35);
+}
+
+#rankGainAnim { top: 28%; background: linear-gradient(135deg,#7c3aed,#6366f1); }
+#auraBurstAnim { top: 38%; background: linear-gradient(135deg,#0891b2,#0ea5e9); }
+#coinBankAnim { top: 48%; background: linear-gradient(135deg,#ca8a04,#f59e0b); }
+#matchOutcomeAnim.gain { background: linear-gradient(135deg,#16a34a,#15803d); }
+#matchOutcomeAnim.loss { background: linear-gradient(135deg,#dc2626,#b91c1c); }
+
+#matchOutcomeAnim.show,
+#rankGainAnim.show,
+#auraBurstAnim.show,
+#coinBankAnim.show {
+  animation: floatToast 1.7s ease-out;
+}
+
+@keyframes floatToast {
+  0% { opacity: 0; transform: translate(-50%, 18px) scale(.92); }
+  20% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -24px) scale(1.02); }
+}
