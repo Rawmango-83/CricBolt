@@ -902,19 +902,19 @@ function showCoinBankAnimation(deltaCoins) {
 
 function showRankGainAnimation(deltaRp, nextTier, prevTier) {
   if (!deltaRp && nextTier === prevTier) return;
-  const text = `${deltaRp > 0 ? '+' : ''}${deltaRp || 0} RP${nextTier !== prevTier ? ` � ${nextTier}` : ''}`;
+  const text = `${deltaRp > 0 ? '+' : ''}${deltaRp || 0} RP${nextTier !== prevTier ? ` -> ${nextTier}` : ''}`;
   _animateFlashElement('rankGainAnim', text, 1800);
 }
 
 function showMatchOutcomeAnimation(isWin, label) {
-  const text = isWin ? `VICTORY � ${label || ''}` : `DEFEAT � ${label || ''}`;
+  const text = isWin ? `VICTORY ${label || ''}` : `DEFEAT ${label || ''}`;
   _animateFlashElement('matchOutcomeAnim', text.trim(), 1700, isWin ? 'gain' : 'loss');
 }
 
 function showWinFlagBackdrop(flagGlyph) {
   const el = document.getElementById('flagWinBackdrop');
   if (!el) return;
-  const glyph = (flagGlyph && String(flagGlyph).trim()) || '??';
+  const glyph = (flagGlyph && String(flagGlyph).trim()) || '🏳️';
   el.innerHTML = `<span>${Security.escapeHtml(glyph)}</span><span>${Security.escapeHtml(glyph)}</span><span>${Security.escapeHtml(glyph)}</span><span>${Security.escapeHtml(glyph)}</span>`;
   el.classList.remove('show');
   void el.offsetWidth;
@@ -942,15 +942,11 @@ function _wireAudioUX() {
   window.addEventListener('pointerdown', unlock, true);
   window.addEventListener('keydown', unlock, true);
   window.addEventListener('touchstart', unlock, true);
-  document.addEventListener('click', e => {
-    const target = e.target;
-    if (!target || !target.closest) return;
-    if (target.closest('button')) Music.playSFX('click');
-  }, true);
   Music._updateBtn();
 }
 
 if (typeof window !== 'undefined') _wireAudioUX();
+
 
 
 
