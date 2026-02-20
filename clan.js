@@ -1755,6 +1755,24 @@ respondClanChallenge = async function(clashId, status){
 };
 
 
+async function joinClanClashRoom(clashId){
+  if (!_clanSignedIn() || !clashId) return;
+  try {
+    const snap = await db.collection('hc_clanClashes').doc(clashId).get();
+    if (!snap.exists) return;
+    const c = snap.data() || {};
+    if (!c.roomId) {
+      await uiAlert('Live room not ready yet.', 'Clan Clash');
+      return;
+    }
+    if (typeof openLiveRoomById === 'function') {
+      openLiveRoomById(c.roomId, 'Clan Clash');
+    }
+  } catch(e){
+    console.error('join clan clash room error:', e);
+    await uiAlert('Could not open clash room.', 'Clan Clash');
+  }
+}
 const _clanClashRoomSettleInFlight = new Set();
 async function _syncClanClashSettlementFromRoom(clash){
   if (!clash || clash.status !== 'live' || !clash.roomId) return;
@@ -1861,6 +1879,7 @@ _renderClashes = function(items){
     return `<div style="padding:8px 0;border-bottom:1px solid #e2e8f0"><div><strong>${_clanEsc(c.fromClanName||'Clan')}</strong> vs <strong>${_clanEsc(c.toClanName||'Clan')}</strong> | <strong>${_clanEsc(status)}</strong> | ${_clanEsc(modeText)}</div><div style="font-size:11px;color:#475569;margin-top:4px">${_clanEsc(c.fromClanName||'A')} XI: ${fromXI}<br>${_clanEsc(c.toClanName||'B')} XI: ${toXI}</div><div style="margin-top:6px">${actions}</div></div>`;
   }).join('');
 };
+
 
 
 
