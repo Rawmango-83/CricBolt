@@ -7,7 +7,22 @@ let myClanName = null;
 let clanDocUnsub = null;
 let clanChatUnsub = null;
 let clanClashUnsub = null;
+let clanListsUnsub = null;
 let currentClanMutedMap = {};
+
+let clanActiveSection = 'createJoin';
+
+function showClanSubSection(section){
+  const next = String(section || 'createJoin');
+  clanActiveSection = next;
+  const ids = ['createJoin','members','chat','clash','leaderboard','settings'];
+  ids.forEach(id => {
+    const sec = document.getElementById('clanSection' + id.charAt(0).toUpperCase() + id.slice(1));
+    const tab = document.getElementById('clanTab' + id.charAt(0).toUpperCase() + id.slice(1));
+    if (sec) sec.classList.toggle('active', id === clanActiveSection);
+    if (tab) tab.classList.toggle('active', id === clanActiveSection);
+  });
+}
 
 function _clanEsc(v){
   const s = String(v == null ? '' : v);
@@ -52,6 +67,7 @@ function _cleanupClanListeners(){
   if (clanDocUnsub) { clanDocUnsub(); clanDocUnsub = null; }
   if (clanChatUnsub) { clanChatUnsub(); clanChatUnsub = null; }
   if (clanClashUnsub) { clanClashUnsub(); clanClashUnsub = null; }
+  if (clanListsUnsub) { clanListsUnsub(); clanListsUnsub = null; }
 }
 
 function _setClanButtonsState(){
@@ -224,7 +240,25 @@ function _renderClanLeaderboard(clans){
     box.innerHTML = '<p style="color:#64748b">No leaderboard data yet.</p>';
     return;
   }
-  box.innerHTML = clans.map((c, i)=>`<div style="padding:6px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between"><span>#${i+1} ${_clanEsc(c.name||'Clan')}</span><span>Avg ${Number(c.avgAura||0)}</span></div>`).join('');
+  box.innerHTML = clans.map((c, i)=>{ const w=Number(c.wins||0), l=Number(c.losses||0), m=Number(c.memberCount||0); return `<div style="padding:8px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;gap:10px"><span><strong>#${i+1} ${_clanEsc(c.name||'Clan')}</strong> [${_clanEsc(c.tag||'-')}]<br><small style="color:#64748b">Members ${m} | W ${w} - L ${l}</small></span><span style="font-weight:700;color:#0f172a">Avg Aura ${Number(c.avgAura||0)}</span></div>`; }).join('');
+}
+
+function _listenClanListsLive(){
+  if (!firebaseInitialized || !db) return;
+  if (clanListsUnsub) clanListsUnsub();
+  clanListsUnsub = db.collection('hc_clans').orderBy('avgAura', 'desc').limit(30).onSnapshot(snap => {
+    const clans = snap.docs.map(d=>({ id:d.id, ...(d.data()||{}) }));
+    _renderClanDirectory(clans);
+    _renderClanLeaderboard(clans.slice(0, 20));
+    const target = document.getElementById('clanTargetSelect');
+    if (target) {
+      const options = ['<option value="">Select target clan</option>']
+        .concat(clans.filter(c=>c.id!==myClanId).map(c=>'<option value="'+_clanEsc(c.id)+'">'+_clanEsc(c.name||'Clan')+' ['+_clanEsc(c.tag||'-')+']</option>'));
+      target.innerHTML = options.join('');
+    }
+  }, err => {
+    console.error('live clan list listener error:', err);
+  });
 }
 
 async function _refreshClanLists(){
@@ -330,7 +364,9 @@ async function openClanModal(){
   if (!modal) return;
   modal.style.display = 'flex';
   clanModalOpen = true;
+  showClanSubSection('createJoin');
   await _loadMyClanMembership();
+  _listenClanListsLive();
   await _refreshClanLists();
 }
 
@@ -338,6 +374,7 @@ function closeClanModal(){
   const modal = document.getElementById('clanModal');
   if (modal) modal.style.display = 'none';
   clanModalOpen = false;
+  if (clanListsUnsub) { clanListsUnsub(); clanListsUnsub = null; }
 }
 
 async function createClan(){
@@ -752,6 +789,7 @@ async function finishClanChallenge(clashId, winnerClanId){
   }
 }
 
+window.showClanSubSection = showClanSubSection;
 window.openClanModal = openClanModal;
 window.closeClanModal = closeClanModal;
 window.createClan = createClan;
@@ -890,7 +928,7 @@ async function saveClanSettings(){
   }
   const visibility = String((document.getElementById('clanVisibilitySelect') || {}).value || 'public');
   const description = Security.sanitizeInput((document.getElementById('clanDescInput') || {}).value || '').slice(0, 140);
-  const logo = String((document.getElementById('clanLogoInput') || {}).value || '').trim().slice(0, 2) || '🛡️';
+  const logo = String((document.getElementById('clanLogoInput') || {}).value || '').trim().slice(0, 2) || '???';
   const banner = String((document.getElementById('clanBannerInput') || {}).value || '').trim().slice(0, 16);
   try {
     await _clanRef(myClanId).set({
@@ -1052,7 +1090,7 @@ function _renderClanMembers(clan, members){
     return;
   }
 
-  const logo = clan.logo || '🛡️';
+  const logo = clan.logo || '???';
   const desc = clan.description ? `<div style="font-size:12px;color:#475569;margin-top:4px">${_clanEsc(clan.description)}</div>` : '';
   const vis = clan.visibility === 'private' ? 'Private' : 'Public';
 
@@ -1879,6 +1917,10 @@ _renderClashes = function(items){
     return `<div style="padding:8px 0;border-bottom:1px solid #e2e8f0"><div><strong>${_clanEsc(c.fromClanName||'Clan')}</strong> vs <strong>${_clanEsc(c.toClanName||'Clan')}</strong> | <strong>${_clanEsc(status)}</strong> | ${_clanEsc(modeText)}</div><div style="font-size:11px;color:#475569;margin-top:4px">${_clanEsc(c.fromClanName||'A')} XI: ${fromXI}<br>${_clanEsc(c.toClanName||'B')} XI: ${toXI}</div><div style="margin-top:6px">${actions}</div></div>`;
   }).join('');
 };
+
+
+
+
 
 
 
