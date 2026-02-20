@@ -6,6 +6,7 @@ let friendSelectedName = '';
 let friendChatUnsub = null;
 let friendReqUnsub = null;
 let friendChallengeUnsub = null;
+let friendActiveSection = 'discover';
 
 function _friendSignedIn(){
   return !!(firebaseInitialized && db && currentUser && currentUser.uid);
@@ -40,6 +41,16 @@ function _cleanupFriendListeners(){
   if (friendChallengeUnsub) { friendChallengeUnsub(); friendChallengeUnsub = null; }
 }
 
+function showFriendSubSection(section){
+  friendActiveSection = String(section || 'discover');
+  const ids = ['discover','requests','friends','chat','friendly'];
+  ids.forEach(id => {
+    const sec = document.getElementById('friendSection' + id.charAt(0).toUpperCase() + id.slice(1));
+    const tab = document.getElementById('friendTab' + id.charAt(0).toUpperCase() + id.slice(1));
+    if (sec) sec.classList.toggle('active', id === friendActiveSection);
+    if (tab) tab.classList.toggle('active', id === friendActiveSection);
+  });
+}
 function _renderFriendList(items){
   const box = document.getElementById('friendList');
   if (!box) return;
@@ -89,40 +100,92 @@ async function _getMyFriends(){
 async function refreshFriendDiscover(){
   if (!_friendSignedIn()) return;
   try {
-    const [friends, players] = await Promise.all([
-      _getMyFriends(),
-      db.collection('handCricketProgress').limit(120).get()
-    ]);
-    const byIdentity = new Map();
-    players.docs.forEach(d => {
-      const data = d.data() || {};
-      const profile = data.playerProfile || {};
-      const row = {
-        uid: d.id,
-        name: data.displayName || data.userName || 'Player',
-        rankPoints: Number(data.rankPoints != null ? data.rankPoints : (profile.rankPoints || 0)),
-        aura: Number(data.aura != null ? data.aura : (profile.aura || 0)),
-        googleEmail: _normEmail(data.googleEmail || data.email || data.userEmail)
-      };
-      const key = _friendIdentityKey(row) || row.uid;
-      const prev = byIdentity.get(key);
-      if (!prev) {
-        byIdentity.set(key, row);
-        return;
-      }
-      const better = (row.rankPoints > prev.rankPoints)
-        || (row.rankPoints === prev.rankPoints && row.aura > prev.aura);
-      if (better) byIdentity.set(key, row);
-    });
-    const rows = Array.from(byIdentity.values())
-      .sort((a,b) => Number(b.rankPoints||0) - Number(a.rankPoints||0))
-      .slice(0, 80);
+    const friends = await _getMyFriends();
     _renderFriendList(friends);
-    _renderDiscoverPlayers(rows, friends);
+    const box = document.getElementById('friendPlayerList');
+    if (box) box.innerHTML = '<p style="color:#64748b">Search a username to send request.</p>';
   } catch(e){
     console.error('refresh friend discover error:', e);
   }
 }
+
+async function searchPlayerByUsername(){
+  if (!_friendSignedIn()) return;
+  const input = document.getElementById('friendSearchUsername');
+  const raw = Security.sanitizeInput((input && input.value) || '').trim();
+  const box = document.getElementById('friendPlayerList');
+  if (!raw) {
+    if (box) box.innerHTML = '<p style="color:#64748b">Enter a username first.</p>';
+    return;
+  }
+  const key = String(raw).toLowerCase();
+  try {
+    const mapSnap = await db.collection('hc_usernames').doc(key).get();
+    if (!mapSnap.exists) {
+      if (box) box.innerHTML = '<p style="color:#ef4444">Username not found.</p>';
+      return;
+    }
+    const d = mapSnap.data() || {};
+    const uid = String(d.uid || '');
+    if (!uid) {
+      if (box) box.innerHTML = '<p style="color:#ef4444">Username mapping invalid.</p>';
+      return;
+    }
+    if (uid === currentUser.uid) {
+      if (box) box.innerHTML = '<p style="color:#64748b">This is your username.</p>';
+      return;
+    }
+
+    const [friends, profSnap] = await Promise.all([
+      _getMyFriends(),
+      db.collection('handCricketProgress').doc(uid).get()
+    ]);
+    const friendSet = new Set((friends || []).map(f => f.uid));
+    const prof = profSnap.exists ? (profSnap.data() || {}) : {};
+    const name = String(prof.userName || d.userName || raw);
+    const aura = Number(prof.aura != null ? prof.aura : (prof.playerProfile && prof.playerProfile.aura) || 0);
+    const rp = Number(prof.rankPoints != null ? prof.rankPoints : (prof.playerProfile && prof.playerProfile.rankPoints) || 0);
+
+    if (!box) return;
+    box.innerHTML = `<div style="padding:8px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;display:flex;justify-content:space-between;align-items:center;gap:8px"><div><strong>${_friendEsc(name)}</strong><div style="font-size:12px;color:#64748b">Aura ${aura} • ${rp} RP</div></div>${friendSet.has(uid) ? '<span style="color:#16a34a;font-size:12px">Already Friend</span>' : `<button onclick="sendFriendRequest('${_friendEsc(uid)}','${_friendEsc(name)}')" style="width:auto;padding:4px 10px;background:#2563eb;font-size:11px">Add Friend</button>`}</div>`;
+  } catch (e) {
+    console.error('search username error:', e);
+    if (box) box.innerHTML = '<p style="color:#ef4444">Search failed. Try again.</p>';
+  }
+}
+
+async function sendFriendRequestByUsername(){
+  if (!_friendSignedIn()) return;
+  const input = document.getElementById('friendSearchUsername');
+  const raw = Security.sanitizeInput((input && input.value) || '').trim();
+  if (!raw) {
+    await uiAlert('Enter a username first.', 'Friend Request');
+    return;
+  }
+  const key = String(raw).toLowerCase();
+  try {
+    const mapSnap = await db.collection('hc_usernames').doc(key).get();
+    if (!mapSnap.exists) {
+      await uiAlert('Username not found.', 'Friend Request');
+      return;
+    }
+    const d = mapSnap.data() || {};
+    const toUid = String(d.uid || '');
+    if (!toUid) {
+      await uiAlert('Username mapping invalid.', 'Friend Request');
+      return;
+    }
+    if (toUid === currentUser.uid) {
+      await uiAlert('You cannot send request to yourself.', 'Friend Request');
+      return;
+    }
+    await sendFriendRequest(toUid, String(d.userName || raw));
+  } catch (e) {
+    console.error('send request by username error:', e);
+    await uiAlert('Could not send request.', 'Friend Request');
+  }
+}
+
 async function sendFriendRequest(toUid, toName){
   if (!_friendSignedIn() || !toUid || toUid === currentUser.uid) return;
   const outgoingId = `${currentUser.uid}_${toUid}`;
@@ -331,7 +394,7 @@ async function sendFriendlyChallenge(){
       createdAtMs: Date.now(),
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    showToast('Friendly challenge sent.', '#2563eb');
+    showToast('Friendly challenge sent. Open Friendly Match tab to track it.', '#2563eb');
   } catch(e){
     console.error('send friendly challenge error:', e);
   }
@@ -422,10 +485,11 @@ async function launchFriendlyGameFromChallenge(challengeId){
 
     closeFriendModal();
     if (typeof openLiveRoomById === 'function') {
+      showFriendSubSection('friendly');
       openLiveRoomById(liveRoomId, 'Friendly Match');
       showToast('Friendly live room opened.', '#2563eb');
     } else {
-      showToast('Friendly room ready. Open Ranked Multiplayer to continue.', '#2563eb');
+      showToast('Friendly room ready.', '#2563eb');
     }
   } catch(e){
     if (String(e && e.message) === 'not-accepted') {
@@ -444,6 +508,9 @@ async function openFriendModal(){
   if (!_friendSignedIn()) {
     _friendStatus('Sign in to use friends, private chat, and friendly games.');
     const ids = ['friendPlayerList','friendIncomingList','friendList','friendChatMessages','friendlyIncomingList'];
+    const search = document.getElementById('friendSearchUsername');
+    if (search) search.value = '';
+    showFriendSubSection('discover');
     ids.forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = '<p style="color:#94a3b8">Sign in required.</p>';
@@ -455,6 +522,7 @@ async function openFriendModal(){
   await refreshFriendDiscover();
   _listenFriendRequests();
   _listenFriendlyChallenges();
+  showFriendSubSection(friendActiveSection || 'discover');
 }
 
 function closeFriendModal(){
@@ -464,6 +532,7 @@ function closeFriendModal(){
   _cleanupFriendListeners();
   friendSelectedUid = null;
   friendSelectedName = '';
+  showFriendSubSection('discover');
 }
 
 window.openFriendModal = openFriendModal;
@@ -476,6 +545,9 @@ window.sendFriendMessage = sendFriendMessage;
 window.sendFriendlyChallenge = sendFriendlyChallenge;
 window.respondFriendlyChallenge = respondFriendlyChallenge;
 window.launchFriendlyGameFromChallenge = launchFriendlyGameFromChallenge;
+window.showFriendSubSection = showFriendSubSection;
+window.searchPlayerByUsername = searchPlayerByUsername;
+window.sendFriendRequestByUsername = sendFriendRequestByUsername;
 
 window.addEventListener('DOMContentLoaded', () => {
   const modal = document.getElementById('friendModal');
@@ -500,6 +572,10 @@ window.addEventListener('DOMContentLoaded', () => {
     modeSel.dispatchEvent(new Event('change'));
   }
 });
+
+
+
+
 
 
 
