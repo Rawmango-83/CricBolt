@@ -19,17 +19,17 @@ const TournamentHistory = {
     }
     
     const formatNames = {
-      odiWorldCup: 'ODI World Cup 🏆',
-      t20WorldCup: 'T20 World Cup 🏆',
-      wtc: 'WTC Championship 🏆',
-      ipl: 'IPL Trophy 🏆'
+      odiWorldCup: 'ODI World Cup ??',
+      t20WorldCup: 'T20 World Cup ??',
+      wtc: 'WTC Championship ??',
+      ipl: 'IPL Trophy ??'
     };
     
     let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px">';
     
     wins.slice(-8).reverse().forEach(w => {
       html += `<div style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:18px;border-radius:12px;text-align:center;box-shadow:0 4px 12px rgba(102,126,234,0.3)">
-        <div style="font-size:2em;margin-bottom:8px">🏆</div>
+        <div style="font-size:2em;margin-bottom:8px">??</div>
         <div style="font-weight:700;margin-bottom:5px">${formatNames[w.format] || w.format}</div>
         <div style="font-size:13px;opacity:0.9">${Security.escapeHtml(w.teamName)}</div>
         <div style="font-size:11px;opacity:0.7;margin-top:5px">${new Date(w.date).toLocaleDateString()}</div>
@@ -177,20 +177,20 @@ function renderAllMatches(container) {
   
   matches.slice().reverse().forEach(m => {
     const resultColor = m.result === 'won' ? '#48bb78' : m.result === 'lost' ? '#ef4444' : '#f59e0b';
-    const resultText = m.result === 'won' ? '✓ WON' : m.result === 'lost' ? '✗ LOST' : '◐ DRAW';
+    const resultText = m.result === 'won' ? '? WON' : m.result === 'lost' ? '? LOST' : '? DRAW';
     
     html += `<div style="background:#f7fafc;padding:16px;border-radius:8px;margin-bottom:10px;border-left:4px solid ${resultColor}">
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
         <div>
           <strong style="color:#2d3748">${Security.escapeHtml(m.teamNames[0])} vs ${Security.escapeHtml(m.teamNames[1])}</strong>
-          ${m.tournament ? '<span style="background:#667eea;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px">🏆 Tournament</span>' : ''}
+          ${m.tournament ? '<span style="background:#667eea;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px">?? Tournament</span>' : ''}
         </div>
         <span style="color:${resultColor};font-weight:700;font-size:14px">${resultText}</span>
       </div>
       <div style="font-size:13px;color:#718096">
-        <span>📅 ${m.date}</span>
-        <span style="margin-left:15px">🏏 ${m.format || 'Custom'}</span>
-        <span style="margin-left:15px">📊 ${m.userRuns}/${m.userWickets} vs ${m.oppRuns}/${m.oppWickets}</span>
+        <span>?? ${m.date}</span>
+        <span style="margin-left:15px">?? ${m.format || 'Custom'}</span>
+        <span style="margin-left:15px">?? ${m.userRuns}/${m.userWickets} vs ${m.oppRuns}/${m.oppWickets}</span>
       </div>
     </div>`;
   });
@@ -218,7 +218,7 @@ function renderTournamentWins(container) {
   
   wins.slice().reverse().forEach(w => {
     html += `<div style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:25px;border-radius:15px;text-align:center;box-shadow:0 6px 20px rgba(102,126,234,0.4)">
-      <div style="font-size:3em;margin-bottom:10px">🏆</div>
+      <div style="font-size:3em;margin-bottom:10px">??</div>
       <h3 style="color:white;margin-bottom:8px">${formatNames[w.format] || w.format}</h3>
       <div style="font-size:16px;font-weight:600;margin-bottom:5px">${Security.escapeHtml(w.teamName)}</div>
       <div style="font-size:13px;opacity:0.8">${new Date(w.date).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'})}</div>
@@ -237,10 +237,10 @@ function renderCareerStats(container) {
   let html = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:25px">
       ${[
-        ['🎮 Total Matches', stats.totalMatches, '#667eea'],
-        ['✅ Won', stats.won, '#48bb78'],
-        ['❌ Lost', stats.lost, '#ef4444'],
-        ['◐ Drawn', stats.drawn, '#f59e0b']
+        ['?? Total Matches', stats.totalMatches, '#667eea'],
+        ['? Won', stats.won, '#48bb78'],
+        ['? Lost', stats.lost, '#ef4444'],
+        ['? Drawn', stats.drawn, '#f59e0b']
       ].map(([label, value, color]) => `
         <div style="background:${color};color:white;padding:20px;border-radius:12px;text-align:center">
           <div style="font-size:2.5em;font-weight:800;line-height:1">${value}</div>
@@ -250,27 +250,27 @@ function renderCareerStats(container) {
     </div>
     
     <div style="background:#f7fafc;padding:25px;border-radius:12px;margin-bottom:20px;border-left:4px solid #667eea">
-      <h4 style="color:#2d3748;margin-bottom:15px">🏏 Batting Performance</h4>
+      <h4 style="color:#2d3748;margin-bottom:15px">?? Batting Performance</h4>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px">
         ${[
           ['Total Runs', stats.totalRuns],
           ['Highest Score', stats.highestScore],
-          ['Centuries 💯', stats.centuries || 0],
-          ['Half-Centuries 5️⃣0️⃣', stats.fifties || 0],
-          ['Win Rate 📈', winRate + '%']
+          ['Centuries ??', stats.centuries || 0],
+          ['Half-Centuries 5??0??', stats.fifties || 0],
+          ['Win Rate ??', winRate + '%']
         ].map(([l, v]) => `<div><div style="color:#718096;font-size:13px">${l}</div><div style="font-size:28px;font-weight:700;color:#2d3748">${v}</div></div>`).join('')}
       </div>
     </div>
     
     <div style="background:#f7fafc;padding:25px;border-radius:12px;border-left:4px solid #f59e0b">
-      <h4 style="color:#2d3748;margin-bottom:15px">⚡ Bowling Performance</h4>
+      <h4 style="color:#2d3748;margin-bottom:15px">? Bowling Performance</h4>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px">
         ${[
           ['Wickets Taken', stats.totalWickets],
-          ['Hat-Tricks 🎩', stats.hattricks || 0],
-          ['3-Wkt Hauls 🔥', stats.threeWickets || 0],
-          ['5-Wkt Hauls 🔥🔥', stats.fiveWickets || 0],
-          ['10-Wkt Hauls 💥', stats.tenWickets || 0]
+          ['Hat-Tricks ??', stats.hattricks || 0],
+          ['3-Wkt Hauls ??', stats.threeWickets || 0],
+          ['5-Wkt Hauls ????', stats.fiveWickets || 0],
+          ['10-Wkt Hauls ??', stats.tenWickets || 0]
         ].map(([l, v]) => `<div><div style="color:#718096;font-size:13px">${l}</div><div style="font-size:28px;font-weight:700;color:#2d3748">${v}</div></div>`).join('')}
       </div>
     </div>
@@ -282,7 +282,7 @@ function renderCareerStats(container) {
 function renderLeaderboard(container) {
   container.innerHTML = `
     <div style="text-align:center;padding:30px 20px;color:#64748b">
-      <div style="font-size:2.8em;margin-bottom:10px">🥇</div>
+      <div style="font-size:2.8em;margin-bottom:10px">??</div>
       <h3 style="color:#334155;margin-bottom:6px">Global Leaderboard</h3>
       <p style="max-width:520px;margin:0 auto;line-height:1.6">
         Top players by Rank Points, then Aura. Loading latest standings...
@@ -348,7 +348,7 @@ function renderLeaderboard(container) {
 
       let html = '<div style="display:grid;gap:8px">';
       rows.forEach((r, idx) => {
-        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+        const medal = idx === 0 ? '??' : idx === 1 ? '??' : idx === 2 ? '??' : `#${idx + 1}`;
         const mine = !!(currentUser && (currentUser.uid === r.uid || _normalizedEmail(currentUser.email || '') === _normalizedEmail(r.email || '')));
         html += `
           <div style="display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid ${mine ? '#60a5fa' : '#e2e8f0'};background:${mine ? '#eff6ff' : '#f8fafc'}">
@@ -417,8 +417,8 @@ function openResumeModal() {
         <span style="background:#667eea;color:white;padding:4px 10px;border-radius:6px;font-size:12px">${stageNames[t.stage] || t.stage}</span>
       </div>
       <div style="font-size:12px;color:#718096">
-        <span>📅 Started: ${t.startDate}</span><br>
-        <span>💾 Last saved: ${t.lastSaved}</span>
+        <span>?? Started: ${t.startDate}</span><br>
+        <span>?? Last saved: ${t.lastSaved}</span>
       </div>
     </div>`;
   });
@@ -448,13 +448,13 @@ function resumeTournamentSlot(slotId) {
   showSection('tournament');
   
   const titles = {
-    odiWorldCup: '🏆 ODI World Cup',
-    t20WorldCup: '🏆 T20 World Cup',
-    wtc: '🏆 World Test Championship',
-    ipl: '🏆 Indian Premier League'
+    odiWorldCup: '?? ODI World Cup',
+    t20WorldCup: '?? T20 World Cup',
+    wtc: '?? World Test Championship',
+    ipl: '?? Indian Premier League'
   };
   
-  Utils.setText('tournamentTitle', titles[TournamentState.format] || '🏆 Tournament');
+  Utils.setText('tournamentTitle', titles[TournamentState.format] || '?? Tournament');
   
   const nav = Utils.getElement('tournamentNav');
   const sb = Utils.getElement('statsCornerBtn');
@@ -475,12 +475,114 @@ function resumeTournamentSlot(slotId) {
     showTournamentStage(TournamentState.currentStage);
   }
   
-  showToast('✅ Tournament resumed!', '#48bb78');
+  showToast('? Tournament resumed!', '#48bb78');
 }
 
 // ============================================================================
 // FIREBASE AUTHENTICATION
 // ============================================================================
+const ACTIVE_SESSION_COLLECTION = 'hc_activeSessions';
+const ACTIVE_SESSION_TTL_MS = 120000;
+let _activeSessionId = null;
+let _activeSessionHeartbeat = null;
+let _activeSessionWatchUnsub = null;
+
+function _getActiveSessionId(){
+  try {
+    let sid = sessionStorage.getItem('hc_active_session_id');
+    if (!sid) {
+      sid = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+      sessionStorage.setItem('hc_active_session_id', sid);
+    }
+    return sid;
+  } catch(e){
+    return 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+  }
+}
+
+function _clearActiveSessionTimers(){
+  if (_activeSessionHeartbeat) { clearInterval(_activeSessionHeartbeat); _activeSessionHeartbeat = null; }
+  if (_activeSessionWatchUnsub) { _activeSessionWatchUnsub(); _activeSessionWatchUnsub = null; }
+}
+
+async function clearActiveSessionState(forceUid){
+  try {
+    _clearActiveSessionTimers();
+    if (!(firebaseInitialized && db)) return;
+    const uid = forceUid || (currentUser && currentUser.uid);
+    if (!uid || !_activeSessionId) return;
+    const ref = db.collection(ACTIVE_SESSION_COLLECTION).doc(uid);
+    const snap = await ref.get();
+    if (!snap.exists) return;
+    const d = snap.data() || {};
+    if (d.sessionId === _activeSessionId) {
+      await ref.delete().catch(()=>{});
+    }
+  } catch(e){
+    console.error('clear active session error:', e);
+  }
+}
+
+async function enforceSingleActiveSession(user){
+  if (!(firebaseInitialized && db && user && user.uid)) return true;
+  const uid = user.uid;
+  const sid = _getActiveSessionId();
+  _activeSessionId = sid;
+  const ref = db.collection(ACTIVE_SESSION_COLLECTION).doc(uid);
+  const now = Date.now();
+
+  try {
+    await db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      const d = snap.exists ? (snap.data() || {}) : {};
+      const existingSid = String(d.sessionId || '');
+      const existingTs = Number(d.lastSeenMs || 0);
+      const activeElsewhere = existingSid && existingSid !== sid && (now - existingTs) < ACTIVE_SESSION_TTL_MS;
+      if (activeElsewhere) throw new Error('session-active-elsewhere');
+      tx.set(ref, {
+        uid,
+        sessionId: sid,
+        userName: getPublicUserName(),
+        lastSeenMs: now,
+        userAgent: String(navigator.userAgent || '').slice(0, 160),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    });
+  } catch(e){
+    if (String(e && e.message) === 'session-active-elsewhere') {
+      await uiAlert('This Google account is already active on another device/browser. Sign out there first.', 'Active Session Detected');
+      auth.signOut().catch(()=>{});
+      return false;
+    }
+    console.error('enforce single session error:', e);
+    return true;
+  }
+
+  _clearActiveSessionTimers();
+  _activeSessionHeartbeat = setInterval(() => {
+    if (!(firebaseInitialized && db && currentUser && currentUser.uid === uid && _activeSessionId === sid)) return;
+    ref.set({ lastSeenMs: Date.now(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
+  }, 15000);
+
+  _activeSessionWatchUnsub = ref.onSnapshot(snap => {
+    if (!snap.exists) return;
+    const d = snap.data() || {};
+    const liveSid = String(d.sessionId || '');
+    if (liveSid && liveSid !== sid) {
+      uiAlert('Your account was opened elsewhere. This session will sign out now.', 'Session Switched');
+      auth.signOut().catch(()=>{});
+    }
+  }, ()=>{});
+
+  return true;
+}
+
+window.enforceSingleActiveSession = enforceSingleActiveSession;
+window.clearActiveSessionState = clearActiveSessionState;
+window.addEventListener('beforeunload', () => {
+  if (currentUser && currentUser.uid) clearActiveSessionState(currentUser.uid);
+});
+
 function signInWithGoogle() {
   if (!firebaseInitialized || !auth) {
     uiAlert('Firebase not initialized. Using local storage only.', 'Cloud Sync');
@@ -490,7 +592,7 @@ function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
     .then(() => {
-      showToast('✅ Signed in successfully!', '#48bb78');
+      showToast('? Signed in successfully!', '#48bb78');
     })
     .catch(error => {
       console.error('Sign in error:', error);
@@ -500,16 +602,17 @@ function signInWithGoogle() {
 
 function signOutUser() {
   if (!auth) return;
-  
-  auth.signOut()
-    .then(() => {
-      showToast('Signed out successfully', '#718096');
-    })
-    .catch(error => {
-      console.error('Sign out error:', error);
-    });
+  const uid = currentUser && currentUser.uid ? currentUser.uid : null;
+  clearActiveSessionState(uid).finally(() => {
+    auth.signOut()
+      .then(() => {
+        showToast('Signed out successfully', '#718096');
+      })
+      .catch(error => {
+        console.error('Sign out error:', error);
+      });
+  });
 }
-
 
 function _normalizedEmail(v){
   return String(v || '').trim().toLowerCase();
@@ -522,6 +625,8 @@ function _usernameKey(name){
 function getPublicUserName(){
   const local = String(localStorage.getItem('hc_username') || '').trim();
   if (local) return local;
+  const cloud = String(localStorage.getItem('hc_cloud_username') || '').trim();
+  if (cloud) return cloud;
   if (currentUser && currentUser.displayName) return String(currentUser.displayName).trim();
   return 'Player';
 }
@@ -531,16 +636,45 @@ async function saveUsername(){
     await uiAlert('Sign in first to set username.', 'Username');
     return;
   }
+
   const input = document.getElementById('usernameInput');
+  const saveBtn = document.getElementById('usernameSaveBtn');
   const raw = Security.sanitizeInput((input && input.value) || '').trim();
   if (!/^[A-Za-z0-9_]{3,16}$/.test(raw)) {
     await uiAlert('Username must be 3-16 chars: letters, numbers, underscore only.', 'Username');
     return;
   }
 
+  const meRef = db.collection('handCricketProgress').doc(currentUser.uid);
+  let existingName = '';
+  let isLocked = false;
+  try {
+    const meSnap = await meRef.get();
+    const mine = meSnap.exists ? (meSnap.data() || {}) : {};
+    existingName = Security.sanitizeInput(String(mine.userName || '')).trim();
+    isLocked = !!(mine.usernameLocked || existingName);
+  } catch (e) {
+    console.warn('Could not read current username lock state:', e);
+  }
+
+  if (isLocked && existingName && existingName.toLowerCase() !== raw.toLowerCase()) {
+    await uiAlert('Username is already set and cannot be changed.', 'Username Locked');
+    if (input) {
+      input.value = existingName;
+      input.disabled = true;
+    }
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Username Locked';
+    }
+    localStorage.setItem('hc_username', existingName);
+    localStorage.setItem('hc_cloud_username', existingName);
+    localStorage.setItem('hc_username_locked', '1');
+    return;
+  }
+
   const nameKey = _usernameKey(raw);
   const mapRef = db.collection('hc_usernames').doc(nameKey);
-  const meRef = db.collection('handCricketProgress').doc(currentUser.uid);
 
   try {
     await db.runTransaction(async tx => {
@@ -549,7 +683,11 @@ async function saveUsername(){
       if (owner && owner.uid && owner.uid !== currentUser.uid) throw new Error('username-taken');
 
       const mine = meSnap.exists ? (meSnap.data() || {}) : {};
-      const prev = _usernameKey(mine.userName || '');
+      const mineName = Security.sanitizeInput(String(mine.userName || '')).trim();
+      const mineLocked = !!(mine.usernameLocked || mineName);
+      if (mineLocked && mineName && mineName.toLowerCase() !== raw.toLowerCase()) {
+        throw new Error('username-locked');
+      }
 
       tx.set(mapRef, {
         uid: currentUser.uid,
@@ -557,36 +695,47 @@ async function saveUsername(){
         updatedAtMs: Date.now()
       }, { merge: true });
 
-      if (prev && prev !== nameKey) {
-        const prevRef = db.collection('hc_usernames').doc(prev);
-        const prevSnap = await tx.get(prevRef);
-        const prevOwner = prevSnap.exists ? (prevSnap.data() || {}) : null;
-        if (prevOwner && prevOwner.uid === currentUser.uid) tx.delete(prevRef);
-      }
-
       tx.set(meRef, {
         userName: raw,
         displayName: raw,
         googleEmail: _normalizedEmail(currentUser.email || ''),
         userId: currentUser.uid,
+        usernameLocked: true,
         updatedAtMs: Date.now()
       }, { merge: true });
     });
-
-    localStorage.setItem('hc_username', raw);
-    const nameEl = document.getElementById('userName');
-    if (nameEl) nameEl.textContent = raw;
-    showToast('Username updated.', '#16a34a');
-    publishLeaderboardProfileToCloud();
   } catch (e) {
-    if (String(e && e.message) === 'username-taken') {
+    const msg = String(e && e.message);
+    if (msg === 'username-taken') {
       await uiAlert('That username is already taken. Try another one.', 'Username');
       return;
     }
-    console.error('save username error:', e);
+    if (msg === 'username-locked') {
+      await uiAlert('Username is already set and cannot be changed.', 'Username Locked');
+      return;
+    }
+    console.error('save username transaction error:', e);
     await uiAlert('Could not save username right now.', 'Username');
+    return;
   }
+
+  localStorage.setItem('hc_username', raw);
+  localStorage.setItem('hc_cloud_username', raw);
+  localStorage.setItem('hc_username_locked', '1');
+  const nameEl = document.getElementById('userName');
+  if (nameEl) nameEl.textContent = raw;
+  if (input) {
+    input.value = raw;
+    input.disabled = true;
+  }
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Username Locked';
+  }
+  showToast('Username set successfully.', '#16a34a');
+  publishLeaderboardProfileToCloud();
 }
+
 function updateAuthUI() {
   const signedIn = document.getElementById('signedInView');
   const signedOut = document.getElementById('signedOutView');
@@ -604,8 +753,19 @@ function updateAuthUI() {
     if (photoEl) photoEl.src = currentUser.photoURL || 'https://via.placeholder.com/50';
     const chosenName = getPublicUserName();
     if (nameEl) nameEl.textContent = chosenName || 'User';
+
     const usernameInput = document.getElementById('usernameInput');
-    if (usernameInput) usernameInput.value = chosenName || ''; 
+    const saveBtn = document.getElementById('usernameSaveBtn');
+    const locked = localStorage.getItem('hc_username_locked') === '1' || !!localStorage.getItem('hc_cloud_username');
+    if (usernameInput) {
+      usernameInput.value = chosenName || '';
+      usernameInput.disabled = locked;
+    }
+    if (saveBtn) {
+      saveBtn.disabled = locked;
+      saveBtn.textContent = locked ? 'Username Locked' : 'Set Username';
+    }
+
     if (emailEl) emailEl.textContent = currentUser.email || '';
 
     publishLeaderboardProfileToCloud();
@@ -614,33 +774,156 @@ function updateAuthUI() {
     signedIn.style.display = 'none';
   }
 }
+
+function _normalizeArray(v){
+  return Array.isArray(v) ? v : [];
+}
+
+function _dedupeByKey(items, keyFn){
+  const out = [];
+  const seen = new Set();
+  _normalizeArray(items).forEach(x => {
+    const k = keyFn(x);
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    out.push(x);
+  });
+  return out;
+}
+
+function _buildLocalProgressSnapshot(){
+  return {
+    tournaments: DataManager.getTournaments(),
+    matchHistory: DataManager.getMatchHistory(),
+    careerStats: DataManager.getCareerStats(),
+    winHistory: DataManager.getWinHistory(),
+    playerProfile: DataManager.getPlayerProfile()
+  };
+}
+
+function _mergeProgressSnapshots(localSnap, cloudSnap){
+  const local = localSnap || {};
+  const cloud = cloudSnap || {};
+
+  const matchHistory = _dedupeByKey([
+    ..._normalizeArray(cloud.matchHistory),
+    ..._normalizeArray(local.matchHistory)
+  ], m => String((m && m.id) || '') + '|' + String((m && m.date) || '') + '|' + String((m && (m.teamNames||[]).join('-')) || ''));
+
+  const tournaments = _dedupeByKey([
+    ..._normalizeArray(cloud.tournaments),
+    ..._normalizeArray(local.tournaments)
+  ], t => String((t && t.id) || '') || String((t && t.startDate) || '') + '|' + String((t && t.teamKey) || ''));
+
+  const winHistory = _dedupeByKey([
+    ..._normalizeArray(cloud.winHistory),
+    ..._normalizeArray(local.winHistory)
+  ], w => String((w && w.date) || '') + '|' + String((w && w.format) || '') + '|' + String((w && w.teamKey) || ''));
+
+  const localCareer = local.careerStats || {};
+  const cloudCareer = cloud.careerStats || {};
+  const localMatches = Number(localCareer.totalMatches || 0);
+  const cloudMatches = Number(cloudCareer.totalMatches || 0);
+  const careerStats = cloudMatches > localMatches ? cloudCareer : (localMatches > cloudMatches ? localCareer : {
+    ...cloudCareer,
+    ...localCareer,
+    totalMatches: Math.max(localMatches, cloudMatches),
+    won: Math.max(Number(localCareer.won||0), Number(cloudCareer.won||0)),
+    lost: Math.max(Number(localCareer.lost||0), Number(cloudCareer.lost||0)),
+    drawn: Math.max(Number(localCareer.drawn||0), Number(cloudCareer.drawn||0)),
+    totalRuns: Math.max(Number(localCareer.totalRuns||0), Number(cloudCareer.totalRuns||0)),
+    totalWickets: Math.max(Number(localCareer.totalWickets||0), Number(cloudCareer.totalWickets||0)),
+    highestScore: Math.max(Number(localCareer.highestScore||0), Number(cloudCareer.highestScore||0))
+  });
+
+  const lp = local.playerProfile || {};
+  const cp = cloud.playerProfile || {};
+  const rankPoints = Math.max(Number(lp.rankPoints || 0), Number(cp.rankPoints || 0));
+  const aura = Math.max(Number(lp.aura || 0), Number(cp.aura || 0));
+  const matchTokens = Math.max(Number(lp.matchTokens || 0), Number(cp.matchTokens || 0));
+  const rankedMatches = Math.max(Number(lp.rankedMatches || 0), Number(cp.rankedMatches || 0));
+  const totalRewardsEarned = Math.max(Number(lp.totalRewardsEarned || 0), Number(cp.totalRewardsEarned || 0));
+  const rankTier = (typeof DataManager._resolveRankTier === 'function') ? DataManager._resolveRankTier(rankPoints) : (lp.rankTier || cp.rankTier || 'Bronze');
+
+  const playerProfile = {
+    ...cp,
+    ...lp,
+    rankPoints,
+    aura,
+    matchTokens,
+    rankedMatches,
+    totalRewardsEarned,
+    rankTier,
+    lastUpdated: new Date().toISOString()
+  };
+
+  return { tournaments, matchHistory, careerStats, winHistory, playerProfile };
+}
+
+function _applyProgressSnapshotToLocal(snap){
+  const s = snap || {};
+  localStorage.setItem('hc_tournaments', JSON.stringify(_normalizeArray(s.tournaments)));
+  localStorage.setItem('hc_matchHistory', JSON.stringify(_normalizeArray(s.matchHistory)));
+  localStorage.setItem('hc_careerStats', JSON.stringify(s.careerStats || DataManager.getCareerStats()));
+  localStorage.setItem('handCricketHistory', JSON.stringify(_normalizeArray(s.winHistory)));
+  localStorage.setItem('hc_playerProfile', JSON.stringify(s.playerProfile || DataManager.getPlayerProfile()));
+  try { if (typeof persistCurrentProgressIdentity === 'function') persistCurrentProgressIdentity(); } catch(e) {}
+}
+
+let _cloudSyncTimer = null;
+function queueCloudProgressSync(reason){
+  if (_cloudSyncTimer) clearTimeout(_cloudSyncTimer);
+  _cloudSyncTimer = setTimeout(() => {
+    syncProgressToCloud(reason || 'auto', true).catch(() => {});
+  }, 700);
+}
+window.queueCloudProgressSync = queueCloudProgressSync;
+
+async function syncProgressToCloud(reason, silent){
+  if (!firebaseInitialized || !db || !currentUser) return null;
+  const ref = db.collection('handCricketProgress').doc(currentUser.uid);
+  const localSnap = _buildLocalProgressSnapshot();
+  const cloudDoc = await ref.get().catch(() => null);
+  const cloudSnap = cloudDoc && cloudDoc.exists ? (cloudDoc.data() || {}) : {};
+  const merged = _mergeProgressSnapshots(localSnap, cloudSnap);
+  _applyProgressSnapshotToLocal(merged);
+
+  const explicitUserName = String(localStorage.getItem('hc_username') || localStorage.getItem('hc_cloud_username') || '').trim();
+  const uname = explicitUserName || String((currentUser && currentUser.displayName) || 'Player').trim();
+  const payload = {
+    userId: currentUser.uid,
+    userName: explicitUserName,
+    displayName: uname,
+    googleEmail: _normalizedEmail(currentUser.email || ''),
+    photoURL: currentUser.photoURL || '',
+    tournaments: merged.tournaments,
+    matchHistory: merged.matchHistory,
+    careerStats: merged.careerStats,
+    winHistory: merged.winHistory,
+    playerProfile: merged.playerProfile,
+    rankPoints: Number((merged.playerProfile||{}).rankPoints || 0),
+    aura: Number((merged.playerProfile||{}).aura || 0),
+    rankTier: (merged.playerProfile||{}).rankTier || 'Bronze',
+    totalMatches: Number((merged.careerStats||{}).totalMatches || 0),
+    lastSync: new Date().toISOString(),
+    dataVersion: APP_VERSION,
+    syncReason: String(reason || 'manual')
+  };
+
+  await ref.set(payload, { merge: true });
+  if (!silent) showToast('Progress synced to cloud.', '#48bb78');
+  return payload;
+}
+
 function saveProgressToCloud() {
   if (!firebaseInitialized || !db || !currentUser) {
     uiAlert('Please sign in first!', 'Sign In Required');
     return;
   }
-  
-  const data = {
-    userId: currentUser.uid,
-    userName: getPublicUserName(),
-    displayName: getPublicUserName(),
-    googleEmail: _normalizedEmail(currentUser.email || ''),
-    tournaments: DataManager.getTournaments(),
-    matchHistory: DataManager.getMatchHistory(),
-    careerStats: DataManager.getCareerStats(),
-    winHistory: DataManager.getWinHistory(),
-    playerProfile: DataManager.getPlayerProfile(),
-    lastSync: new Date().toISOString(),
-    dataVersion: APP_VERSION
-  };
-  
-  db.collection('handCricketProgress').doc(currentUser.uid).set(data)
+  syncProgressToCloud('manual-save', false)
     .then(() => {
       const lastSyncEl = document.getElementById('lastSyncTime');
-      if (lastSyncEl) {
-        lastSyncEl.textContent = '✓ Last synced: ' + new Date().toLocaleString();
-      }
-      showToast('✅ Progress saved to cloud!', '#48bb78');
+      if (lastSyncEl) lastSyncEl.textContent = '? Last synced: ' + new Date().toLocaleString();
       publishLeaderboardProfileToCloud();
     })
     .catch(error => {
@@ -651,48 +934,20 @@ function saveProgressToCloud() {
 
 function loadProgressFromCloud() {
   if (!firebaseInitialized || !db || !currentUser) return;
-  
-  db.collection('handCricketProgress').doc(currentUser.uid).get()
-    .then(doc => {
-      if (!doc.exists) {
-        console.log('No cloud data found');
-        if (typeof persistCurrentProgressIdentity === 'function') persistCurrentProgressIdentity();
-        TournamentHistory.displayHistory();
-        checkResumeBtnVisibility();
-        updatePlayerProfileUI();
-        return;
+  syncProgressToCloud('load-merge', true)
+    .then(data => {
+      if (data && data.userName) {
+        localStorage.setItem('hc_username', String(data.userName));
+        localStorage.setItem('hc_cloud_username', String(data.userName));
       }
-      
-      const data = doc.data();
-      if (data.userName) localStorage.setItem('hc_username', String(data.userName));
-      
-      if (data.tournaments) {
-        localStorage.setItem('hc_tournaments', JSON.stringify(data.tournaments));
-      }
-      if (data.matchHistory) {
-        localStorage.setItem('hc_matchHistory', JSON.stringify(data.matchHistory));
-      }
-      if (data.careerStats) {
-        localStorage.setItem('hc_careerStats', JSON.stringify(data.careerStats));
-      }
-      if (data.winHistory) {
-        localStorage.setItem('handCricketHistory', JSON.stringify(data.winHistory));
-      }
-      if (data.playerProfile) {
-        localStorage.setItem('hc_playerProfile', JSON.stringify(data.playerProfile));
-      }
-      
+      if (data && data.userName) localStorage.setItem('hc_username_locked', '1');
       const lastSyncEl = document.getElementById('lastSyncTime');
-      if (lastSyncEl && data.lastSync) {
-        lastSyncEl.textContent = '✓ Last synced: ' + new Date(data.lastSync).toLocaleString();
-      }
-      
+      if (lastSyncEl) lastSyncEl.textContent = '? Last synced: ' + new Date().toLocaleString();
       TournamentHistory.displayHistory();
       checkResumeBtnVisibility();
       updatePlayerProfileUI();
-      
-      if (typeof persistCurrentProgressIdentity === 'function') persistCurrentProgressIdentity();
-      showToast('✅ Progress loaded from cloud!', '#48bb78');
+      updateAuthUI();
+      showToast('? Progress loaded from cloud!', '#48bb78');
     })
     .catch(error => {
       console.error('Cloud load error:', error);
@@ -781,7 +1036,7 @@ function downloadPDF() {
   const filename = `HandCricket_${GameState.teamNames[0]}_vs_${GameState.teamNames[1]}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(filename);
   
-  showToast('📄 Scorecard downloaded!', '#48bb78');
+  showToast('?? Scorecard downloaded!', '#48bb78');
 }
 
 // ============================================================================
@@ -816,7 +1071,7 @@ window.openMenuFriends = openMenuFriends;
 // Fix the HTML onclick handler issue
 window.getMatchHistory = openMenuHistory;
 
-console.log('✅ Part 4 loaded: UI functions & Firebase integration complete');
+console.log('? Part 4 loaded: UI functions & Firebase integration complete');
 
 
 
@@ -831,27 +1086,36 @@ console.log('✅ Part 4 loaded: UI functions & Firebase integration complete');
 
 function publishLeaderboardProfileToCloud() {
   if (!(firebaseInitialized && db && currentUser)) return;
-  const profile = DataManager.getPlayerProfile();
-  const career = DataManager.getCareerStats();
-  db.collection('handCricketProgress').doc(currentUser.uid).set({
+  const localSnap = _buildLocalProgressSnapshot();
+  const explicitUserName = String(localStorage.getItem('hc_username') || localStorage.getItem('hc_cloud_username') || '').trim();
+  const uname = explicitUserName || String((currentUser && currentUser.displayName) || 'Player').trim();
+  const payload = {
     userId: currentUser.uid,
-    userName: getPublicUserName(),
-    displayName: getPublicUserName(),
+    userName: explicitUserName,
+    displayName: uname,
     googleEmail: _normalizedEmail(currentUser.email || ''),
     photoURL: currentUser.photoURL || '',
-    rankPoints: Number(profile.rankPoints || 0),
-    aura: Number(profile.aura || 0),
-    rankTier: profile.rankTier || 'Bronze',
-    totalMatches: Number(career.totalMatches || 0),
-    playerProfile: profile,
-    careerStats: career,
+    rankPoints: Number((localSnap.playerProfile||{}).rankPoints || 0),
+    aura: Number((localSnap.playerProfile||{}).aura || 0),
+    rankTier: (localSnap.playerProfile||{}).rankTier || 'Bronze',
+    totalMatches: Number((localSnap.careerStats||{}).totalMatches || 0),
+    tournaments: localSnap.tournaments,
+    matchHistory: localSnap.matchHistory,
+    careerStats: localSnap.careerStats,
+    winHistory: localSnap.winHistory,
+    playerProfile: localSnap.playerProfile,
     lastSync: new Date().toISOString(),
     dataVersion: APP_VERSION
-  }, { merge: true }).catch(err => {
+  };
+  db.collection('handCricketProgress').doc(currentUser.uid).set(payload, { merge: true }).catch(err => {
     console.error('publish leaderboard profile error:', err);
   });
 }
-window.addEventListener('hc_profile_updated', () => { if (currentUser) publishLeaderboardProfileToCloud(); });
+window.addEventListener('hc_profile_updated', () => {
+  if (currentUser) {
+    publishLeaderboardProfileToCloud();
+  }
+});
 
 
 
@@ -860,16 +1124,16 @@ function _getHallOfFameBadges(){
   const stats = DataManager.getCareerStats();
   const wins = DataManager.getWinHistory();
   const badges = [
-    { id:'first_match', name:'Debutant', icon:'🎬', cond: (stats.totalMatches||0) >= 1, desc:'Play your first match' },
-    { id:'first_win', name:'Winner', icon:'🏅', cond: (stats.won||0) >= 1, desc:'Win your first match' },
-    { id:'fifty_club', name:'Fifty Club', icon:'5️⃣0️⃣', cond: (stats.fifties||0) >= 1, desc:'Score a half-century' },
-    { id:'century_club', name:'Century King', icon:'💯', cond: (stats.centuries||0) >= 1, desc:'Score a century' },
-    { id:'hattrick', name:'Hat-trick Hero', icon:'🎩', cond: (stats.hattricks||0) >= 1, desc:'Take a hat-trick' },
-    { id:'five_wkt', name:'Bowling Beast', icon:'🔥🔥', cond: (stats.fiveWickets||0) >= 1, desc:'Take a 5-wicket haul' },
-    { id:'rank_silver', name:'Ranked Silver', icon:'🥈', cond: Number(profile.rankPoints||0) >= 200, desc:'Reach 200 RP' },
-    { id:'rank_gold', name:'Ranked Gold', icon:'🥇', cond: Number(profile.rankPoints||0) >= 500, desc:'Reach 500 RP' },
-    { id:'aura_divine', name:'Aura Divine', icon:'✨', cond: Number(profile.aura||0) >= 1000, desc:'Reach 1000 Aura' },
-    { id:'tour_champ', name:'Tournament Champ', icon:'🏆', cond: (wins||[]).length >= 1, desc:'Win any tournament' }
+    { id:'first_match', name:'Debutant', icon:'??', cond: (stats.totalMatches||0) >= 1, desc:'Play your first match' },
+    { id:'first_win', name:'Winner', icon:'??', cond: (stats.won||0) >= 1, desc:'Win your first match' },
+    { id:'fifty_club', name:'Fifty Club', icon:'5??0??', cond: (stats.fifties||0) >= 1, desc:'Score a half-century' },
+    { id:'century_club', name:'Century King', icon:'??', cond: (stats.centuries||0) >= 1, desc:'Score a century' },
+    { id:'hattrick', name:'Hat-trick Hero', icon:'??', cond: (stats.hattricks||0) >= 1, desc:'Take a hat-trick' },
+    { id:'five_wkt', name:'Bowling Beast', icon:'????', cond: (stats.fiveWickets||0) >= 1, desc:'Take a 5-wicket haul' },
+    { id:'rank_silver', name:'Ranked Silver', icon:'??', cond: Number(profile.rankPoints||0) >= 200, desc:'Reach 200 RP' },
+    { id:'rank_gold', name:'Ranked Gold', icon:'??', cond: Number(profile.rankPoints||0) >= 500, desc:'Reach 500 RP' },
+    { id:'aura_divine', name:'Aura Divine', icon:'?', cond: Number(profile.aura||0) >= 1000, desc:'Reach 1000 Aura' },
+    { id:'tour_champ', name:'Tournament Champ', icon:'??', cond: (wins||[]).length >= 1, desc:'Win any tournament' }
   ];
   return badges;
 }
@@ -885,7 +1149,7 @@ function renderHallOfFame(container){
       <div style="background:#2563eb;color:white;padding:14px;border-radius:12px"><div style="font-size:28px;font-weight:800">${badges.length}</div><div>Total Badges</div></div>
       <div style="background:#7c3aed;color:white;padding:14px;border-radius:12px"><div style="font-size:28px;font-weight:800">${Math.round((unlocked.length / badges.length) * 100)}%</div><div>Completion</div></div>
     </div>
-    <h4 style="color:#334155;margin:8px 0">🌟 Hall of Fame</h4>
+    <h4 style="color:#334155;margin:8px 0">?? Hall of Fame</h4>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
       ${badges.map(b=>`
         <div style="padding:12px;border-radius:10px;border:1px solid ${b.cond ? '#86efac' : '#e2e8f0'};background:${b.cond ? '#f0fdf4' : '#f8fafc'}">
@@ -899,6 +1163,17 @@ function renderHallOfFame(container){
   `;
   container.innerHTML = html;
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
