@@ -383,18 +383,44 @@ async function sendFriendlyChallenge(){
   let overs = Number((document.getElementById('friendlyOvers') || {}).value || _friendlyDefaultsByMode(mode));
   if (!Number.isFinite(overs) || overs < 1) overs = _friendlyDefaultsByMode(mode);
   try {
-    await db.collection('hc_friendChallenges').add({
-      fromUid: currentUser.uid,
-      fromName: (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player')),
-      toUid: friendSelectedUid,
-      toName: friendSelectedName || 'Friend',
-      mode,
-      overs,
-      status: 'pending',
-      createdAtMs: Date.now(),
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    const myName = (typeof getPublicUserName==='function'?getPublicUserName():(currentUser.displayName||'Player'));
+    const roomRef = db.collection('hc_rankedRooms').doc();
+    const challengeRef = db.collection('hc_friendChallenges').doc();
+    const p1 = { uid: currentUser.uid, name: myName || 'Friend A', rankTier: 'Friendly', rankPoints: 0 };
+    const p2 = { uid: friendSelectedUid, name: friendSelectedName || 'Friend B', rankTier: 'Friendly', rankPoints: 0 };
+    const roomId = roomRef.id;
+
+    await db.runTransaction(async tx => {
+      tx.set(roomRef, {
+        type: 'friendly',
+        sourceChallengeId: challengeRef.id,
+        status: 'waiting_start',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAtMs: Date.now(),
+        overs: Number(overs || _friendlyDefaultsByMode(mode || 't20i')),
+        mode: mode || 't20i',
+        readyMap: {},
+        playerUids: [p1.uid, p2.uid],
+        players: [p1, p2]
+      }, { merge: true });
+
+      tx.set(challengeRef, {
+        fromUid: currentUser.uid,
+        fromName: myName,
+        toUid: friendSelectedUid,
+        toName: friendSelectedName || 'Friend',
+        participants: [currentUser.uid, friendSelectedUid],
+        mode,
+        overs,
+        status: 'pending',
+        liveRoomId: roomId,
+        createdAtMs: Date.now(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
     });
-    showToast('Friendly challenge sent. Open Friendly Match tab to track it.', '#2563eb');
+
+    showToast('Friendly invite sent. Waiting for friend to accept.', '#2563eb');
+    if (typeof openLiveRoomById === 'function') openLiveRoomById(roomId, 'Friendly Queue');
   } catch(e){
     console.error('send friendly challenge error:', e);
   }
@@ -404,34 +430,85 @@ function _listenFriendlyChallenges(){
   if (!_friendSignedIn()) return;
   if (friendChallengeUnsub) friendChallengeUnsub();
   friendChallengeUnsub = db.collection('hc_friendChallenges')
-    .where('toUid','==',currentUser.uid)
-    .where('status','in',['pending','accepted','live'])
+    .where('participants','array-contains',currentUser.uid)
     .onSnapshot(snap => {
-      const box = document.getElementById('friendlyIncomingList');
-      if (!box) return;
-      const items = snap.docs.map(d => ({ id:d.id, ...(d.data()||{}) }));
-      if (!items.length) {
-        box.innerHTML = '<p style="color:#64748b">No friendly challenges.</p>';
-        return;
-      }
-      box.innerHTML = items.sort((a,b)=>Number(b.createdAtMs||0)-Number(a.createdAtMs||0)).map(c => {
-        if (c.status === 'pending') {
-          return `<div style="padding:6px 0;border-bottom:1px solid #e2e8f0"><div><strong>${_friendEsc(c.fromName||'Friend')}</strong> • ${_friendEsc(c.mode||'custom')} • ${Number(c.overs||0)} ov</div><div style="margin-top:4px"><button onclick="respondFriendlyChallenge('${_friendEsc(c.id)}',true)" style="width:auto;padding:4px 8px;background:#16a34a;font-size:11px">Accept</button> <button onclick="respondFriendlyChallenge('${_friendEsc(c.id)}',false)" style="width:auto;padding:4px 8px;background:#dc2626;font-size:11px">Reject</button></div></div>`;
+      const incomingBox = document.getElementById('friendlyIncomingList');
+      const outgoingBox = document.getElementById('friendlyOutgoingList');
+      if (!incomingBox && !outgoingBox) return;
+
+      const items = snap.docs.map(d => ({ id:d.id, ...(d.data()||{}) }))
+        .filter(c => ['pending','accepted','live'].includes(String(c.status || '')))
+        .sort((a,b)=>Number(b.createdAtMs||0)-Number(a.createdAtMs||0));
+
+      const incoming = items.filter(c => String(c.toUid||'') === String(currentUser.uid||''));
+      const outgoing = items.filter(c => String(c.fromUid||'') === String(currentUser.uid||''));
+
+      if (incomingBox) {
+        if (!incoming.length) {
+          incomingBox.innerHTML = '<p style="color:#64748b">No incoming friendly challenges.</p>';
+        } else {
+          incomingBox.innerHTML = incoming.map(c => {
+            const oppName = c.fromName || 'Friend';
+            const roomBtn = c.liveRoomId
+              ? '<button onclick="launchFriendlyGameFromChallenge(\'' + _friendEsc(c.id) + '\')" style="width:auto;padding:4px 8px;background:#2563eb;font-size:11px">Open Friendly Dialog</button>'
+              : '';
+            if (c.status === 'pending') {
+              return '<div style="padding:6px 0;border-bottom:1px solid #e2e8f0">'
+                + '<div><strong>' + _friendEsc(oppName) + '</strong> invited you • ' + _friendEsc(c.mode||'custom') + ' ? ' + Number(c.overs||0) + ' ov</div>'
+                + '<div style="margin-top:4px">'
+                + '<button onclick="respondFriendlyChallenge(\'' + _friendEsc(c.id) + '\',true)" style="width:auto;padding:4px 8px;background:#16a34a;font-size:11px">Accept & Open Dialog</button> '
+                + '<button onclick="respondFriendlyChallenge(\'' + _friendEsc(c.id) + '\',false)" style="width:auto;padding:4px 8px;background:#dc2626;font-size:11px">Reject</button>'
+                + '</div></div>';
+            }
+            const label = c.status === 'live' ? 'Live' : 'Accepted';
+            return '<div style="padding:6px 0;border-bottom:1px solid #e2e8f0">'
+              + '<div><strong>' + _friendEsc(oppName) + '</strong> • ' + _friendEsc(c.mode||'custom') + ' ? ' + Number(c.overs||0) + ' ov • <span style="color:#16a34a">' + _friendEsc(label) + '</span></div>'
+              + '<div style="margin-top:4px">' + roomBtn + '</div></div>';
+          }).join('');
         }
-        return `<div style="padding:6px 0;border-bottom:1px solid #e2e8f0"><div><strong>${_friendEsc(c.fromName||'Friend')}</strong> • ${_friendEsc(c.mode||'custom')} • ${Number(c.overs||0)} ov • <span style="color:#16a34a">Accepted</span></div><div style="margin-top:4px"><button onclick="launchFriendlyGameFromChallenge('${_friendEsc(c.id)}')" style="width:auto;padding:4px 8px;background:#2563eb;font-size:11px">Play Friendly</button></div></div>`;
-      }).join('');
+      }
+
+      if (outgoingBox) {
+        if (!outgoing.length) {
+          outgoingBox.innerHTML = '<p style="color:#64748b">No outgoing invites.</p>';
+        } else {
+          outgoingBox.innerHTML = outgoing.map(c => {
+            const oppName = c.toName || 'Friend';
+            const roomBtn = c.liveRoomId
+              ? '<button onclick="launchFriendlyGameFromChallenge(\'' + _friendEsc(c.id) + '\')" style="width:auto;padding:4px 8px;background:#2563eb;font-size:11px">Open Friendly Dialog</button>'
+              : '';
+            const statusText = c.status === 'pending' ? '<span style="color:#d97706">Waiting acceptance</span>' : (c.status === 'live' ? '<span style="color:#16a34a">Live</span>' : '<span style="color:#16a34a">Accepted</span>');
+            return '<div style="padding:6px 0;border-bottom:1px solid #e2e8f0">'
+              + '<div><strong>' + _friendEsc(oppName) + '</strong> • ' + _friendEsc(c.mode||'custom') + ' ? ' + Number(c.overs||0) + ' ov • ' + statusText + '</div>'
+              + '<div style="margin-top:4px">' + roomBtn + '</div></div>';
+          }).join('');
+        }
+      }
     }, err => console.error('friendly challenge listener error:', err));
 }
 
 async function respondFriendlyChallenge(challengeId, accept){
   if (!_friendSignedIn() || !challengeId) return;
   try {
-    await db.collection('hc_friendChallenges').doc(challengeId).set({
-      status: accept ? 'accepted' : 'rejected',
-      respondedAtMs: Date.now(),
-      respondedByUid: currentUser.uid
-    }, { merge: true });
+    const ref = db.collection('hc_friendChallenges').doc(challengeId);
+    let roomId = '';
+    await db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw new Error('challenge-missing');
+      const c = snap.data() || {};
+      if (String(c.toUid || '') !== String(currentUser.uid || '')) throw new Error('not-target');
+      if (String(c.status || '') !== 'pending') return;
+      roomId = String(c.liveRoomId || '');
+      tx.set(ref, {
+        status: accept ? 'accepted' : 'rejected',
+        respondedAtMs: Date.now(),
+        respondedByUid: currentUser.uid
+      }, { merge: true });
+    });
     showToast(accept ? 'Challenge accepted.' : 'Challenge rejected.', accept ? '#16a34a' : '#64748b');
+    if (accept && roomId && typeof openLiveRoomById === 'function') {
+      openLiveRoomById(roomId, 'Friendly Invite');
+    }
   } catch(e){
     console.error('respond friendly challenge error:', e);
   }
@@ -447,11 +524,11 @@ async function launchFriendlyGameFromChallenge(challengeId){
       if (!snap.exists) throw new Error('challenge-missing');
       const c = snap.data() || {};
       if (c.toUid !== currentUser.uid && c.fromUid !== currentUser.uid) throw new Error('not-participant');
-      if (c.status !== 'accepted' && c.status !== 'live') throw new Error('not-accepted');
+      if (c.status !== 'accepted' && c.status !== 'live' && c.status !== 'pending') throw new Error('not-accepted');
 
       if (c.liveRoomId) {
         liveRoomId = c.liveRoomId;
-        tx.set(ref, { status: 'live', updatedAtMs: Date.now() }, { merge: true });
+        if (c.status === 'accepted') tx.set(ref, { status: 'live', updatedAtMs: Date.now() }, { merge: true });
         return;
       }
 
@@ -507,7 +584,7 @@ async function openFriendModal(){
 
   if (!_friendSignedIn()) {
     _friendStatus('Sign in to use friends, private chat, and friendly games.');
-    const ids = ['friendPlayerList','friendIncomingList','friendList','friendChatMessages','friendlyIncomingList'];
+    const ids = ['friendPlayerList','friendIncomingList','friendList','friendChatMessages','friendlyIncomingList','friendlyOutgoingList'];
     const search = document.getElementById('friendSearchUsername');
     if (search) search.value = '';
     showFriendSubSection('discover');
@@ -572,6 +649,7 @@ window.addEventListener('DOMContentLoaded', () => {
     modeSel.dispatchEvent(new Event('change'));
   }
 });
+
 
 
 
