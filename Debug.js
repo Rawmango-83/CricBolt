@@ -19,17 +19,17 @@ const TournamentHistory = {
     }
     
     const formatNames = {
-      odiWorldCup: 'ODI World Cup ??',
-      t20WorldCup: 'T20 World Cup ??',
-      wtc: 'WTC Championship ??',
-      ipl: 'IPL Trophy ??'
+      odiWorldCup: 'ODI World Cup 🏆',
+      t20WorldCup: 'T20 World Cup 🏆',
+      wtc: 'WTC Championship 🏆',
+      ipl: 'IPL Trophy 🏆'
     };
     
     let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px">';
     
     wins.slice(-8).reverse().forEach(w => {
       html += `<div style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:18px;border-radius:12px;text-align:center;box-shadow:0 4px 12px rgba(102,126,234,0.3)">
-        <div style="font-size:2em;margin-bottom:8px">??</div>
+        <div style="font-size:2em;margin-bottom:8px">🏆</div>
         <div style="font-weight:700;margin-bottom:5px">${formatNames[w.format] || w.format}</div>
         <div style="font-size:13px;opacity:0.9">${Security.escapeHtml(w.teamName)}</div>
         <div style="font-size:11px;opacity:0.7;margin-top:5px">${new Date(w.date).toLocaleDateString()}</div>
@@ -183,14 +183,14 @@ function renderAllMatches(container) {
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
         <div>
           <strong style="color:#2d3748">${Security.escapeHtml(m.teamNames[0])} vs ${Security.escapeHtml(m.teamNames[1])}</strong>
-          ${m.tournament ? '<span style="background:#667eea;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px">?? Tournament</span>' : ''}
+          ${m.tournament ? '<span style="background:#667eea;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px">🏆 Tournament</span>' : ''}
         </div>
         <span style="color:${resultColor};font-weight:700;font-size:14px">${resultText}</span>
       </div>
       <div style="font-size:13px;color:#718096">
-        <span>?? ${m.date}</span>
-        <span style="margin-left:15px">?? ${m.format || 'Custom'}</span>
-        <span style="margin-left:15px">?? ${m.userRuns}/${m.userWickets} vs ${m.oppRuns}/${m.oppWickets}</span>
+        <span>📅 ${m.date}</span>
+        <span style="margin-left:15px">🏏 ${m.format || 'Custom'}</span>
+        <span style="margin-left:15px">📊 ${m.userRuns}/${m.userWickets} vs ${m.oppRuns}/${m.oppWickets}</span>
       </div>
     </div>`;
   });
@@ -218,7 +218,7 @@ function renderTournamentWins(container) {
   
   wins.slice().reverse().forEach(w => {
     html += `<div style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:25px;border-radius:15px;text-align:center;box-shadow:0 6px 20px rgba(102,126,234,0.4)">
-      <div style="font-size:3em;margin-bottom:10px">??</div>
+      <div style="font-size:3em;margin-bottom:10px">🏆</div>
       <h3 style="color:white;margin-bottom:8px">${formatNames[w.format] || w.format}</h3>
       <div style="font-size:16px;font-weight:600;margin-bottom:5px">${Security.escapeHtml(w.teamName)}</div>
       <div style="font-size:13px;opacity:0.8">${new Date(w.date).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'})}</div>
@@ -237,7 +237,7 @@ function renderCareerStats(container) {
   let html = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:25px">
       ${[
-        ['?? Total Matches', stats.totalMatches, '#667eea'],
+        ['🏏 Total Matches', stats.totalMatches, '#667eea'],
         ['? Won', stats.won, '#48bb78'],
         ['? Lost', stats.lost, '#ef4444'],
         ['? Drawn', stats.drawn, '#f59e0b']
@@ -250,14 +250,14 @@ function renderCareerStats(container) {
     </div>
     
     <div style="background:#f7fafc;padding:25px;border-radius:12px;margin-bottom:20px;border-left:4px solid #667eea">
-      <h4 style="color:#2d3748;margin-bottom:15px">?? Batting Performance</h4>
+      <h4 style="color:#2d3748;margin-bottom:15px">🏏 Batting Performance</h4>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px">
         ${[
           ['Total Runs', stats.totalRuns],
           ['Highest Score', stats.highestScore],
-          ['Centuries ??', stats.centuries || 0],
-          ['Half-Centuries 5??0??', stats.fifties || 0],
-          ['Win Rate ??', winRate + '%']
+          ['Centuries 💯', stats.centuries || 0],
+          ['Half-Centuries 50', stats.fifties || 0],
+          ['Win Rate %', winRate + '%']
         ].map(([l, v]) => `<div><div style="color:#718096;font-size:13px">${l}</div><div style="font-size:28px;font-weight:700;color:#2d3748">${v}</div></div>`).join('')}
       </div>
     </div>
@@ -267,10 +267,10 @@ function renderCareerStats(container) {
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px">
         ${[
           ['Wickets Taken', stats.totalWickets],
-          ['Hat-Tricks ??', stats.hattricks || 0],
-          ['3-Wkt Hauls ??', stats.threeWickets || 0],
-          ['5-Wkt Hauls ????', stats.fiveWickets || 0],
-          ['10-Wkt Hauls ??', stats.tenWickets || 0]
+          ['Hat-Tricks 🎩', stats.hattricks || 0],
+          ['3-Wkt Hauls 🔥', stats.threeWickets || 0],
+          ['5-Wkt Hauls 🔥🔥', stats.fiveWickets || 0],
+          ['10-Wkt Hauls 💥', stats.tenWickets || 0]
         ].map(([l, v]) => `<div><div style="color:#718096;font-size:13px">${l}</div><div style="font-size:28px;font-weight:700;color:#2d3748">${v}</div></div>`).join('')}
       </div>
     </div>
@@ -282,7 +282,7 @@ function renderCareerStats(container) {
 function renderLeaderboard(container) {
   container.innerHTML = `
     <div style="text-align:center;padding:30px 20px;color:#64748b">
-      <div style="font-size:2.8em;margin-bottom:10px">??</div>
+      <div style="font-size:2.8em;margin-bottom:10px">🌍</div>
       <h3 style="color:#334155;margin-bottom:6px">Global Leaderboard</h3>
       <p style="max-width:520px;margin:0 auto;line-height:1.6">
         Top players by Rank Points, then Aura. Loading latest standings...
@@ -348,7 +348,7 @@ function renderLeaderboard(container) {
 
       let html = '<div style="display:grid;gap:8px">';
       rows.forEach((r, idx) => {
-        const medal = idx === 0 ? '??' : idx === 1 ? '??' : idx === 2 ? '??' : `#${idx + 1}`;
+        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
         const mine = !!(currentUser && (currentUser.uid === r.uid || _normalizedEmail(currentUser.email || '') === _normalizedEmail(r.email || '')));
         html += `
           <div style="display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid ${mine ? '#60a5fa' : '#e2e8f0'};background:${mine ? '#eff6ff' : '#f8fafc'}">
@@ -417,8 +417,8 @@ function openResumeModal() {
         <span style="background:#667eea;color:white;padding:4px 10px;border-radius:6px;font-size:12px">${stageNames[t.stage] || t.stage}</span>
       </div>
       <div style="font-size:12px;color:#718096">
-        <span>?? Started: ${t.startDate}</span><br>
-        <span>?? Last saved: ${t.lastSaved}</span>
+        <span>📅 Started: ${t.startDate}</span><br>
+        <span>💾 Last saved: ${t.lastSaved}</span>
       </div>
     </div>`;
   });
@@ -448,13 +448,13 @@ function resumeTournamentSlot(slotId) {
   showSection('tournament');
   
   const titles = {
-    odiWorldCup: '?? ODI World Cup',
-    t20WorldCup: '?? T20 World Cup',
-    wtc: '?? World Test Championship',
-    ipl: '?? Indian Premier League'
+    odiWorldCup: '🏆 ODI World Cup',
+    t20WorldCup: '🏆 T20 World Cup',
+    wtc: '🏆 World Test Championship',
+    ipl: '🏆 Indian Premier League'
   };
   
-  Utils.setText('tournamentTitle', titles[TournamentState.format] || '?? Tournament');
+  Utils.setText('tournamentTitle', titles[TournamentState.format] || '🏆 Tournament');
   
   const nav = Utils.getElement('tournamentNav');
   const sb = Utils.getElement('statsCornerBtn');
@@ -1036,7 +1036,7 @@ function downloadPDF() {
   const filename = `HandCricket_${GameState.teamNames[0]}_vs_${GameState.teamNames[1]}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(filename);
   
-  showToast('?? Scorecard downloaded!', '#48bb78');
+  showToast('📄 Scorecard downloaded!', '#48bb78');
 }
 
 // ============================================================================
@@ -1124,16 +1124,16 @@ function _getHallOfFameBadges(){
   const stats = DataManager.getCareerStats();
   const wins = DataManager.getWinHistory();
   const badges = [
-    { id:'first_match', name:'Debutant', icon:'??', cond: (stats.totalMatches||0) >= 1, desc:'Play your first match' },
-    { id:'first_win', name:'Winner', icon:'??', cond: (stats.won||0) >= 1, desc:'Win your first match' },
-    { id:'fifty_club', name:'Fifty Club', icon:'5??0??', cond: (stats.fifties||0) >= 1, desc:'Score a half-century' },
-    { id:'century_club', name:'Century King', icon:'??', cond: (stats.centuries||0) >= 1, desc:'Score a century' },
-    { id:'hattrick', name:'Hat-trick Hero', icon:'??', cond: (stats.hattricks||0) >= 1, desc:'Take a hat-trick' },
-    { id:'five_wkt', name:'Bowling Beast', icon:'????', cond: (stats.fiveWickets||0) >= 1, desc:'Take a 5-wicket haul' },
-    { id:'rank_silver', name:'Ranked Silver', icon:'??', cond: Number(profile.rankPoints||0) >= 200, desc:'Reach 200 RP' },
-    { id:'rank_gold', name:'Ranked Gold', icon:'??', cond: Number(profile.rankPoints||0) >= 500, desc:'Reach 500 RP' },
+    { id:'first_match', name:'Debutant', icon:'🏏', cond: (stats.totalMatches||0) >= 1, desc:'Play your first match' },
+    { id:'first_win', name:'Winner', icon:'🏆', cond: (stats.won||0) >= 1, desc:'Win your first match' },
+    { id:'fifty_club', name:'Fifty Club', icon:'5️⃣0️⃣', cond: (stats.fifties||0) >= 1, desc:'Score a half-century' },
+    { id:'century_club', name:'Century King', icon:'💯', cond: (stats.centuries||0) >= 1, desc:'Score a century' },
+    { id:'hattrick', name:'Hat-trick Hero', icon:'🎩', cond: (stats.hattricks||0) >= 1, desc:'Take a hat-trick' },
+    { id:'five_wkt', name:'Bowling Beast', icon:'🔥🔥', cond: (stats.fiveWickets||0) >= 1, desc:'Take a 5-wicket haul' },
+    { id:'rank_silver', name:'Ranked Silver', icon:'🥈', cond: Number(profile.rankPoints||0) >= 200, desc:'Reach 200 RP' },
+    { id:'rank_gold', name:'Ranked Gold', icon:'🥇', cond: Number(profile.rankPoints||0) >= 500, desc:'Reach 500 RP' },
     { id:'aura_divine', name:'Aura Divine', icon:'?', cond: Number(profile.aura||0) >= 1000, desc:'Reach 1000 Aura' },
-    { id:'tour_champ', name:'Tournament Champ', icon:'??', cond: (wins||[]).length >= 1, desc:'Win any tournament' }
+    { id:'tour_champ', name:'Tournament Champ', icon:'🏆', cond: (wins||[]).length >= 1, desc:'Win any tournament' }
   ];
   return badges;
 }
@@ -1149,7 +1149,7 @@ function renderHallOfFame(container){
       <div style="background:#2563eb;color:white;padding:14px;border-radius:12px"><div style="font-size:28px;font-weight:800">${badges.length}</div><div>Total Badges</div></div>
       <div style="background:#7c3aed;color:white;padding:14px;border-radius:12px"><div style="font-size:28px;font-weight:800">${Math.round((unlocked.length / badges.length) * 100)}%</div><div>Completion</div></div>
     </div>
-    <h4 style="color:#334155;margin:8px 0">?? Hall of Fame</h4>
+    <h4 style="color:#334155;margin:8px 0">🌟 Hall of Fame</h4>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
       ${badges.map(b=>`
         <div style="padding:12px;border-radius:10px;border:1px solid ${b.cond ? '#86efac' : '#e2e8f0'};background:${b.cond ? '#f0fdf4' : '#f8fafc'}">
@@ -1163,6 +1163,8 @@ function renderHallOfFame(container){
   `;
   container.innerHTML = html;
 }
+
+
 
 
 
