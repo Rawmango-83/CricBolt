@@ -2616,7 +2616,7 @@ window.addEventListener('DOMContentLoaded',()=>{
       app=firebase.initializeApp(firebaseConfig);
       auth=firebase.auth();
       db=firebase.firestore();
-      fns=(typeof firebase.functions==='function')?firebase.functions('us-central1'):null;
+      fns=(typeof firebase.functions==='function')?firebase.functions():null;
       firebaseInitialized=true;
       auth.onAuthStateChanged(async u=>{
         if(u && typeof enforceSingleActiveSession==='function'){
@@ -2997,6 +2997,8 @@ window.applySelectedXI = applySelectedXI;
 window.handleModeChange = handleModeChange;
 window.handleTeamSelection = handleTeamSelection;
 window.startGame = startGame;
+
+
 
 
 
