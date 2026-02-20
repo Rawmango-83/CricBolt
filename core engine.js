@@ -204,97 +204,131 @@ const Music = {
   ctx: null,
   gainNode: null,
   isPlaying: false,
-  oscillators: [],
+  _loopTimer: null,
 
   _initCtx() {
     if (this.ctx) return;
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.gainNode = this.ctx.createGain();
-      this.gainNode.gain.setValueAtTime(0.06, this.ctx.currentTime);
+      this.gainNode.gain.setValueAtTime(0.09, this.ctx.currentTime);
       this.gainNode.connect(this.ctx.destination);
     } catch(e) { console.log('Web Audio API not available'); }
   },
 
-  _createAmbientTone(freq, type, gain) {
-    if (!this.ctx) return null;
+  _scheduleKick(time, vel) {
     const osc = this.ctx.createOscillator();
     const g = this.ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-    g.gain.setValueAtTime(gain, this.ctx.currentTime);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(130, time);
+    osc.frequency.exponentialRampToValueAtTime(45, time + 0.12);
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.001, vel), time + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + 0.14);
     osc.connect(g);
     g.connect(this.gainNode);
-    return { osc, g };
+    osc.start(time);
+    osc.stop(time + 0.16);
   },
 
-  _createPercussion() {
-    if (!this.ctx) return;
-    const scheduleHit = (time, freq, dur) => {
-      const osc = this.ctx.createOscillator();
-      const env = this.ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, time);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.1, time + dur);
-      env.gain.setValueAtTime(0.3, time);
-      env.gain.exponentialRampToValueAtTime(0.001, time + dur);
-      osc.connect(env);
-      env.connect(this.gainNode);
-      osc.start(time);
-      osc.stop(time + dur);
-    };
+  _scheduleSnare(time, vel) {
+    const noiseBuf = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.12, this.ctx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.9;
 
-    const bpm = 90;
-    const beat = 60 / bpm;
-    const startTime = this.ctx.currentTime + 0.1;
-    const bars = 4;
-    const beats = bars * 4;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = noiseBuf;
+    const hp = this.ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 1200;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.001, vel), time + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + 0.09);
+    noise.connect(hp);
+    hp.connect(g);
+    g.connect(this.gainNode);
+    noise.start(time);
+    noise.stop(time + 0.1);
+  },
 
-    this._scheduleNext = () => {
-      if (!this.isPlaying) return;
-      const now = this.ctx.currentTime;
-      const loopStart = startTime + Math.floor((now - startTime) / (beats * beat)) * (beats * beat);
-      const nextLoop = loopStart + beats * beat;
-      for (let b = 0; b < beats; b++) {
-        const t = nextLoop + b * beat;
-        if (b % 4 === 0 || b % 4 === 2) scheduleHit(t, 80, 0.3);
-        if (b % 4 === 1 || b % 4 === 3) scheduleHit(t, 200, 0.15);
-        scheduleHit(t, 800, 0.05);
-        scheduleHit(t + beat * 0.5, 800, 0.05);
+  _scheduleHat(time, vel, openHat) {
+    const noiseBuf = this.ctx.createBuffer(1, this.ctx.sampleRate * (openHat ? 0.18 : 0.06), this.ctx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = noiseBuf;
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 9000;
+    bp.Q.value = 0.8;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.001, vel), time + 0.001);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + (openHat ? 0.14 : 0.045));
+    noise.connect(bp);
+    bp.connect(g);
+    g.connect(this.gainNode);
+    noise.start(time);
+    noise.stop(time + (openHat ? 0.16 : 0.055));
+  },
+
+  _scheduleBass(time, freq, dur, vel) {
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, time);
+    g.gain.setValueAtTime(0.0001, time);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.001, vel), time + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+    osc.connect(g);
+    g.connect(this.gainNode);
+    osc.start(time);
+    osc.stop(time + dur + 0.02);
+  },
+
+  _scheduleBeatBoxBar(startTime, beat) {
+    const stepsPerBeat = 2;
+    const step = beat / stepsPerBeat;
+    const steps = 16;
+
+    const kickSteps = new Set([0, 3, 8, 10, 12]);
+    const snareSteps = new Set([4, 12]);
+    const openHatSteps = new Set([7, 15]);
+    const bassLine = [55, 55, 65.4, 73.4, 55, 65.4, 49, 55];
+
+    for (let i = 0; i < steps; i++) {
+      const t = startTime + i * step;
+      this._scheduleHat(t, i % 2 === 0 ? 0.06 : 0.045, openHatSteps.has(i));
+      if (kickSteps.has(i)) this._scheduleKick(t, 0.35);
+      if (snareSteps.has(i)) this._scheduleSnare(t, 0.22);
+      if (i % 2 === 0) {
+        const note = bassLine[(i / 2) % bassLine.length];
+        this._scheduleBass(t, note, step * 0.9, 0.08);
       }
-      this._loopTimer = setTimeout(this._scheduleNext, (beats * beat - 0.1) * 1000);
+    }
+  },
+
+  _startLoop() {
+    const bpm = 108;
+    const beat = 60 / bpm;
+    const barDur = beat * 8;
+    const scheduleOne = () => {
+      if (!this.isPlaying || !this.ctx) return;
+      const start = this.ctx.currentTime + 0.05;
+      this._scheduleBeatBoxBar(start, beat);
+      this._loopTimer = setTimeout(scheduleOne, Math.max(120, (barDur - 0.08) * 1000));
     };
-    this._scheduleNext();
+    scheduleOne();
   },
 
   start() {
     if (this.isPlaying) return;
     this._initCtx();
-    if (!this.ctx) { showToast('🔇 Audio not supported', '#718096'); return; }
+    if (!this.ctx) { showToast('Audio not supported', '#718096'); return; }
     if (this.ctx.state === 'suspended') this.ctx.resume();
-
-    const tones = [
-      { freq: 130.81, type: 'sine', gain: 0.4 },
-      { freq: 261.63, type: 'triangle', gain: 0.25 },
-      { freq: 392.00, type: 'sine', gain: 0.2 },
-      { freq: 523.25, type: 'triangle', gain: 0.15 },
-    ];
-
-    this.oscillators = tones.map(t => this._createAmbientTone(t.freq, t.type, t.gain)).filter(Boolean);
-    this.oscillators.forEach(({ osc }) => {
-      osc.start();
-      const lfo = this.ctx.createOscillator();
-      const lfoGain = this.ctx.createGain();
-      lfo.frequency.value = 0.15;
-      lfoGain.gain.value = 3;
-      lfo.connect(lfoGain);
-      lfoGain.connect(osc.frequency);
-      lfo.start();
-      osc._lfo = lfo;
-    });
-
-    this._createPercussion();
     this.isPlaying = true;
+    this._startLoop();
     this._updateBtn();
   },
 
@@ -302,15 +336,7 @@ const Music = {
     if (!this.isPlaying) return;
     this.isPlaying = false;
     clearTimeout(this._loopTimer);
-    this.oscillators.forEach(({ osc, g }) => {
-      try {
-        if (osc._lfo) osc._lfo.stop();
-        g.gain.setValueAtTime(g.gain.value, this.ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
-        osc.stop(this.ctx.currentTime + 0.35);
-      } catch(e) {}
-    });
-    this.oscillators = [];
+    this._loopTimer = null;
     this._updateBtn();
   },
 
@@ -333,28 +359,49 @@ const Music = {
   },
 
   playSFX(type) {
-    if (!this.ctx || this.ctx.state !== 'running') return;
+    if (!this.ctx) this._initCtx();
+    if (!this.ctx) return;
+    if (this.ctx.state === 'suspended') this.ctx.resume();
     const now = this.ctx.currentTime;
+
+    const tone = (freq, delay, dur, gain, kind) => {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = kind || 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, now + delay);
+      g.gain.exponentialRampToValueAtTime(gain, now + delay + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + delay + dur);
+      o.connect(g);
+      g.connect(this.gainNode || this.ctx.destination);
+      o.start(now + delay);
+      o.stop(now + delay + dur + 0.01);
+    };
+
+    if (type === 'click') {
+      tone(1400, 0, 0.045, 0.18, 'triangle');
+      tone(1000, 0.02, 0.04, 0.12, 'square');
+      return;
+    }
+
+    if (type === 'win') {
+      tone(523, 0.00, 0.16, 0.22, 'triangle');
+      tone(659, 0.12, 0.18, 0.22, 'triangle');
+      tone(784, 0.24, 0.22, 0.24, 'triangle');
+      tone(1047, 0.42, 0.28, 0.25, 'sawtooth');
+      this._scheduleSnare(now + 0.10, 0.18);
+      this._scheduleKick(now + 0.26, 0.25);
+      return;
+    }
+
     const sfx = {
-      wicket: [[400, 0, 0.4], [200, 0.05, 0.3], [100, 0.1, 0.4]],
-      four:   [[600, 0, 0.15], [800, 0.05, 0.1], [1000, 0.1, 0.1]],
-      six:    [[800, 0, 0.1], [1000, 0.04, 0.1], [1200, 0.08, 0.1], [1500, 0.12, 0.12]],
-      win:    [[523, 0, 0.3], [659, 0.15, 0.3], [784, 0.3, 0.4], [1047, 0.5, 0.5]],
-      click:  [[900, 0, 0.03], [1200, 0.035, 0.025]],
+      wicket: [[420, 0, 0.26, 0.24, 'sine'], [230, 0.06, 0.22, 0.20, 'sine'], [130, 0.13, 0.24, 0.20, 'triangle']],
+      four:   [[700, 0, 0.09, 0.18, 'triangle'], [900, 0.06, 0.09, 0.17, 'triangle'], [1100, 0.12, 0.10, 0.16, 'triangle']],
+      six:    [[800, 0, 0.10, 0.20, 'triangle'], [980, 0.05, 0.10, 0.19, 'triangle'], [1180, 0.11, 0.12, 0.19, 'sawtooth']]
     };
     const seq = sfx[type];
     if (!seq) return;
-    seq.forEach(([freq, delay, dur]) => {
-      const o = this.ctx.createOscillator();
-      const g = this.ctx.createGain();
-      o.frequency.value = freq;
-      o.type = 'sine';
-      g.gain.setValueAtTime(0.3, now + delay);
-      g.gain.exponentialRampToValueAtTime(0.001, now + delay + dur);
-      o.connect(g); g.connect(this.gainNode || this.ctx.destination);
-      o.start(now + delay);
-      o.stop(now + delay + dur + 0.01);
-    });
+    seq.forEach(([f, d, du, g, k]) => tone(f, d, du, g, k));
   }
 };
 
@@ -362,6 +409,17 @@ function toggleMusic() {
   if (Music.isPlaying) Music.stop();
   else Music.start();
 }
+
+let _lastButtonClickSfxAt = 0;
+document.addEventListener('click', (ev) => {
+  const target = ev && ev.target;
+  if (!target || !target.closest) return;
+  if (!target.closest('button')) return;
+  const now = Date.now();
+  if (now - _lastButtonClickSfxAt < 60) return;
+  _lastButtonClickSfxAt = now;
+  Music.playSFX('click');
+});
 
 // ============================================================================
 // DATA MANAGER
@@ -384,6 +442,7 @@ const DataManager = {
     
     this._updateCareerStats(data);
     this._applyProgressRewards(data);
+    try { if (typeof queueCloudProgressSync === 'function') queueCloudProgressSync('saveMatch'); } catch(e) {}
   },
 
   getMatchHistory() {
@@ -469,6 +528,7 @@ const DataManager = {
     
     localStorage.setItem(this.KEYS.tournaments, JSON.stringify(slots));
     localStorage.setItem('handCricket_tournament', JSON.stringify({ tournamentState: ts }));
+    try { if (typeof queueCloudProgressSync === 'function') queueCloudProgressSync('saveTournamentSlot'); } catch(e) {}
     return slotId;
   },
 
@@ -510,6 +570,7 @@ const DataManager = {
 
   savePlayerProfile(profile) {
     localStorage.setItem(this.KEYS.playerProfile, JSON.stringify(profile));
+    try { if (typeof queueCloudProgressSync === 'function') queueCloudProgressSync('savePlayerProfile'); } catch(e) {}
   },
 
   spendMatchTokens(cost = 1) {
@@ -578,6 +639,7 @@ const DataManager = {
     const h = this.getWinHistory();
     h.push({ format, teamKey, teamName, date: new Date().toISOString() });
     localStorage.setItem(this.KEYS.winHistory, JSON.stringify(h));
+    try { if (typeof queueCloudProgressSync === 'function') queueCloudProgressSync('addWin'); } catch(e) {}
   },
 
   clearAll() {
@@ -889,4 +951,6 @@ function _wireAudioUX() {
 }
 
 if (typeof window !== 'undefined') _wireAudioUX();
+
+
 
