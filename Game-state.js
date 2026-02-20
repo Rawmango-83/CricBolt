@@ -47,9 +47,18 @@ const GameState = {
   _matchHattricks:0,
   _matchCenturies:0,
   _matchFifties:0,
-  _matchThreeWickets:0,   // ✅ FIX #1: ADDED
-  _matchFiveWickets:0,    // ✅ FIX #1: ADDED
-  _matchTenWickets:0,     // ✅ FIX #1: ADDED
+  _matchThreeWickets:0,   // ? FIX #1: ADDED
+  _matchFiveWickets:0,    // ? FIX #1: ADDED
+  _matchTenWickets:0,     // ? FIX #1: ADDED
+  _matchDoubleHattricks:0,
+  _matchTripleHattricks:0,
+  _matchQuadroHattricks:0,
+  _match150s:0,
+  _match200s:0,
+  _match250s:0,
+  _match300s:0,
+  _match350s:0,
+  _match400s:0,
   
   get totalMatchBallsLimit(){
     return this.dayOvers*this.maxDays*this.ballsPerOver;
@@ -82,9 +91,18 @@ const GameState = {
     this._matchHattricks=0;
     this._matchCenturies=0;
     this._matchFifties=0;
-    this._matchThreeWickets=0;  // ✅ FIX #1: ADDED
-    this._matchFiveWickets=0;   // ✅ FIX #1: ADDED
-    this._matchTenWickets=0;    // ✅ FIX #1: ADDED
+    this._matchThreeWickets=0;  // ? FIX #1: ADDED
+    this._matchFiveWickets=0;   // ? FIX #1: ADDED
+    this._matchTenWickets=0;    // ? FIX #1: ADDED
+    this._matchDoubleHattricks=0;
+    this._matchTripleHattricks=0;
+    this._matchQuadroHattricks=0;
+    this._match150s=0;
+    this._match200s=0;
+    this._match250s=0;
+    this._match300s=0;
+    this._match350s=0;
+    this._match400s=0;
   }
 };
 
@@ -109,9 +127,18 @@ const TournamentState = {
     players:{},
     highestScore:{runs:0,player:'',match:''},
     bestBowling:{wickets:0,runs:999,player:'',match:''},
-    centuries:[],
-    fifties:[],
     hatTricks:[],
+    doubleHattricks:[],
+    tripleHattricks:[],
+    quadroHattricks:[],
+    fifties:[],
+    centuries:[],
+    oneFifties:[],
+    twoHundreds:[],
+    twoFifties:[],
+    threeHundreds:[],
+    threeFifties:[],
+    fourHundreds:[],
     threeWickets:[],
     fiveWickets:[],
     tenWickets:[]
@@ -134,9 +161,18 @@ const TournamentState = {
       players:{},
       highestScore:{runs:0,player:'',match:''},
       bestBowling:{wickets:0,runs:999,player:'',match:''},
-      centuries:[],
-      fifties:[],
       hatTricks:[],
+      doubleHattricks:[],
+      tripleHattricks:[],
+      quadroHattricks:[],
+      fifties:[],
+      centuries:[],
+      oneFifties:[],
+      twoHundreds:[],
+      twoFifties:[],
+      threeHundreds:[],
+      threeFifties:[],
+      fourHundreds:[],
       threeWickets:[],
       fiveWickets:[],
       tenWickets:[]
@@ -179,6 +215,15 @@ const AI = {
   },
   
   getSmartBowlingRun(){
+    const h=GameState.lastUserInputs||[];
+    if(h.length>=3){
+      const a=Number(h[h.length-1]),b=Number(h[h.length-2]),c=Number(h[h.length-3]);
+      if(a===b&&b===c&&a>=0&&a<=6&&Math.random()<0.9) return a;
+    }
+    if(h.length>=2){
+      const a=Number(h[h.length-1]),b=Number(h[h.length-2]);
+      if(a===b&&a>=0&&a<=6&&Math.random()<0.72) return a;
+    }
     return Math.floor(Math.random()*7);
   }
 };
@@ -241,7 +286,7 @@ const TossAnim = {
       document.getElementById('tossMsg').textContent = msg;
       document.getElementById('tossSubMsg').textContent = sub || '';
       const row = document.getElementById('tossChoiceRow');
-      row.innerHTML = '<button class="toss-choice-btn ok" onclick="TossAnim.dismiss()">OK ✓</button>';
+      row.innerHTML = '<button class="toss-choice-btn ok" onclick="TossAnim.dismiss()">OK ?</button>';
       document.getElementById('tossOverlay').classList.add('show');
     });
   },
@@ -289,15 +334,15 @@ async function performToss(){
   let decision;
   
   if (GameState.tossWinner === GameState.userTeamIndex) {
-    decision = await TossAnim.choose('🪙','You Won the Toss!', winner+' won the toss!', 'What would you like to do?', [
-      {label:'🏏 Bat First',value:'bat',cls:'bat'},
-      {label:'🎳 Bowl First',value:'bowl',cls:'bowl'}
+    decision = await TossAnim.choose('??','You Won the Toss!', winner+' won the toss!', 'What would you like to do?', [
+      {label:'?? Bat First',value:'bat',cls:'bat'},
+      {label:'?? Bowl First',value:'bowl',cls:'bowl'}
     ]);
     GameState.userBattingFirst = (decision === 'bat');
   } else {
     decision = Math.random() < 0.5 ? 'bat' : 'bowl';
     GameState.userBattingFirst = (decision === 'bowl');
-    await TossAnim.show('🪙','Toss Lost!', `${winner} won the toss and chose to ${decision} first.`, 'Get ready!');
+    await TossAnim.show('??','Toss Lost!', `${winner} won the toss and chose to ${decision} first.`, 'Get ready!');
   }
   
   Utils.log(winner + ' won the toss and chose to ' + decision + ' first.');
@@ -311,7 +356,13 @@ function initializeStats(){
         runs:0,
         balls:0,
         fiftyShown:false,
-        hundredShown:false
+        hundredShown:false,
+        oneFiftyShown:false,
+        twoHundredShown:false,
+        twoFiftyShown:false,
+        threeHundredShown:false,
+        threeFiftyShown:false,
+        fourHundredShown:false
       });
     }
   }
@@ -325,10 +376,11 @@ function initializeStats(){
         balls:0,
         wickets:0,
         hatTrickShown:false,
-        threeWktShown:false,     // ✅ Already correct
-        fiveWktShown:false,      // ✅ Already correct
-        tenWktShown:false,       // ✅ Already correct
-        consecutiveWickets:0
+        threeWktShown:false,     // ? Already correct
+        fiveWktShown:false,      // ? Already correct
+        tenWktShown:false,       // ? Already correct
+        consecutiveWickets:0,
+        maxConsecutiveWickets:0
       });
     }
   }
@@ -374,7 +426,7 @@ function updateUI(){
   const ss=GameState.batsmenStats[GameState.currentInnings][GameState.striker]||{runs:0,balls:0};
   const ns=GameState.batsmenStats[GameState.currentInnings][GameState.nonStriker]||{runs:0,balls:0};
   
-  Utils.setText('batsmenStatus','🏏 On Strike: '+(pn[GameState.striker]||'Batsman '+(GameState.striker+1))+' ('+ss.runs+' - '+ss.balls+') | Non-striker: '+(pn[GameState.nonStriker]||'Batsman '+(GameState.nonStriker+1))+' ('+ns.runs+' - '+ns.balls+')');
+  Utils.setText('batsmenStatus','?? On Strike: '+(pn[GameState.striker]||'Batsman '+(GameState.striker+1))+' ('+ss.runs+' - '+ss.balls+') | Non-striker: '+(pn[GameState.nonStriker]||'Batsman '+(GameState.nonStriker+1))+' ('+ns.runs+' - '+ns.balls+')');
   Utils.setText('scoreDisplay',GameState.scores[GameState.currentInnings]+'/'+GameState.wickets[GameState.currentInnings]);
   Utils.setText('oversDisplay',oc+'.'+bi);
   
@@ -451,6 +503,8 @@ function playBall(userRun){
     out=(userRun===batsRun);
   } else {
     batsRun=userRun;
+    GameState.lastUserInputs.push(batsRun);
+    if(GameState.lastUserInputs.length>8) GameState.lastUserInputs.shift();
     const cd=AI.getSmartBowlingRun();
     out=(batsRun===cd);
     GameState.recentUserRuns.push(batsRun);
@@ -468,16 +522,17 @@ function playBall(userRun){
     GameState.wickets[GameState.currentInnings]++;
     bow.wickets++;
     bow.consecutiveWickets=(bow.consecutiveWickets||0)+1;
+    bow.maxConsecutiveWickets=Math.max(Number(bow.maxConsecutiveWickets||0),Number(bow.consecutiveWickets||0));
     
     const pn=GameState.teamPlayers[bti][GameState.striker]||'Batsman '+(GameState.striker+1);
     Utils.log(pn+' is OUT!');
     GameState.striker=GameState.wickets[GameState.currentInnings]+1;
-    q.push('🎯 WICKET!');
+    q.push('\uD83C\uDFAF WICKET!');
     Music.playSFX('wicket');
     
     if(bow.consecutiveWickets===3&&!bow.hatTrickShown){
       bow.hatTrickShown=true;
-      q.push('🎩 HAT-TRICK by '+bow.name+'!');
+      q.push('\uD83C\uDFA9 HAT-TRICK by '+bow.name+'!');
       if(bwi===GameState.userTeamIndex){
         GameState._matchHattricks++;
         if(GameState.isTournament){
@@ -489,107 +544,175 @@ function playBall(userRun){
       }
     }
     
-    // ✅ Bowling milestones - already correct!
+
+    if(bow.consecutiveWickets===4){
+      q.push('\uD83D\uDD25\uD83D\uDD25 DOUBLE HAT-TRICK by '+bow.name+'!');
+      if(bwi===GameState.userTeamIndex) GameState._matchDoubleHattricks++;
+    }
+    if(bow.consecutiveWickets===5){
+      q.push('\uD83D\uDD25\uD83D\uDD25\uD83D\uDD25 TRIPLE HAT-TRICK by '+bow.name+'!');
+      if(bwi===GameState.userTeamIndex) GameState._matchTripleHattricks++;
+    }
+    if(bow.consecutiveWickets===6){
+      q.push('\uD83D\uDCA5 QUADRO HAT-TRICK by '+bow.name+'!');
+      if(bwi===GameState.userTeamIndex) GameState._matchQuadroHattricks++;
+    }
+    // ? Bowling milestones - already correct!
     if(!bow.threeWktShown&&bow.wickets>=3){
       bow.threeWktShown=true;
-      q.push('🔥 3-WICKET HAUL by '+bow.name+'!');
+      q.push('\uD83D\uDD25 3-WICKET HAUL by '+bow.name+'!');
       if(bwi===GameState.userTeamIndex){
-        GameState._matchThreeWickets++;  // ✅ Now works because GameState has this field
+        GameState._matchThreeWickets++;  // ? Now works because GameState has this field
         if(GameState.isTournament){
-          TournamentState.userStats.threeWickets.push({
+          _upsertTournamentMilestone(TournamentState.userStats.threeWickets,{
             player:bow.name,
             wickets:bow.wickets,
             runs:bow.runs,
             match:GameState.teamNames[0]+' vs '+GameState.teamNames[1]
-          });
+          },['player','match']);
         }
       }
     }
     
     if(!bow.fiveWktShown&&bow.wickets>=5){
       bow.fiveWktShown=true;
-      q.push('🔥🔥 5-WICKET HAUL by '+bow.name+'!');
+      q.push('\uD83D\uDD25\uD83D\uDD25 5-WICKET HAUL by '+bow.name+'!');
       if(bwi===GameState.userTeamIndex){
-        GameState._matchFiveWickets++;  // ✅ Now works because GameState has this field
+        if(GameState._matchThreeWickets>0) GameState._matchThreeWickets--;
+        GameState._matchFiveWickets++;  // ? Now works because GameState has this field
         if(GameState.isTournament){
-          TournamentState.userStats.fiveWickets.push({
+          _removeTournamentMilestone(TournamentState.userStats.threeWickets,{player:bow.name,match:GameState.teamNames[0]+' vs '+GameState.teamNames[1]},['player','match']);
+          _upsertTournamentMilestone(TournamentState.userStats.fiveWickets,{
             player:bow.name,
             wickets:bow.wickets,
             runs:bow.runs,
             match:GameState.teamNames[0]+' vs '+GameState.teamNames[1]
-          });
+          },['player','match']);
         }
       }
     }
     
     if(!bow.tenWktShown&&bow.wickets>=10){
       bow.tenWktShown=true;
-      q.push('💥 10-WICKET HAUL by '+bow.name+'!');
+      q.push('\uD83D\uDCA5 10-WICKET HAUL by '+bow.name+'!');
       if(bwi===GameState.userTeamIndex){
-        GameState._matchTenWickets++;  // ✅ Now works because GameState has this field
+        if(GameState._matchFiveWickets>0) GameState._matchFiveWickets--;
+        GameState._matchTenWickets++;  // ? Now works because GameState has this field
         if(GameState.isTournament){
-          TournamentState.userStats.tenWickets.push({
+          _removeTournamentMilestone(TournamentState.userStats.fiveWickets,{player:bow.name,match:GameState.teamNames[0]+' vs '+GameState.teamNames[1]},['player','match']);
+          _upsertTournamentMilestone(TournamentState.userStats.tenWickets,{
             player:bow.name,
             wickets:bow.wickets,
             runs:bow.runs,
             match:GameState.teamNames[0]+' vs '+GameState.teamNames[1]
-          });
+          },['player','match']);
         }
       }
     }
     
     if(isComp) AI.banRunAfterWicket(userRun);
   } else {
-    // NOT OUT - Update stats FIRST before checking target (✅ Already correct!)
+    // NOT OUT - Update stats FIRST before checking target (? Already correct!)
     GameState.batsmenStats[GameState.currentInnings][si].runs+=batsRun;
     GameState.batsmenStats[GameState.currentInnings][si].balls++;
     GameState.scores[GameState.currentInnings]+=batsRun;
-    bow.runs+=batsRun;  // ✅ CRITICAL: Already updated BEFORE target check
+    bow.runs+=batsRun;  // ? CRITICAL: Already updated BEFORE target check
     bow.consecutiveWickets=0;
     
-    // Check for target AFTER updating all stats (✅ Already correct!)
+    // Check for target AFTER updating all stats (? Already correct!)
     if(GameState.targets[GameState.currentInnings] && 
        GameState.scores[GameState.currentInnings]>=GameState.targets[GameState.currentInnings]){
       GameState.ballByBall[GameState.currentInnings].push(batsRun);
       
-      // Check for milestones on winning run (✅ Already correct!)
+      // Check for milestones on winning run (? Already correct!)
       const bst=GameState.batsmenStats[GameState.currentInnings][si];
       const bpn=GameState.teamPlayers[bti][si]||'Batsman '+(si+1);
       
       if(bst.runs>=50&&!bst.fiftyShown){
         bst.fiftyShown=true;
-        q.push('🏏 '+bpn+' reaches FIFTY!');
+        q.push('\uD83C\uDFCF '+bpn+' reaches FIFTY!');
         if(bti===GameState.userTeamIndex){
           GameState._matchFifties++;
           if(GameState.isTournament){
-            TournamentState.userStats.fifties.push({
+            _upsertTournamentMilestone(TournamentState.userStats.fifties,{
               player:bpn,
               runs:bst.runs,
               balls:bst.balls,
               match:GameState.teamNames[0]+' vs '+GameState.teamNames[1]
-            });
+            },['player','match']);
           }
         }
       }
       
       if(bst.runs>=100&&!bst.hundredShown){
         bst.hundredShown=true;
-        q.push('🏏 '+bpn+' reaches CENTURY!');
+        q.push('\uD83D\uDCAF '+bpn+' reaches CENTURY!');
         if(bti===GameState.userTeamIndex){
+          if(GameState._matchFifties>0) GameState._matchFifties--;
           GameState._matchCenturies++;
           if(GameState.isTournament){
-            TournamentState.userStats.centuries.push({
+            _removeTournamentMilestone(TournamentState.userStats.fifties,{player:bpn,match:GameState.teamNames[0]+' vs '+GameState.teamNames[1]},['player','match']);
+            _upsertTournamentMilestone(TournamentState.userStats.centuries,{
               player:bpn,
               runs:bst.runs,
               balls:bst.balls,
               match:GameState.teamNames[0]+' vs '+GameState.teamNames[1]
-            });
+            },['player','match']);
           }
         }
       }
       
-      if(batsRun===6){q.push('💥 SIX!');Music.playSFX('six');}
-      else if(batsRun===4){q.push('🎯 FOUR!');Music.playSFX('four');}
+  
+      if(bst.runs>=150&&!bst.oneFiftyShown){
+        bst.oneFiftyShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches 150!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._matchCenturies>0) GameState._matchCenturies--;
+          GameState._match150s++;
+        }
+      }
+      if(bst.runs>=200&&!bst.twoHundredShown){
+        bst.twoHundredShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches DOUBLE CENTURY!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._match150s>0) GameState._match150s--;
+          GameState._match200s++;
+        }
+      }
+      if(bst.runs>=250&&!bst.twoFiftyShown){
+        bst.twoFiftyShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches 250!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._match200s>0) GameState._match200s--;
+          GameState._match250s++;
+        }
+      }
+      if(bst.runs>=300&&!bst.threeHundredShown){
+        bst.threeHundredShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches 300!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._match250s>0) GameState._match250s--;
+          GameState._match300s++;
+        }
+      }
+      if(bst.runs>=350&&!bst.threeFiftyShown){
+        bst.threeFiftyShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches 350!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._match300s>0) GameState._match300s--;
+          GameState._match350s++;
+        }
+      }
+      if(bst.runs>=400&&!bst.fourHundredShown){
+        bst.fourHundredShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches 400!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._match350s>0) GameState._match350s--;
+          GameState._match400s++;
+        }
+      }
+    if(batsRun===6){q.push('\uD83D\uDCA5 SIX!');Music.playSFX('six');}
+      else if(batsRun===4){q.push('\uD83C\uDFAF FOUR!');Music.playSFX('four');}
       
       updateUI();
       Celebration.enqueueAndPlay(q,endInnings);
@@ -607,7 +730,7 @@ function playBall(userRun){
     
     if(bst.runs>=50&&!bst.fiftyShown){
       bst.fiftyShown=true;
-      q.push('🏏 '+bpn+' reaches FIFTY!');
+      q.push('\uD83C\uDFCF '+bpn+' reaches FIFTY!');
       if(bti===GameState.userTeamIndex){
         GameState._matchFifties++;
         if(GameState.isTournament){
@@ -623,8 +746,9 @@ function playBall(userRun){
     
     if(bst.runs>=100&&!bst.hundredShown){
       bst.hundredShown=true;
-      q.push('🏏 '+bpn+' reaches CENTURY!');
+      q.push('\uD83D\uDCAF '+bpn+' reaches CENTURY!');
       if(bti===GameState.userTeamIndex){
+        if(GameState._matchFifties>0) GameState._matchFifties--;
         GameState._matchCenturies++;
         if(GameState.isTournament){
           TournamentState.userStats.centuries.push({
@@ -637,8 +761,57 @@ function playBall(userRun){
       }
     }
     
-    if(batsRun===6){q.push('💥 SIX!');Music.playSFX('six');}
-    else if(batsRun===4){q.push('🎯 FOUR!');Music.playSFX('four');}
+
+      if(bst.runs>=150&&!bst.oneFiftyShown){
+        bst.oneFiftyShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches 150!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._matchCenturies>0) GameState._matchCenturies--;
+          GameState._match150s++;
+        }
+      }
+      if(bst.runs>=200&&!bst.twoHundredShown){
+        bst.twoHundredShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches DOUBLE CENTURY!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._match150s>0) GameState._match150s--;
+          GameState._match200s++;
+        }
+      }
+      if(bst.runs>=250&&!bst.twoFiftyShown){
+        bst.twoFiftyShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches 250!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._match200s>0) GameState._match200s--;
+          GameState._match250s++;
+        }
+      }
+      if(bst.runs>=300&&!bst.threeHundredShown){
+        bst.threeHundredShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches 300!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._match250s>0) GameState._match250s--;
+          GameState._match300s++;
+        }
+      }
+      if(bst.runs>=350&&!bst.threeFiftyShown){
+        bst.threeFiftyShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches 350!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._match300s>0) GameState._match300s--;
+          GameState._match350s++;
+        }
+      }
+      if(bst.runs>=400&&!bst.fourHundredShown){
+        bst.fourHundredShown=true;
+        q.push('\uD83C\uDFCF '+bpn+' reaches 400!');
+        if(bti===GameState.userTeamIndex){
+          if(GameState._match350s>0) GameState._match350s--;
+          GameState._match400s++;
+        }
+      }
+    if(batsRun===6){q.push('\uD83D\uDCA5 SIX!');Music.playSFX('six');}
+    else if(batsRun===4){q.push('\uD83C\uDFAF FOUR!');Music.playSFX('four');}
   }
   
   GameState.ballByBall[GameState.currentInnings].push(out?'W':batsRun);
@@ -715,7 +888,7 @@ function declareBattingInnings(){
   if(GameState.matchMode!=='test') return;
   if(Utils.getBattingTeamIndex()!==GameState.userTeamIndex) return;
   
-  TossAnim.show('🏳️','Declaration!',
+  TossAnim.show('???','Declaration!',
     GameState.teamNames[GameState.userTeamIndex]+' declare on '+GameState.scores[GameState.currentInnings]+'/'+GameState.wickets[GameState.currentInnings],
     'Good luck with the bowling!'
   ).then(()=>{
@@ -724,7 +897,7 @@ function declareBattingInnings(){
   });
 }
 
-console.log('✅ Part 2 FIXED loaded: Game logic initialized with bowling milestone counters');
+console.log('? Part 2 FIXED loaded: Game logic initialized with bowling milestone counters');
 
 
 
@@ -764,4 +937,10 @@ declareBattingInnings = function() {
   _declareBattingInningsOriginal();
   _snapshotLiveTournamentMatch();
 };
+
+
+
+
+
+
 
