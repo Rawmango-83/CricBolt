@@ -13,11 +13,11 @@ const DataMigration = {
   run() {
     const stored = localStorage.getItem(DATA_VERSION_KEY) || '0.0.0';
     if (stored === APP_VERSION) return;
-    console.log(`🔄 Migrating data from v${stored} to v${APP_VERSION}`);
+    console.log(`?? Migrating data from v${stored} to v${APP_VERSION}`);
     try {
       this._applyMigrations(stored);
       localStorage.setItem(DATA_VERSION_KEY, APP_VERSION);
-      console.log('✅ Data migration complete');
+      console.log('? Data migration complete');
     } catch(e) {
       console.error('Migration error:', e);
       // Keep previous version marker so migration can retry on next load.
@@ -25,7 +25,7 @@ const DataMigration = {
   },
 
   _applyMigrations(fromVersion) {
-    // ✅ FIX #2: Add bowling milestones to migration
+    // ? FIX #2: Add bowling milestones to migration
     const csKey = 'hc_careerStats';
     let cs = {};
     try { cs = JSON.parse(localStorage.getItem(csKey)) || {}; } catch(e) { cs = {}; }
@@ -33,9 +33,11 @@ const DataMigration = {
       totalMatches:0, won:0, lost:0, drawn:0,
       totalRuns:0, totalWickets:0, highestScore:0,
       hattricks:0, centuries:0, fifties:0,
-      threeWickets:0,   // ✅ ADDED
-      fiveWickets:0,    // ✅ ADDED
-      tenWickets:0      // ✅ ADDED
+      oneFifties:0, twoHundreds:0, twoFifties:0, threeHundreds:0, threeFifties:0, fourHundreds:0,
+      doubleHattricks:0, tripleHattricks:0, quadroHattricks:0,
+      threeWickets:0,   // ? ADDED
+      fiveWickets:0,    // ? ADDED
+      tenWickets:0      // ? ADDED
     };
     let changed = false;
     Object.keys(defaults).forEach(k => {
@@ -72,7 +74,7 @@ const DataMigration = {
       if (pp[k] === undefined) { pp[k] = profileDefaults[k]; ppChanged = true; }
     });
     if (ppChanged) localStorage.setItem(ppKey, JSON.stringify(pp));
-    console.log(`✅ Migration applied.`);
+    console.log(`? Migration applied.`);
   }
 };
 
@@ -104,7 +106,8 @@ function _managedProgressKeys(){
     'hc_playerProfile',
     'handCricket_tournament',
     DATA_VERSION_KEY,
-    PROGRESS_RANKED_SETTLEMENT_KEY
+    PROGRESS_RANKED_SETTLEMENT_KEY,
+    'hc_missionState'
   ];
   return keys;
 }
@@ -430,7 +433,8 @@ const DataManager = {
     careerStats:  'hc_careerStats',
     tournaments:  'hc_tournaments',
     winHistory:   'handCricketHistory',
-    playerProfile:'hc_playerProfile'
+    playerProfile:'hc_playerProfile',
+    missionState:'hc_missionState'
   },
 
   // Career stats are updated for all completed matches.
@@ -442,6 +446,7 @@ const DataManager = {
     
     this._updateCareerStats(data);
     this._applyProgressRewards(data);
+    this._updateMissionProgress(data);
     try { if (typeof queueCloudProgressSync === 'function') queueCloudProgressSync('saveMatch'); } catch(e) {}
   },
 
@@ -449,7 +454,7 @@ const DataManager = {
     try { return JSON.parse(localStorage.getItem(this.KEYS.matchHistory)) || []; } catch(e) { return []; }
   },
 
-  // ✅ FIX #4: Track bowling milestones in career stats
+  // ? FIX #4: Track bowling milestones in career stats
   _updateCareerStats(d) {
     const s = this.getCareerStats();
     s.totalMatches++;
@@ -459,40 +464,66 @@ const DataManager = {
     s.totalRuns += (d.userRuns || 0);
     s.totalWickets += (d.userWkTaken !== undefined ? d.userWkTaken : 0);
     if ((d.userRuns || 0) > s.highestScore) s.highestScore = d.userRuns;
-    s.hattricks  = (s.hattricks  || 0) + (d.hattricksInMatch  || 0);
-    s.centuries  = (s.centuries  || 0) + (d.centuriesInMatch   || 0);
-    s.fifties    = (s.fifties    || 0) + (d.fiftiesInMatch     || 0);
-    s.threeWickets = (s.threeWickets || 0) + (d.threeWicketsInMatch || 0);  // ✅ ADDED
-    s.fiveWickets = (s.fiveWickets || 0) + (d.fiveWicketsInMatch || 0);    // ✅ ADDED
-    s.tenWickets = (s.tenWickets || 0) + (d.tenWicketsInMatch || 0);        // ✅ ADDED
+    s.hattricks = (s.hattricks || 0) + (d.hattricksInMatch || 0);
+    s.doubleHattricks = (s.doubleHattricks || 0) + (d.doubleHattricksInMatch || 0);
+    s.tripleHattricks = (s.tripleHattricks || 0) + (d.tripleHattricksInMatch || 0);
+    s.quadroHattricks = (s.quadroHattricks || 0) + (d.quadroHattricksInMatch || 0);
+    s.centuries = (s.centuries || 0) + (d.centuriesInMatch || 0);
+    s.fifties = (s.fifties || 0) + (d.fiftiesInMatch || 0);
+    s.oneFifties = (s.oneFifties || 0) + (d.oneFiftiesInMatch || 0);
+    s.twoHundreds = (s.twoHundreds || 0) + (d.twoHundredsInMatch || 0);
+    s.twoFifties = (s.twoFifties || 0) + (d.twoFiftiesInMatch || 0);
+    s.threeHundreds = (s.threeHundreds || 0) + (d.threeHundredsInMatch || 0);
+    s.threeFifties = (s.threeFifties || 0) + (d.threeFiftiesInMatch || 0);
+    s.fourHundreds = (s.fourHundreds || 0) + (d.fourHundredsInMatch || 0);
+    s.threeWickets = (s.threeWickets || 0) + (d.threeWicketsInMatch || 0);
+    s.fiveWickets = (s.fiveWickets || 0) + (d.fiveWicketsInMatch || 0);
+    s.tenWickets = (s.tenWickets || 0) + (d.tenWicketsInMatch || 0);
     localStorage.setItem(this.KEYS.careerStats, JSON.stringify(s));
   },
 
-  // ✅ FIX #3: Include bowling milestones in defaults
+  // ? FIX #3: Include bowling milestones in defaults
   getCareerStats() {
     try {
       const cs = JSON.parse(localStorage.getItem(this.KEYS.careerStats)) || {};
       const defaults = { 
         totalMatches:0, won:0, lost:0, drawn:0, 
         totalRuns:0, totalWickets:0, highestScore:0, 
-        hattricks:0, centuries:0, fifties:0,
-        threeWickets:0,   // ✅ ADDED
-        fiveWickets:0,    // ✅ ADDED
-        tenWickets:0      // ✅ ADDED
+        hattricks:0, doubleHattricks:0, tripleHattricks:0, quadroHattricks:0,
+        centuries:0, fifties:0, oneFifties:0, twoHundreds:0, twoFifties:0, threeHundreds:0, threeFifties:0, fourHundreds:0,
+        threeWickets:0, fiveWickets:0, tenWickets:0
       };
       return { ...defaults, ...cs };
     } catch(e) {
       return { 
-        totalMatches:0, won:0, lost:0, drawn:0, 
-        totalRuns:0, totalWickets:0, highestScore:0, 
-        hattricks:0, centuries:0, fifties:0,
-        threeWickets:0, fiveWickets:0, tenWickets:0  // ✅ ADDED
+        totalMatches:0, won:0, lost:0, drawn:0, totalRuns:0, totalWickets:0, highestScore:0,
+        hattricks:0, doubleHattricks:0, tripleHattricks:0, quadroHattricks:0,
+        centuries:0, fifties:0, oneFifties:0, twoHundreds:0, twoFifties:0, threeHundreds:0, threeFifties:0, fourHundreds:0,
+        threeWickets:0, fiveWickets:0, tenWickets:0
       };
     }
   },
 
   getTournaments() {
-    try { return JSON.parse(localStorage.getItem(this.KEYS.tournaments)) || []; } catch(e) { return []; }
+    try {
+      const raw = JSON.parse(localStorage.getItem(this.KEYS.tournaments)) || [];
+      if (!Array.isArray(raw)) return [];
+      const byFormat = new Map();
+      raw.forEach(slot => {
+        if (!slot || !slot.format) return;
+        const prev = byFormat.get(slot.format);
+        const ts = Date.parse(slot.lastSaved || '') || Number(slot.id || 0) || 0;
+        const prevTs = prev ? (Date.parse(prev.lastSaved || '') || Number(prev.id || 0) || 0) : -1;
+        if (!prev || ts >= prevTs) byFormat.set(slot.format, slot);
+      });
+      return Array.from(byFormat.values()).sort((a,b)=>{
+        const at = Date.parse(a.lastSaved || '') || Number(a.id || 0) || 0;
+        const bt = Date.parse(b.lastSaved || '') || Number(b.id || 0) || 0;
+        return bt - at;
+      });
+    } catch(e) {
+      return [];
+    }
   },
 
   saveTournamentSlot(tournamentState) {
@@ -511,6 +542,7 @@ const DataManager = {
     const slotId = tournamentState._slotId || Date.now();
     const startDate = tournamentState._startDate || new Date().toLocaleString();
     let idx = slots.findIndex(s => s.id === slotId);
+    if (idx < 0) idx = slots.findIndex(s => s.format === format);
     const ts = JSON.parse(JSON.stringify(tournamentState));
     ts._slotId = slotId;
     ts._startDate = startDate;
@@ -635,6 +667,102 @@ const DataManager = {
     showRankGainAnimation((profile.rankPoints || 0) - prev.rankPoints, profile.rankTier, prev.rankTier);
   },
 
+  getMissionState() {
+    const defaults = { completed: {}, completedCount: 0, lastUpdated: null };
+    try {
+      const raw = JSON.parse(localStorage.getItem(this.KEYS.missionState)) || {};
+      return { ...defaults, ...raw, completed: { ...(raw.completed || {}) } };
+    } catch(e) {
+      return { ...defaults };
+    }
+  },
+
+  saveMissionState(state) {
+    localStorage.setItem(this.KEYS.missionState, JSON.stringify(state || { completed: {}, completedCount: 0 }));
+    try { if (typeof queueCloudProgressSync === 'function') queueCloudProgressSync('saveMissionState'); } catch(e) {}
+  },
+
+  _getMissionDefinitions() {
+    const defs = [];
+    let idx = 1;
+    const pushDef = (group, title, metric, target) => {
+      defs.push({ id: 'm' + String(idx++), group, title, metric, target: Number(target || 0), rewardAura: 10 });
+    };
+
+    pushDef('Tournament', 'Play a tournament match', 'tournament_played', 1);
+    for (let i = 1; i <= 19; i++) pushDef('Custom', 'Play ' + (i*5) + ' custom matches', 'custom_matches', i*5);
+    for (let i = 1; i <= 20; i++) pushDef('Wins', 'Win ' + (i*5) + ' matches', 'wins', i*5);
+    for (let i = 1; i <= 15; i++) pushDef('Test', 'Win ' + i + ' test matches', 'test_wins', i);
+    for (let i = 1; i <= 10; i++) pushDef('Tournament', 'Win ' + i + ' tournaments', 'tournament_wins', i);
+    for (let i = 1; i <= 10; i++) pushDef('Matches', 'Play ' + (i*10) + ' total matches', 'total_matches', i*10);
+    for (let i = 1; i <= 10; i++) pushDef('Runs', 'Score ' + (i*500) + ' career runs', 'total_runs', i*500);
+    for (let i = 1; i <= 5; i++) pushDef('Wickets', 'Take ' + (i*50) + ' career wickets', 'total_wickets', i*50);
+    for (let i = 1; i <= 5; i++) pushDef('Rank', 'Reach ' + (i*400) + ' RP', 'rank_points', i*400);
+    for (let i = 1; i <= 5; i++) pushDef('Aura', 'Reach ' + (i*800) + ' Aura', 'aura', i*800);
+
+    return defs.slice(0, 100);
+  },
+
+  _missionMetricValue(metric, context) {
+    const c = context || {};
+    if (metric === 'custom_matches') return Number(c.customMatches || 0);
+    if (metric === 'wins') return Number(c.stats?.won || 0);
+    if (metric === 'test_wins') return Number(c.testWins || 0);
+    if (metric === 'tournament_wins') return Number(c.tournamentWins || 0);
+    if (metric === 'tournament_played') return Number(c.tournamentPlayed || 0);
+    if (metric === 'total_matches') return Number(c.stats?.totalMatches || 0);
+    if (metric === 'total_runs') return Number(c.stats?.totalRuns || 0);
+    if (metric === 'total_wickets') return Number(c.stats?.totalWickets || 0);
+    if (metric === 'rank_points') return Number(c.profile?.rankPoints || 0);
+    if (metric === 'aura') return Number(c.profile?.aura || 0);
+    return 0;
+  },
+
+  getMissionProgressList() {
+    const defs = this._getMissionDefinitions();
+    const state = this.getMissionState();
+    const stats = this.getCareerStats();
+    const profile = this.getPlayerProfile();
+    const wins = this.getWinHistory();
+    const history = this.getMatchHistory();
+    const context = {
+      stats,
+      profile,
+      tournamentWins: (wins || []).length,
+      customMatches: (history || []).filter(m => !m.tournament).length,
+      testWins: (history || []).filter(m => m.format === 'test' && m.result === 'won').length,
+      tournamentPlayed: (history || []).filter(m => !!m.tournament).length
+    };
+    return defs.map(d => {
+      const progress = this._missionMetricValue(d.metric, context);
+      return { ...d, progress, completed: !!state.completed[d.id], reward: '+' + Number(d.rewardAura || 10) + ' Aura' }; 
+    });
+  },
+
+  _updateMissionProgress() {
+    const list = this.getMissionProgressList();
+    const state = this.getMissionState();
+    let newlyCompleted = 0;
+    list.forEach(m => {
+      if (!state.completed[m.id] && Number(m.progress || 0) >= Number(m.target || 0)) {
+        state.completed[m.id] = true;
+        newlyCompleted += 1;
+      }
+    });
+    if (!newlyCompleted) return;
+    state.completedCount = Object.keys(state.completed || {}).length;
+    state.lastUpdated = new Date().toISOString();
+    this.saveMissionState(state);
+
+    const profile = this.getPlayerProfile();
+    const auraGain = newlyCompleted * 10;
+    profile.aura = Math.max(0, Number(profile.aura || 0) + auraGain);
+    profile.lastUpdated = new Date().toISOString();
+    this.savePlayerProfile(profile);
+    updatePlayerProfileUI();
+    if (typeof showAuraBurstAnimation === 'function') showAuraBurstAnimation(auraGain);
+    if (typeof showToast === 'function') showToast('Mission complete x' + newlyCompleted + ': +' + auraGain + ' Aura', '#16a34a');
+  },
   addWin(format, teamKey, teamName) {
     const h = this.getWinHistory();
     h.push({ format, teamKey, teamName, date: new Date().toISOString() });
@@ -685,7 +813,7 @@ function saveTournamentNow() {
   Security.debouncedSave('tournament', () => {
     const id = DataManager.saveTournamentSlot(TournamentState);
     TournamentState._slotId = id;
-    console.log('💾 Tournament auto-saved, slot:', id);
+    console.log('?? Tournament auto-saved, slot:', id);
   }, 500);
 }
 
@@ -694,22 +822,22 @@ setInterval(() => {
 }, 60000);
 
 function _onPageLeave() {
-  console.log('📤 Page leave detected - saving state...');
+  console.log('?? Page leave detected - saving state...');
   if (typeof isMatchLive !== 'undefined' && isMatchLive() && GameState.isTournament && GameState.currentMatch) {
-    console.log('🔄 Auto-pausing live match...');
+    console.log('?? Auto-pausing live match...');
     if (typeof autoPauseIfLive !== 'undefined') autoPauseIfLive();
   }
   if (TournamentState.format) {
-    console.log('💾 Saving tournament state...');
+    console.log('?? Saving tournament state...');
     DataManager.saveTournamentSlot(TournamentState);
   }
   try { if (typeof persistCurrentProgressIdentity === 'function') persistCurrentProgressIdentity(); } catch(e) {}
 }
 
-// ✅ FIX #6: Add all three event listeners for maximum reliability
+// ? FIX #6: Add all three event listeners for maximum reliability
 window.addEventListener('beforeunload', _onPageLeave);
 window.addEventListener('pagehide', _onPageLeave);
-window.addEventListener('unload', _onPageLeave);  // ✅ ADDED
+window.addEventListener('unload', _onPageLeave);  // ? ADDED
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     _onPageLeave();
@@ -870,7 +998,7 @@ Object.keys(CRICKET_TEAMS).forEach(k => {
   PREDEFINED_TEAMS[k] = CRICKET_TEAMS[k].players; 
 });
 
-console.log('✅ Part 1 FIXED loaded: Core systems initialized with all bowling milestones');
+console.log('? Part 1 FIXED loaded: Core systems initialized with all bowling milestones');
 
 
 
@@ -914,7 +1042,7 @@ function showMatchOutcomeAnimation(isWin, label) {
 function showWinFlagBackdrop(flagGlyph) {
   const el = document.getElementById('flagWinBackdrop');
   if (!el) return;
-  const glyph = (flagGlyph && String(flagGlyph).trim()) || '🏳️';
+  const glyph = (flagGlyph && String(flagGlyph).trim()) || '???';
   el.innerHTML = `<span>${Security.escapeHtml(glyph)}</span><span>${Security.escapeHtml(glyph)}</span><span>${Security.escapeHtml(glyph)}</span><span>${Security.escapeHtml(glyph)}</span>`;
   el.classList.remove('show');
   void el.offsetWidth;
@@ -946,6 +1074,12 @@ function _wireAudioUX() {
 }
 
 if (typeof window !== 'undefined') _wireAudioUX();
+
+
+
+
+
+
 
 
 
