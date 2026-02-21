@@ -13,7 +13,7 @@ const DataMigration = {
   run() {
     const stored = localStorage.getItem(DATA_VERSION_KEY) || '0.0.0';
     if (stored === APP_VERSION) return;
-    console.log(`?? Migrating data from v${stored} to v${APP_VERSION}`);
+    console.log(`Migrating data from v${stored} to v${APP_VERSION}`);
     try {
       this._applyMigrations(stored);
       localStorage.setItem(DATA_VERSION_KEY, APP_VERSION);
@@ -107,7 +107,10 @@ function _managedProgressKeys(){
     'handCricket_tournament',
     DATA_VERSION_KEY,
     PROGRESS_RANKED_SETTLEMENT_KEY,
-    'hc_missionState'
+    'hc_missionState',
+    'hc_username',
+    'hc_cloud_username',
+    'hc_username_locked'
   ];
   return keys;
 }
@@ -813,7 +816,7 @@ function saveTournamentNow() {
   Security.debouncedSave('tournament', () => {
     const id = DataManager.saveTournamentSlot(TournamentState);
     TournamentState._slotId = id;
-    console.log('?? Tournament auto-saved, slot:', id);
+    console.log('Tournament auto-saved, slot:', id);
   }, 500);
 }
 
@@ -822,13 +825,13 @@ setInterval(() => {
 }, 60000);
 
 function _onPageLeave() {
-  console.log('?? Page leave detected - saving state...');
+  console.log('Page leave detected - saving state...');
   if (typeof isMatchLive !== 'undefined' && isMatchLive() && GameState.isTournament && GameState.currentMatch) {
-    console.log('?? Auto-pausing live match...');
+    console.log('Auto-pausing live match...');
     if (typeof autoPauseIfLive !== 'undefined') autoPauseIfLive();
   }
   if (TournamentState.format) {
-    console.log('?? Saving tournament state...');
+    console.log('Saving tournament state...');
     DataManager.saveTournamentSlot(TournamentState);
   }
   try { if (typeof persistCurrentProgressIdentity === 'function') persistCurrentProgressIdentity(); } catch(e) {}
@@ -1074,6 +1077,9 @@ function _wireAudioUX() {
 }
 
 if (typeof window !== 'undefined') _wireAudioUX();
+
+
+
 
 
 
