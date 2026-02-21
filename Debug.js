@@ -19,17 +19,17 @@ const TournamentHistory = {
     }
     
     const formatNames = {
-      odiWorldCup: 'ODI World Cup ??',
-      t20WorldCup: 'T20 World Cup ??',
-      wtc: 'WTC Championship ??',
-      ipl: 'IPL Trophy ??'
+      odiWorldCup: 'ODI World Cup',
+      t20WorldCup: 'T20 World Cup',
+      wtc: 'WTC Championship',
+      ipl: 'IPL Trophy'
     };
     
     let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px">';
     
     wins.slice(-8).reverse().forEach(w => {
       html += `<div style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:18px;border-radius:12px;text-align:center;box-shadow:0 4px 12px rgba(102,126,234,0.3)">
-        <div style="font-size:2em;margin-bottom:8px">??</div>
+        <div style="font-size:2em;margin-bottom:8px">&#127942;</div>
         <div style="font-weight:700;margin-bottom:5px">${formatNames[w.format] || w.format}</div>
         <div style="font-size:13px;opacity:0.9">${Security.escapeHtml(w.teamName)}</div>
         <div style="font-size:11px;opacity:0.7;margin-top:5px">${new Date(w.date).toLocaleDateString()}</div>
@@ -167,34 +167,34 @@ function showHistoryTab(tab) {
 
 function renderAllMatches(container) {
   const matches = DataManager.getMatchHistory();
-  
+
   if (!matches || matches.length === 0) {
     container.innerHTML = '<p style="text-align:center;color:#a0aec0;padding:40px">No matches played yet</p>';
     return;
   }
-  
+
   let html = '<div style="max-height:500px;overflow-y:auto">';
-  
+
   matches.slice().reverse().forEach(m => {
     const resultColor = m.result === 'won' ? '#48bb78' : m.result === 'lost' ? '#ef4444' : '#f59e0b';
-    const resultText = m.result === 'won' ? '? WON' : m.result === 'lost' ? '? LOST' : '?? DRAW';
-    
+    const resultText = m.result === 'won' ? 'WON' : m.result === 'lost' ? 'LOST' : 'DRAW';
+
     html += `<div style="background:#f7fafc;padding:16px;border-radius:8px;margin-bottom:10px;border-left:4px solid ${resultColor}">
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
         <div>
           <strong style="color:#2d3748">${Security.escapeHtml(m.teamNames[0])} vs ${Security.escapeHtml(m.teamNames[1])}</strong>
-          ${m.tournament ? '<span style="background:#667eea;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px">?? Tournament</span>' : ''}
+          ${m.tournament ? '<span style="background:#667eea;color:white;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:8px">Tournament</span>' : ''}
         </div>
         <span style="color:${resultColor};font-weight:700;font-size:14px">${resultText}</span>
       </div>
       <div style="font-size:13px;color:#718096">
-        <span>?? ${m.date}</span>
-        <span style="margin-left:15px">?? ${m.format || 'Custom'}</span>
-        <span style="margin-left:15px">?? ${m.userRuns}/${m.userWickets} vs ${m.oppRuns}/${m.oppWickets}</span>
+        <span>${m.date}</span>
+        <span style="margin-left:15px">${m.format || 'Custom'}</span>
+        <span style="margin-left:15px">${m.userRuns}/${m.userWickets} vs ${m.oppRuns}/${m.oppWickets}</span>
       </div>
     </div>`;
   });
-  
+
   html += '</div>';
   container.innerHTML = html;
 }
@@ -218,7 +218,7 @@ function renderTournamentWins(container) {
   
   wins.slice().reverse().forEach(w => {
     html += `<div style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:25px;border-radius:15px;text-align:center;box-shadow:0 6px 20px rgba(102,126,234,0.4)">
-      <div style="font-size:3em;margin-bottom:10px">??</div>
+      <div style="font-size:3em;margin-bottom:10px"></div>
       <h3 style="color:white;margin-bottom:8px">${formatNames[w.format] || w.format}</h3>
       <div style="font-size:16px;font-weight:600;margin-bottom:5px">${Security.escapeHtml(w.teamName)}</div>
       <div style="font-size:13px;opacity:0.8">${new Date(w.date).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'})}</div>
@@ -231,16 +231,15 @@ function renderTournamentWins(container) {
 
 function renderCareerStats(container) {
   const stats = DataManager.getCareerStats();
-  
   const winRate = stats.totalMatches > 0 ? ((stats.won / stats.totalMatches) * 100).toFixed(1) : 0;
-  
+
   let html = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:25px">
       ${[
-        ['?? Total Matches', stats.totalMatches, '#667eea'],
-        ['? Won', stats.won, '#48bb78'],
-        ['? Lost', stats.lost, '#ef4444'],
-        ['?? Drawn', stats.drawn, '#f59e0b']
+        ['Total Matches', stats.totalMatches, '#667eea'],
+        ['Won', stats.won, '#48bb78'],
+        ['Lost', stats.lost, '#ef4444'],
+        ['Drawn', stats.drawn, '#f59e0b']
       ].map(([label, value, color]) => `
         <div style="background:${color};color:white;padding:20px;border-radius:12px;text-align:center">
           <div style="font-size:2.5em;font-weight:800;line-height:1">${value}</div>
@@ -248,41 +247,41 @@ function renderCareerStats(container) {
         </div>
       `).join('')}
     </div>
-    
+
     <div style="background:#f7fafc;padding:25px;border-radius:12px;margin-bottom:20px;border-left:4px solid #667eea">
-      <h4 style="color:#2d3748;margin-bottom:15px">?? Batting Performance</h4>
+      <h4 style="color:#2d3748;margin-bottom:15px">Batting Performance</h4>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px">
         ${[
           ['Total Runs', stats.totalRuns],
           ['Highest Score', stats.highestScore],
-          ['Centuries ??', stats.centuries || 0],
-          ['Half-Centuries 50', stats.fifties || 0],
-          ['Win Rate %', winRate + '%']
+          ['Centuries', stats.centuries || 0],
+          ['Half-Centuries', stats.fifties || 0],
+          ['Win Rate', winRate + '%']
         ].map(([l, v]) => `<div><div style="color:#718096;font-size:13px">${l}</div><div style="font-size:28px;font-weight:700;color:#2d3748">${v}</div></div>`).join('')}
       </div>
     </div>
-    
+
     <div style="background:#f7fafc;padding:25px;border-radius:12px;border-left:4px solid #f59e0b">
-      <h4 style="color:#2d3748;margin-bottom:15px">?? Bowling Performance</h4>
+      <h4 style="color:#2d3748;margin-bottom:15px">Bowling Performance</h4>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px">
         ${[
           ['Wickets Taken', stats.totalWickets],
-          ['Hat-Tricks ??', stats.hattricks || 0],
-          ['3-Wkt Hauls ??', stats.threeWickets || 0],
-          ['5-Wkt Hauls ????', stats.fiveWickets || 0],
-          ['10-Wkt Hauls ??', stats.tenWickets || 0]
+          ['Hat-Tricks', stats.hattricks || 0],
+          ['3-Wkt Hauls', stats.threeWickets || 0],
+          ['5-Wkt Hauls', stats.fiveWickets || 0],
+          ['10-Wkt Hauls', stats.tenWickets || 0]
         ].map(([l, v]) => `<div><div style="color:#718096;font-size:13px">${l}</div><div style="font-size:28px;font-weight:700;color:#2d3748">${v}</div></div>`).join('')}
       </div>
     </div>
   `;
-  
+
   container.innerHTML = html;
 }
 
 function renderLeaderboard(container) {
   container.innerHTML = `
     <div style="text-align:center;padding:30px 20px;color:#64748b">
-      <div style="font-size:2.8em;margin-bottom:10px">??</div>
+      <div style="font-size:2.8em;margin-bottom:10px"></div>
       <h3 style="color:#334155;margin-bottom:6px">Global Leaderboard</h3>
       <p style="max-width:520px;margin:0 auto;line-height:1.6">
         Top players by Rank Points, then Aura. Loading latest standings...
@@ -348,7 +347,7 @@ function renderLeaderboard(container) {
 
       let html = '<div style="display:grid;gap:8px">';
       rows.forEach((r, idx) => {
-        const medal = idx === 0 ? '??' : idx === 1 ? '??' : idx === 2 ? '??' : `#${idx + 1}`;
+        const medal = idx === 0 ? '&#129351;' : idx === 1 ? '&#129352;' : idx === 2 ? '&#129353;' : ('#' + (idx + 1));
         const mine = !!(currentUser && (currentUser.uid === r.uid || _normalizedEmail(currentUser.email || '') === _normalizedEmail(r.email || '')));
         html += `
           <div style="display:grid;grid-template-columns:70px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid ${mine ? '#60a5fa' : '#e2e8f0'};background:${mine ? '#eff6ff' : '#f8fafc'}">
@@ -379,36 +378,19 @@ function clearAllHistoryData() {
 function openResumeModal() {
   const modal = document.getElementById('resumeModal');
   const list = document.getElementById('resumeList');
-  
   if (!modal || !list) return;
-  
+
   const tournaments = DataManager.getPendingTournaments();
-  
-  if (tournaments.length === 0) {
+  if (!tournaments.length) {
     list.innerHTML = '<p style="text-align:center;color:#a0aec0">No saved tournaments found</p>';
     modal.style.display = 'flex';
     return;
   }
-  
-  const formatNames = {
-    odiWorldCup: 'ODI World Cup',
-    t20WorldCup: 'T20 World Cup',
-    wtc: 'World Test Championship',
-    ipl: 'Indian Premier League'
-  };
-  
-  const stageNames = {
-    challengeLeague: 'Challenge League',
-    super6: 'Super 6',
-    qualifier: 'Qualifier',
-    worldCup: 'World Cup',
-    wtc: 'WTC League',
-    ipl: 'IPL'
-  };
-  
-  let html = '';
-  tournaments.forEach(t => {
-    html += `<div style="background:#f7fafc;padding:18px;border-radius:10px;margin-bottom:12px;border-left:4px solid #667eea;cursor:pointer;transition:all 0.2s" onclick="resumeTournamentSlot(${t.id})" onmouseover="this.style.background='#edf2f7'" onmouseout="this.style.background='#f7fafc'">
+
+  const formatNames = { odiWorldCup:'ODI World Cup', t20WorldCup:'T20 World Cup', wtc:'World Test Championship', ipl:'Indian Premier League' };
+  const stageNames = { challengeLeague:'Challenge League', super6:'Super 6', qualifier:'Qualifier', worldCup:'World Cup', wtc:'WTC League', ipl:'IPL' };
+
+  list.innerHTML = tournaments.map(t => `<div style="background:#f7fafc;padding:18px;border-radius:10px;margin-bottom:12px;border-left:4px solid #667eea;cursor:pointer;transition:all 0.2s" onclick="resumeTournamentSlot('${Security.escapeHtml(String(t.id))}')" onmouseover="this.style.background='#edf2f7'" onmouseout="this.style.background='#f7fafc'">
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
         <div>
           <strong style="color:#2d3748;font-size:16px">${formatNames[t.format] || t.format}</strong>
@@ -417,13 +399,11 @@ function openResumeModal() {
         <span style="background:#667eea;color:white;padding:4px 10px;border-radius:6px;font-size:12px">${stageNames[t.stage] || t.stage}</span>
       </div>
       <div style="font-size:12px;color:#718096">
-        <span>?? Started: ${t.startDate}</span><br>
-        <span>?? Last saved: ${t.lastSaved}</span>
+        <span>Started: ${t.startDate}</span><br>
+        <span>Last saved: ${t.lastSaved}</span>
       </div>
-    </div>`;
-  });
-  
-  list.innerHTML = html;
+    </div>`).join('');
+
   modal.style.display = 'flex';
 }
 
@@ -433,32 +413,31 @@ function closeResumeModal() {
 }
 
 function resumeTournamentSlot(slotId) {
-  const slot = DataManager.loadTournamentSlot(slotId);
+  const key = String(slotId || '').trim();
+  let slot = DataManager.loadTournamentSlot(key);
+  if (!slot && /^\d+$/.test(key)) slot = DataManager.loadTournamentSlot(Number(key));
   if (!slot) {
     uiAlert('Tournament not found!', 'Resume Tournament');
     return;
   }
-  
+
   const ts = slot.tournamentState;
-  Object.keys(ts).forEach(k => {
-    TournamentState[k] = ts[k];
-  });
-  
+  Object.keys(ts).forEach(k => { TournamentState[k] = ts[k]; });
+
   closeResumeModal();
   showSection('tournament');
-  
+
   const titles = {
-    odiWorldCup: '?? ODI World Cup',
-    t20WorldCup: '?? T20 World Cup',
-    wtc: '?? World Test Championship',
-    ipl: '?? Indian Premier League'
+    odiWorldCup: 'ODI World Cup',
+    t20WorldCup: 'T20 World Cup',
+    wtc: 'World Test Championship',
+    ipl: 'Indian Premier League'
   };
-  
-  Utils.setText('tournamentTitle', titles[TournamentState.format] || '?? Tournament');
-  
+
+  Utils.setText('tournamentTitle', titles[TournamentState.format] || 'Tournament');
+
   const nav = Utils.getElement('tournamentNav');
   const sb = Utils.getElement('statsCornerBtn');
-  
   if (TournamentState.format === 'wtc' || TournamentState.format === 'ipl') {
     if (nav) nav.style.display = 'none';
     if (sb) sb.style.display = 'block';
@@ -466,16 +445,12 @@ function resumeTournamentSlot(slotId) {
     if (nav) nav.style.display = 'flex';
     if (sb) sb.style.display = 'none';
   }
-  
-  if (TournamentState.format === 'wtc') {
-    showWTCStage();
-  } else if (TournamentState.format === 'ipl') {
-    showIPLStage();
-  } else {
-    showTournamentStage(TournamentState.currentStage);
-  }
-  
-  showToast('? Tournament resumed!', '#48bb78');
+
+  if (TournamentState.format === 'wtc') showWTCStage();
+  else if (TournamentState.format === 'ipl') showIPLStage();
+  else showTournamentStage(TournamentState.currentStage);
+
+  showToast('Tournament resumed!', '#48bb78');
 }
 
 // ============================================================================
@@ -756,7 +731,7 @@ function updateAuthUI() {
 
     const usernameInput = document.getElementById('usernameInput');
     const saveBtn = document.getElementById('usernameSaveBtn');
-    const locked = localStorage.getItem('hc_username_locked') === '1' || !!localStorage.getItem('hc_cloud_username');
+    const locked = localStorage.getItem('hc_username_locked') === '1';
     if (usernameInput) {
       usernameInput.value = chosenName || '';
       usernameInput.disabled = locked;
@@ -890,11 +865,12 @@ async function syncProgressToCloud(reason, silent){
 
   const explicitUserName = String(localStorage.getItem('hc_username') || localStorage.getItem('hc_cloud_username') || '').trim();
   const uname = explicitUserName || String((currentUser && currentUser.displayName) || 'Player').trim();
+  const localUsernameLocked = localStorage.getItem('hc_username_locked') === '1';
   const payload = {
     userId: currentUser.uid,
     userName: uname,
     displayName: uname,
-    usernameLocked: !!uname,
+    usernameLocked: !!localUsernameLocked,
     googleEmail: _normalizedEmail(currentUser.email || ''),
     photoURL: currentUser.photoURL || '',
     tournaments: (merged.tournaments||[]).map(t=>({ id:t.id, format:t.format, teamKey:t.teamKey, teamName:t.teamName, stage:t.stage, startDate:t.startDate, lastSaved:t.lastSaved, dataVersion:t.dataVersion })),
@@ -924,7 +900,7 @@ function saveProgressToCloud() {
   syncProgressToCloud('manual-save', false)
     .then(() => {
       const lastSyncEl = document.getElementById('lastSyncTime');
-      if (lastSyncEl) lastSyncEl.textContent = '?? Last synced: ' + new Date().toLocaleString();
+      if (lastSyncEl) lastSyncEl.textContent = ' Last synced: ' + new Date().toLocaleString();
       publishLeaderboardProfileToCloud();
     })
     .catch(error => {
@@ -941,14 +917,19 @@ function loadProgressFromCloud() {
         localStorage.setItem('hc_username', String(data.userName));
         localStorage.setItem('hc_cloud_username', String(data.userName));
       }
-      if (data && data.userName) localStorage.setItem('hc_username_locked', '1');
+      if (data && data.userName) {
+        if (data.usernameLocked) localStorage.setItem('hc_username_locked', '1');
+        else localStorage.removeItem('hc_username_locked');
+      } else {
+        localStorage.removeItem('hc_username_locked');
+      }
       const lastSyncEl = document.getElementById('lastSyncTime');
-      if (lastSyncEl) lastSyncEl.textContent = '?? Last synced: ' + new Date().toLocaleString();
+      if (lastSyncEl) lastSyncEl.textContent = ' Last synced: ' + new Date().toLocaleString();
       TournamentHistory.displayHistory();
       checkResumeBtnVisibility();
       updatePlayerProfileUI();
       updateAuthUI();
-      showToast('? Progress loaded from cloud!', '#48bb78');
+      showToast('Progress loaded from cloud!', '#48bb78');
     })
     .catch(error => {
       console.error('Cloud load error:', error);
@@ -1037,7 +1018,7 @@ function downloadPDF() {
   const filename = `HandCricket_${GameState.teamNames[0]}_vs_${GameState.teamNames[1]}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(filename);
   
-  showToast('?? Scorecard downloaded!', '#48bb78');
+  showToast(' Scorecard downloaded!', '#48bb78');
 }
 
 // ============================================================================
@@ -1090,11 +1071,12 @@ function publishLeaderboardProfileToCloud() {
   const localSnap = _buildLocalProgressSnapshot();
   const explicitUserName = String(localStorage.getItem('hc_username') || localStorage.getItem('hc_cloud_username') || '').trim();
   const uname = explicitUserName || String((currentUser && currentUser.displayName) || 'Player').trim();
+  const localUsernameLocked = localStorage.getItem('hc_username_locked') === '1';
   const payload = {
     userId: currentUser.uid,
     userName: uname,
     displayName: uname,
-    usernameLocked: !!uname,
+    usernameLocked: !!localUsernameLocked,
     googleEmail: _normalizedEmail(currentUser.email || ''),
     photoURL: currentUser.photoURL || '',
     rankPoints: Number((localSnap.playerProfile||{}).rankPoints || 0),
@@ -1195,43 +1177,3 @@ function renderHallOfFame(container){
   `;
   container.innerHTML = html;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
